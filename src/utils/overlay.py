@@ -19,7 +19,7 @@ class OnScreenOverlay:
     Exibe logs em tempo real por cima do jogo/OBS sem bloquear cliques do mouse (Click-Through).
     """
 
-    def __init__(self, width: int = 550, height: int = 220, pos_x: int = 20, pos_y: int = 40):
+    def __init__(self, width: int = 350, height: int = 230, pos_x: int = 0, pos_y: int = 800):
         self.width = width
         self.height = height
         self.pos_x = pos_x
