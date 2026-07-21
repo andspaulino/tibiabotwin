@@ -10,23 +10,35 @@ Diferente de bots que leem ou injetam dados na memória do jogo, este bot age pu
 
 ## 🚀 Funcionalidades Concluídas
 
-### 1. Captura Otimizada & Janela Invisível (`launcher.py` + `src/utils/window.py`)
+### 1. Captura Otimizada & Trava de Foco (`launcher.py` + `src/utils/window.py`)
 - Ocultação da janela do Tibia com opacidade 1 via Win32 API `SetLayeredWindowAttributes`.
 - Captura de tela ao vivo sem lag focando na janela do **Projetor do OBS Studio**.
-- Restauração automática da visibilidade nativa da janela ao encerrar o bot.
+- **Trava de Foco Ativo (`is_window_active`)**: O bot só executa ações quando a janela do Tibia for a janela ativa no Windows.
+- **Trava de Minimizado (`is_window_minimized`)**: Pausa automática caso a janela seja minimizada.
+- Restauração automática da visibilidade nativa ao encerrar.
 
-### 2. Visão Computacional & Análise de Barras (`src/utils/screen.py`)
+### 2. Visão Computacional & Análise de Interface (`src/utils/screen.py`)
 - **Barra de Vida (HP)**: Análise por amostragem de dominância de cor BGR.
-- **Barra de Mana (MP)**: Filtro de cor azul que desconsidera textos brancos e bordas cinzas.
-- **Barra de Status**: Leitura de atividade de ícones de status.
-- **Protection Zone (PZ)**: Template Matching (`templates/pz.png`) + validação de cor azul (`is_in_pz()`) com emissão de logs em tempo real.
+- **Barra de Mana (MP)**: Filtro de cor azul desconsiderando textos e bordas.
+- **Protection Zone (PZ)**: Template Matching (`templates/pz.png`) + validação de cor azul (`is_in_pz()`).
+- **Battle List & Targeting**: Mapeamento da ROI (`top: 390, left: 1744`) e filtro de densidade de pixels de HP bar (`hp_pixels >= 10`).
 
 ### 3. Auto-Healer Inteligente (`src/bot/healer.py`)
-- **Hotkey 1**: Magia de Cura (disparada quando `HP <= 90%`).
-- **Hotkey 2**: Poção de Mana (disparada quando `MP <= 50%`).
-- **Hotkey 3**: Poção de Vida (Emergência - disparada quando `HP <= 30%`).
+- **Hotkey 1**: Magia de Cura (`HP <= 90%`, execução silenciosa).
+- **Hotkey 2**: Poção de Mana (`MP <= 50%`, execução silenciosa).
+- **Hotkey 3**: Poção de Vida (`HP <= 30%`, registrado no log de emergência).
 - **Pausa Automática em PZ**: Interrompe magias e poções em Protection Zone.
-- **Gerenciador de Cooldowns**: Intervalo seguro (1.0s) para evitar envio excessivo de teclas.
+
+### 4. Auto-Attacker & Targeting (`src/bot/combat.py`)
+- **Ataque Automático (`Space`)**: Seleção de alvos presentes na Battle List com intervalo humanizado.
+- **Reconhecimento de Alvo Ativo**: Identificação de moldura vermelha via densidade de cor + Template Matching (`templates/target_red.png` 20x20).
+- **Zero Repetição de Atalhos**: Mantém o combate travado sem spam indevido de teclas.
+
+### 5. Logger Centralizado & HUD Overlay (`src/utils/logger.py` + `src/utils/overlay.py`)
+- **Logger Central**: Formatação padronizada por categorias (`HEALER`, `COMBAT`, `PZ`, `SYSTEM`).
+- **Sincronização para OBS**: Exportação contínua para `logs_hud.txt` (Fonte de texto GDI+ no OBS).
+- **HUD Transparente On-Screen**: Janela flutuante no canto inferior da tela com a flag **Click-Through** (`WS_EX_TRANSPARENT`).
+- **Módulo de Humanização (`src/utils/humanizer.py`)**: Delays com Curva de Gauss, retenção de teclas entre 30ms-75ms e Curvas de Bézier.
 
 ---
 
@@ -61,20 +73,27 @@ tibia-bot/
 ├── src/
 │   ├── bot/
 │   │   ├── healer.py      # Módulo AutoHealer (Hotkeys 1, 2, 3)
-│   │   └── combat.py      # Módulo AutoAttacker (Fase 3)
+│   │   └── combat.py      # Módulo AutoAttacker (Battle List e target_red)
 │   ├── utils/
-│   │   ├── window.py      # Controle Win32 e opacidade de janelas
-│   │   ├── screen.py      # Captura MSS, leitura de HP/MP/PZ e OpenCV
-│   │   └── input.py       # Simulação DirectX (pydirectinput)
+│   │   ├── window.py      # Controle Win32, foco e minimização de janelas
+│   │   ├── screen.py      # Captura MSS, leitura de HP/MP/PZ/Battle List
+│   │   ├── input.py       # Simulação DirectX (pydirectinput)
+│   │   ├── humanizer.py   # Delays gaussianos, key holds e curvas de Bézier
+│   │   ├── logger.py      # Logger centralizado e sincronização de logs_hud.txt
+│   │   └── overlay.py     # HUD Transparente On-Screen (Click-Through)
 │   └── main.py            # Motor principal e loop de monitoramento
-├── templates/             # Templates para Template Matching (ex: pz.png)
+├── templates/             # Imagens base para Template Matching (pz.png, target_red.png)
 ├── tests/                 # Utilitários de testes e ROI
 │   ├── test_bars.py       # Teste de leitura de HP/MP/Status
 │   ├── test_pz.py         # Teste de detecção dinâmica de PZ
+│   ├── test_combat.py     # Teste de combate e Battle List
+│   ├── test_humanizer.py  # Teste de delays e curvas de Bézier
+│   ├── test_overlay.py    # Teste do HUD transparente de tela
 │   ├── get_roi.py         # Seletor interativo de coordenadas de ROI
 │   └── get_mouse_pos.py   # Inspetor de posição do cursor
 ├── launcher.py            # Atalho/Iniciador principal na raiz
-├── requirements.txt       # Dependências do projeto
+├── requirements.txt       # Dependências do Python
+├── AGENTS.md              # Diretrizes para Agentes de IA
 └── README.md              # Documentação principal
 ```
 
