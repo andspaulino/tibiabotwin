@@ -5,6 +5,11 @@ import time
 # Garante importações a partir do diretório raiz
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+try:
+    import keyboard
+except ImportError:
+    keyboard = None
+
 from src.utils.window import (
     find_windows_by_title,
     set_window_opacity,
@@ -31,6 +36,17 @@ if sys.platform == "win32":
         sys.stderr.reconfigure(encoding='utf-8')
     except Exception:
         pass
+
+killswitch_paused = False
+
+def toggle_killswitch(e=None):
+    """Callback acionado ao pressionar a tecla de emergência (Pause)."""
+    global killswitch_paused
+    killswitch_paused = not killswitch_paused
+    if killswitch_paused:
+        logger.log("SYSTEM", "🛑 KILLSWITCH ACIONADO: Bot PAUSADO (tecla PAUSE).", level="WARNING")
+    else:
+        logger.log("SYSTEM", "▶️ KILLSWITCH DESATIVADO: Bot RETOMADO.", level="INFO")
 
 def check_and_prepare_windows():
     """Verifica e prepara as janelas do Tibia e OBS."""
@@ -68,6 +84,14 @@ def run():
         logger.log("SYSTEM", "Por favor, certifique-se de que o Tibia e o OBS estao abertos antes de iniciar.", level="WARNING")
         return
 
+    # Registra o Killswitch de emergência na tecla Pause
+    if keyboard is not None:
+        try:
+            keyboard.on_press_key('pause', toggle_killswitch)
+            logger.log("SYSTEM", "Killswitch registrado na tecla PAUSE.")
+        except Exception as err:
+            logger.log("SYSTEM", f"Aviso ao registrar hotkey global: {err}", level="WARNING")
+
     # Ajusta opacidade da janela do Tibia
     logger.log("SYSTEM", "Aplicando opacidade para ocultar a janela do Tibia...")
     set_window_opacity(hwnd_tibia, 1)
@@ -90,7 +114,12 @@ def run():
         was_inactive = False
 
         while True:
-            # 0. Garante que o bot só executa se a janela do Tibia for a JANELA ATIVA (Foco do Windows)
+            # 0A. Verifica se o Killswitch de emergência está pausado
+            if killswitch_paused:
+                time.sleep(0.2)
+                continue
+
+            # 0B. Garante que o bot só executa se a janela do Tibia for a JANELA ATIVA (Foco do Windows)
             if not is_window_active(hwnd_tibia):
                 if not was_inactive:
                     logger.log("SYSTEM", "Tibia sem foco/fora de selecao. Bot pausado...", level="WARNING")
@@ -133,6 +162,11 @@ def run():
         logger.log("SYSTEM", "Encerrando bot por solicitacao do usuario...")
     finally:
         logger.log("SYSTEM", "Restaurando visibilidade normal da janela do Tibia...")
+        if keyboard is not None:
+            try:
+                keyboard.unhook_all()
+            except Exception:
+                pass
         overlay.stop()
         reset_window_opacity(hwnd_tibia)
         capturer.close()

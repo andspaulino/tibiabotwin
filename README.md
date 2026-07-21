@@ -17,24 +17,27 @@ Diferente de bots que leem ou injetam dados na memória do jogo, este bot age pu
 - **Trava de Minimizado (`is_window_minimized`)**: Pausa automática caso a janela seja minimizada.
 - Restauração automática da visibilidade nativa ao encerrar.
 
-### 2. Visão Computacional & Análise de Interface (`src/utils/screen.py`)
+### 2. Killswitch de Emergência (`src/main.py`)
+- **Tecla de Pânico (`Pause`)**: Atalho global do Windows que intercala entre **Pausado** e **Em Execução** instantaneamente a qualquer momento.
+
+### 3. Visão Computacional & Análise de Interface (`src/utils/screen.py`)
 - **Barra de Vida (HP)**: Análise por amostragem de dominância de cor BGR.
 - **Barra de Mana (MP)**: Filtro de cor azul desconsiderando textos e bordas.
 - **Protection Zone (PZ)**: Template Matching (`templates/pz.png`) + validação de cor azul (`is_in_pz()`).
 - **Battle List & Targeting**: Mapeamento da ROI (`top: 390, left: 1744`) e filtro de densidade de pixels de HP bar (`hp_pixels >= 10`).
 
-### 3. Auto-Healer Inteligente (`src/bot/healer.py`)
+### 4. Auto-Healer Inteligente (`src/bot/healer.py`)
 - **Hotkey 1**: Magia de Cura (`HP <= 90%`, execução silenciosa).
 - **Hotkey 2**: Poção de Mana (`MP <= 50%`, execução silenciosa).
 - **Hotkey 3**: Poção de Vida (`HP <= 30%`, registrado no log de emergência).
 - **Pausa Automática em PZ**: Interrompe magias e poções em Protection Zone.
 
-### 4. Auto-Attacker & Targeting (`src/bot/combat.py`)
+### 5. Auto-Attacker & Targeting (`src/bot/combat.py`)
 - **Ataque Automático (`Space`)**: Seleção de alvos presentes na Battle List com intervalo humanizado.
 - **Reconhecimento de Alvo Ativo**: Identificação de moldura vermelha via densidade de cor + Template Matching (`templates/target_red.png` 20x20).
 - **Zero Repetição de Atalhos**: Mantém o combate travado sem spam indevido de teclas.
 
-### 5. Logger Centralizado & HUD Overlay (`src/utils/logger.py` + `src/utils/overlay.py`)
+### 6. Logger Centralizado & HUD Overlay (`src/utils/logger.py` + `src/utils/overlay.py`)
 - **Logger Central**: Formatação padronizada por categorias (`HEALER`, `COMBAT`, `PZ`, `SYSTEM`).
 - **Sincronização para OBS**: Exportação contínua para `logs_hud.txt` (Fonte de texto GDI+ no OBS).
 - **HUD Transparente On-Screen**: Janela flutuante no canto inferior da tela com a flag **Click-Through** (`WS_EX_TRANSPARENT`).
@@ -64,6 +67,8 @@ Devido ao bloqueio de renderização direta do cliente do Tibia (tela preta), o 
    python launcher.py
    ```
 
+3. **Para pausar/retomar a qualquer momento**: Pressione a tecla **`Pause`** no teclado.
+
 ---
 
 ## 📁 Estrutura do Projeto
@@ -81,12 +86,13 @@ tibia-bot/
 │   │   ├── humanizer.py   # Delays gaussianos, key holds e curvas de Bézier
 │   │   ├── logger.py      # Logger centralizado e sincronização de logs_hud.txt
 │   │   └── overlay.py     # HUD Transparente On-Screen (Click-Through)
-│   └── main.py            # Motor principal e loop de monitoramento
+│   └── main.py            # Motor principal e escuta do Killswitch (Pause)
 ├── templates/             # Imagens base para Template Matching (pz.png, target_red.png)
 ├── tests/                 # Utilitários de testes e ROI
 │   ├── test_bars.py       # Teste de leitura de HP/MP/Status
 │   ├── test_pz.py         # Teste de detecção dinâmica de PZ
 │   ├── test_combat.py     # Teste de combate e Battle List
+│   ├── test_killswitch.py # Teste da tecla de pânico (Pause)
 │   ├── test_humanizer.py  # Teste de delays e curvas de Bézier
 │   ├── test_overlay.py    # Teste do HUD transparente de tela
 │   ├── get_roi.py         # Seletor interativo de coordenadas de ROI
@@ -101,4 +107,4 @@ tibia-bot/
 
 ## ⚠️ Isenção de Responsabilidade (Disclaimer)
 
-Este projeto tem fins estritamente de estudo e aprendizado sobre visão computacional e automação. O uso de softwares de automação (bots) viola os Termos de Serviço do Tibia (CipSoft) e pode resultar na exclusão permanente da sua conta. Use por sua conta e risco.
+Este projeto tem fins estritamente de estudo e aprendizado sobre visão computacional e automação. O uso de softwares de automação (bots) viola os Termos de Serviço do Tibia (CipSoft) e pode resultar na exclusão permanente da sua conta. Use por sua conta e risk.
