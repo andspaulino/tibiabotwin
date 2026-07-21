@@ -4,6 +4,13 @@ import time
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 from src.utils.logger import logger
 from src.utils.overlay import OnScreenOverlay
 
@@ -17,21 +24,21 @@ def main():
     overlay.start()
 
     time.sleep(1)
-    logger.log("SYSTEM", "Módulo de teste do HUD iniciado.")
+    logger.log("SYSTEM", "Modulo de teste do HUD iniciado.")
     time.sleep(1)
-    logger.log("HEALER", "[+] Vida em 88.5% (<= 90%). Usando Magia de Cura (HK 1).", level="ACTION")
+    logger.log("HEALER", "[+] Magia de Cura (85%)", level="ACTION")
     time.sleep(1)
-    logger.log("COMBAT", "⚔️ Inimigo detectado na Battle List. Atacando (HK 'SPACE')...", level="ACTION")
+    logger.log("COMBAT", "Atacando inimigo", level="ACTION")
     time.sleep(1)
-    logger.log("PZ", "O personagem ENTROU em Protection Zone (PZ).", level="ACTION")
+    logger.log("PZ", "Entrou em PZ", level="ACTION")
     time.sleep(1)
-    logger.log("HEALER", "[*] Mana em 45.0% (<= 50%). Usando Pocao de Mana (HK 2).", level="ACTION")
+    logger.log("HEALER", "[*] Pocao de Mana (45%)", level="ACTION")
     time.sleep(2)
 
     print("\nEncerrando teste do Overlay...")
     overlay.stop()
     print("==================================================")
-    print("[OK] Teste concluído com sucesso!")
+    print("[OK] Teste concluido com sucesso!")
     print("==================================================")
 
 if __name__ == "__main__":

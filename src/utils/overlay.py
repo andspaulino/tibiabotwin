@@ -103,7 +103,7 @@ class OnScreenOverlay:
         for log in recent_logs:
             cat = log["category"]
             fg_color = color_map.get(cat, "#c9d1d9")
-            text_line = f"{log['timestamp']} [{cat:7s}] {log['message']}"
+            text_line = f"[{cat:7s}] {log['message']}"
 
             lbl = tk.Label(
                 self.log_container,

@@ -36,6 +36,8 @@ class AutoHealer:
     def check_and_heal(self, current_hp_pct: float, current_mp_pct: float, in_pz: bool = False):
         """
         Verifica as porcentagens atuais de HP e MP e aciona as hotkeys correspondentes.
+        - Magias de cura e poções de mana executam silenciosamente.
+        - Apenas emergências com Poção de Vida são registradas no log.
         """
         if not self.enabled or in_pz:
             return
@@ -46,7 +48,7 @@ class AutoHealer:
 
         now = time.time()
 
-        # 1. EMERGÊNCIA: Poção de Vida (Hotkey 3) se HP <= 30%
+        # 1. EMERGÊNCIA: Poção de Vida (Hotkey 3) se HP <= 30% -> REGISTRA NO LOG
         if current_hp_pct <= self.potion_hp_threshold:
             if now - self.last_potion_time >= self.potion_cooldown:
                 logger.log("HEALER", f"Pocao de Vida ({current_hp_pct * 100:.0f}%)", level="WARNING")
@@ -54,16 +56,14 @@ class AutoHealer:
                 self.last_potion_time = now
                 return
 
-        # 2. CURA PRIMÁRIA: Magia de Cura (Hotkey 1) se HP <= 90%
+        # 2. CURA PRIMÁRIA: Magia de Cura (Hotkey 1) se HP <= 90% -> Silencioso
         if current_hp_pct <= self.spell_hp_threshold:
             if now - self.last_spell_time >= self.spell_cooldown:
-                logger.log("HEALER", f"Magia de Cura ({current_hp_pct * 100:.0f}%)", level="ACTION")
                 press_key('1')
                 self.last_spell_time = now
 
-        # 3. MANA: Poção de Mana (Hotkey 2) se MP <= 50%
+        # 3. MANA: Poção de Mana (Hotkey 2) se MP <= 50% -> Silencioso
         if current_mp_pct <= self.mp_threshold:
             if now - self.last_potion_time >= self.potion_cooldown:
-                logger.log("HEALER", f"Pocao de Mana ({current_mp_pct * 100:.0f}%)", level="ACTION")
                 press_key('2')
                 self.last_potion_time = now
