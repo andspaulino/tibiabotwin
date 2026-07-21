@@ -1,31 +1,14 @@
 import sys
-import subprocess
 import time
 import os
 import ctypes
 from ctypes import wintypes
 
-def install_and_import(import_name, install_name=None):
-    if install_name is None:
-        install_name = import_name
-    try:
-        __import__(import_name)
-    except ImportError:
-        print(f"Instalando a biblioteca '{install_name}'...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", install_name])
-
-# Garante dependências
-try:
-    install_and_import('mss')
-    install_and_import('PIL', 'pillow')
-except Exception as e:
-    print(f"Erro ao instalar dependências: {e}")
-    sys.exit(1)
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import mss
 from PIL import Image
 
-# Configuração de APIs do Windows
 EnumWindows = ctypes.windll.user32.EnumWindows
 EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
 GetWindowTextW = ctypes.windll.user32.GetWindowTextW
@@ -48,7 +31,7 @@ def find_projector_windows():
     def enum_handler(hwnd, lparam):
         if IsWindowVisible(hwnd):
             title = get_window_title(hwnd)
-            if "projector" in title.lower() or "projetor" in title.lower():
+            if "projector" in title.lower() or "projetor" in title.lower() or "obs" in title.lower():
                 windows.append((hwnd, title))
         return True
     
@@ -63,8 +46,8 @@ def main():
     projectors = find_projector_windows()
 
     if not projectors:
-        print("\n❌ Nenhuma janela de 'Projetor' do OBS foi encontrada!")
-        print("Certifique-se de que a janela do Projetor do OBS está aberta.")
+        print("\n❌ Nenhuma janela de 'OBS' ou 'Projetor' foi encontrada!")
+        print("Certifique-se de que a janela do OBS/Projetor está aberta.")
         return
 
     if len(projectors) > 1:
@@ -80,14 +63,12 @@ def main():
     time.sleep(2)
 
     try:
-        # Pega a área do cliente (exclui barras de título e bordas da janela do Windows)
         client_rect = wintypes.RECT()
         GetClientRect(hwnd, ctypes.byref(client_rect))
         
         width = client_rect.right - client_rect.left
         height = client_rect.bottom - client_rect.top
 
-        # Converte o ponto superior-esquerdo (0,0) da área do cliente para coordenadas globais da tela
         pt = POINT(0, 0)
         ClientToScreen(hwnd, ctypes.byref(pt))
         left, top = pt.x, pt.y

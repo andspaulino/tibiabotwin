@@ -2,7 +2,7 @@ import time
 import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.utils.window import find_windows_by_title, set_window_opacity, reset_window_opacity
 
@@ -12,10 +12,7 @@ def main():
     print("==================================================")
     print("Procurando janelas de jogo do Tibia...")
 
-    # Busca janelas
     all_windows = find_windows_by_title("Tibia")
-
-    # Prioriza janelas do cliente do Tibia (que costumam começar com 'Tibia - ')
     tibia_windows = [w for w in all_windows if w[1].startswith("Tibia - ")]
     
     if not tibia_windows:

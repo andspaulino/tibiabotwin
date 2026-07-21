@@ -1,0 +1,1 @@
+# Tibia Bot Core Package
