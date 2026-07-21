@@ -95,7 +95,7 @@ def locate_template(img, template, threshold: float = 0.8):
 HP_BAR_ROI = {'top': 0, 'left': 359, 'width': 539, 'height': 20}
 MP_BAR_ROI = {'top': 1, 'left': 1024, 'width': 537, 'height': 19}
 STATUS_BAR_ROI = {'top': 1, 'left': 915, 'width': 110, 'height': 18}
-BATTLE_LIST_ROI = {'top': 160, 'left': 1740, 'width': 160, 'height': 350}
+BATTLE_LIST_ROI = {'top': 390, 'left': 1744, 'width': 111, 'height': 98}
 
 def crop_roi(img, roi: dict):
     """Corta uma Região de Interesse (ROI) da imagem OpenCV BGR."""
@@ -203,7 +203,7 @@ def is_in_pz(img, pz_template_path: str = "templates/pz.png", threshold: float =
 def has_monsters_in_battle(img, roi: dict = BATTLE_LIST_ROI) -> bool:
     """
     Verifica se há alvos/criaturas presentes na região da Battle List.
-    Avalia a contagem de pixels ativos (barras de vida de criaturas / nomes) em relação ao fundo escuro.
+    Avalia a presença de barrinhas de vida (vermelho/amarelo/verde) ou texto claro dentro da Battle List.
     """
     if np is None:
         return False
@@ -211,14 +211,16 @@ def has_monsters_in_battle(img, roi: dict = BATTLE_LIST_ROI) -> bool:
     if battle_img.size == 0:
         return False
 
-    # Na Battle List, entradas de monstros possuem nomes com pixels claros e barrinhas de vida
-    active_pixels = int(np.sum(np.sum(battle_img, axis=2) > 80))
-    return bool(active_pixels > 50)
+    # Barrinhas de vida dos monstros na Battle List (Pixels com verde, amarelo ou vermelho vívido)
+    has_hp_bar = np.any(((battle_img[:, :, 2] > 140) & (battle_img[:, :, 1] < 80)) |   # Vermelho
+                        ((battle_img[:, :, 2] > 140) & (battle_img[:, :, 1] > 140)) |  # Amarelo
+                        ((battle_img[:, :, 1] > 140) & (battle_img[:, :, 2] < 80)))    # Verde
+    return bool(has_hp_bar)
 
-def has_active_target(img, roi: dict = BATTLE_LIST_ROI) -> bool:
+def has_active_target(img, roi: dict = BATTLE_LIST_ROI, target_template_path: str = "templates/target_red.png") -> bool:
     """
     Verifica se há um alvo ativo atualmente selecionado (moldura de ataque vermelha viva na Battle List).
-    Na interface do Tibia, o alvo selecionado possui uma moldura vermelha intensa em volta de sua linha.
+    Utiliza filtro de cor vermelha pura e validação por template matching (target_red.png).
     """
     if np is None:
         return False
@@ -226,9 +228,20 @@ def has_active_target(img, roi: dict = BATTLE_LIST_ROI) -> bool:
     if battle_img.size == 0:
         return False
 
-    # Procura por pixels com Vermelho puro dominante (R > 180, G < 60, B < 60)
-    red_mask = (battle_img[:, :, 2] > 180) & (battle_img[:, :, 1] < 60) & (battle_img[:, :, 0] < 60)
+    # 1. Validação rápida por densidade de cor vermelha pura da moldura (R > 180, G < 50, B < 50)
+    red_mask = (battle_img[:, :, 2] > 180) & (battle_img[:, :, 1] < 50) & (battle_img[:, :, 0] < 50)
     red_target_pixels = int(np.sum(red_mask))
-    
-    # Se houver moldura vermelha (pelo menos 15 pixels formando a borda)
-    return bool(red_target_pixels >= 15)
+
+    if red_target_pixels >= 12:
+        return True
+
+    # 2. Validação por Template Matching se o arquivo target_red.png existir
+    if cv2 is not None and os.path.exists(target_template_path):
+        template = cv2.imread(target_template_path)
+        if template is not None and battle_img.shape[0] >= template.shape[0] and battle_img.shape[1] >= template.shape[1]:
+            res = cv2.matchTemplate(battle_img, template, cv2.TM_CCOEFF_NORMED)
+            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+            if max_val >= 0.75:
+                return True
+
+    return False
