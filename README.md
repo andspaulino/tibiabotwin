@@ -4,6 +4,8 @@ Este é um projeto para o desenvolvimento de um bot para Tibia utilizando técni
 
 Diferente de bots que leem ou injetam dados na memória do jogo, este bot age puramente observando a tela (pixels e padrões) e simulando comandos de teclado/mouse de forma humanizada, o que torna sua detecção por sistemas como o BattlEye extremamente mais complexa.
 
+📌 **Acompanhe o roadmap e próximos passos em [NEXT_STEPS.md](file:///c:/Users/ander/Projects/tibia-bot/NEXT_STEPS.md)**.
+
 ---
 
 ## 🚀 Funcionalidades Planejadas

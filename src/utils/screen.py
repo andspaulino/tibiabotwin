@@ -90,3 +90,78 @@ def locate_template(img, template, threshold: float = 0.8):
     if max_val >= threshold:
         return max_val, max_loc
     return None
+
+# ROIs mapeadas da interface (Projetor OBS)
+HP_BAR_ROI = {'top': 0, 'left': 359, 'width': 539, 'height': 20}
+MP_BAR_ROI = {'top': 1, 'left': 1024, 'width': 537, 'height': 19}
+STATUS_BAR_ROI = {'top': 1, 'left': 915, 'width': 110, 'height': 18}
+
+def crop_roi(img, roi: dict):
+    """Corta uma Região de Interesse (ROI) da imagem OpenCV BGR."""
+    top, left, width, height = roi['top'], roi['left'], roi['width'], roi['height']
+    return img[top:top+height, left:left+width]
+
+def get_hp_percentage(img, roi: dict = HP_BAR_ROI) -> float:
+    """
+    Calcula a porcentagem atual de Vida (HP) na ROI da barra (retorna valor de 0.0 a 1.0).
+    """
+    if np is None:
+        return 0.0
+    roi_img = crop_roi(img, roi)
+    if roi_img.size == 0:
+        return 0.0
+    
+    # Amostragem da linha horizontal central da barra
+    mid_y = roi_img.shape[0] // 2
+    row = roi_img[mid_y, :]
+    
+    # Verifica pixels onde a soma BGR é superior ao fundo escuro da barra vazia
+    filled_pixels = np.sum(np.sum(row, axis=1) > 40)
+    total_pixels = row.shape[0]
+    
+    return float(filled_pixels / total_pixels) if total_pixels > 0 else 0.0
+
+def get_mp_percentage(img, roi: dict = MP_BAR_ROI) -> float:
+    """
+    Calcula a porcentagem atual de Mana (MP) na ROI da barra (retorna valor de 0.0 a 1.0).
+    """
+    if np is None:
+        return 0.0
+    roi_img = crop_roi(img, roi)
+    if roi_img.size == 0:
+        return 0.0
+    
+    mid_y = roi_img.shape[0] // 2
+    row = roi_img[mid_y, :]
+    
+    filled_pixels = np.sum(np.sum(row, axis=1) > 40)
+    total_pixels = row.shape[0]
+    
+    return float(filled_pixels / total_pixels) if total_pixels > 0 else 0.0
+
+def get_status_bar_image(img, roi: dict = STATUS_BAR_ROI):
+    """
+    Retorna o recorte NumPy BGR da Barra de Status (ícones de envenenamento, paralisação, PZ, etc.).
+    """
+    return crop_roi(img, roi)
+
+def get_status_bar_activity(img, roi: dict = STATUS_BAR_ROI) -> dict:
+    """
+    Analisa a Barra de Status e retorna informações sobre a presença de ícones ativos.
+    """
+    if np is None:
+        return {"active": False, "active_pixels": 0}
+    
+    status_img = crop_roi(img, roi)
+    if status_img.size == 0:
+        return {"active": False, "active_pixels": 0}
+    
+    # Identifica pixels com iluminação/cor acima do fundo neutro
+    active_pixels = int(np.sum(np.sum(status_img, axis=2) > 60))
+    has_icons = active_pixels > 10
+    
+    return {
+        "active": has_icons,
+        "active_pixels": active_pixels,
+        "roi": roi
+    }
