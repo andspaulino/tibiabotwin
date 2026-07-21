@@ -203,7 +203,7 @@ def is_in_pz(img, pz_template_path: str = "templates/pz.png", threshold: float =
 def has_monsters_in_battle(img, roi: dict = BATTLE_LIST_ROI) -> bool:
     """
     Verifica se há alvos/criaturas presentes na região da Battle List.
-    Avalia a presença de barrinhas de vida (vermelho/amarelo/verde) ou texto claro dentro da Battle List.
+    Avalia se há uma barrinha de vida real de criatura (pelo menos 10 pixels de HP bar).
     """
     if np is None:
         return False
@@ -211,11 +211,14 @@ def has_monsters_in_battle(img, roi: dict = BATTLE_LIST_ROI) -> bool:
     if battle_img.size == 0:
         return False
 
-    # Barrinhas de vida dos monstros na Battle List (Pixels com verde, amarelo ou vermelho vívido)
-    has_hp_bar = np.any(((battle_img[:, :, 2] > 140) & (battle_img[:, :, 1] < 80)) |   # Vermelho
-                        ((battle_img[:, :, 2] > 140) & (battle_img[:, :, 1] > 140)) |  # Amarelo
-                        ((battle_img[:, :, 1] > 140) & (battle_img[:, :, 2] < 80)))    # Verde
-    return bool(has_hp_bar)
+    # Pixels característicos de barrinha de vida de monstros na Battle List (BGR)
+    hp_mask = (((battle_img[:, :, 2] > 160) & (battle_img[:, :, 1] < 60) & (battle_img[:, :, 0] < 60)) |  # Vermelho
+               ((battle_img[:, :, 2] > 160) & (battle_img[:, :, 1] > 160) & (battle_img[:, :, 0] < 60)) | # Amarelo
+               ((battle_img[:, :, 1] > 160) & (battle_img[:, :, 2] < 60) & (battle_img[:, :, 0] < 60)))   # Verde
+
+    hp_pixels = int(np.sum(hp_mask))
+    # Exige uma quantidade mínima de pixels para ser uma barrinha de vida de monstro real
+    return bool(hp_pixels >= 10)
 
 def has_active_target(img, roi: dict = BATTLE_LIST_ROI, target_template_path: str = "templates/target_red.png") -> bool:
     """
