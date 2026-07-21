@@ -37,6 +37,22 @@ Para fazer a captura de imagem de forma 100% segura e sem ler a memória do jogo
 
 ---
 
+## 🚀 Como Executar o Iniciador (Launcher)
+
+Para iniciar o processo com checagem automática das janelas e ocultação do cliente do Tibia:
+
+```bash
+python launcher.py
+```
+
+O iniciador irá:
+1. Checar se a janela do **Tibia** está aberta.
+2. Checar se o **OBS Studio** (ou Projetor do OBS) está aberto.
+3. Caso ambos estejam ativos, deixará a janela do Tibia **invisível** (opacidade 1).
+4. Ao fechar ou pressionar ENTER/Ctrl+C no terminal, o estado de visibilidade normal (opacidade 255) é automaticamente restaurado.
+
+---
+
 ## 🛠️ Stack Tecnológica
 
 O projeto é desenvolvido em **Python 3.10+** utilizando as seguintes bibliotecas:
