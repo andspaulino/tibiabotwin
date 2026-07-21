@@ -104,6 +104,7 @@ def crop_roi(img, roi: dict):
 def get_hp_percentage(img, roi: dict = HP_BAR_ROI) -> float:
     """
     Calcula a porcentagem atual de Vida (HP) na ROI da barra (retorna valor de 0.0 a 1.0).
+    Filtra pixels verdes/vermelhos da barra de vida vs fundo cinza/texto.
     """
     if np is None:
         return 0.0
@@ -111,12 +112,12 @@ def get_hp_percentage(img, roi: dict = HP_BAR_ROI) -> float:
     if roi_img.size == 0:
         return 0.0
     
-    # Amostragem da linha horizontal central da barra
     mid_y = roi_img.shape[0] // 2
-    row = roi_img[mid_y, :]
+    row = roi_img[mid_y, :]  # BGR
     
-    # Verifica pixels onde a soma BGR é superior ao fundo escuro da barra vazia
-    filled_pixels = np.sum(np.sum(row, axis=1) > 40)
+    # Pixel ativo de HP: canal Verde ou Vermelho dominante sobre o Azul
+    is_hp = ((row[:, 1] > row[:, 0] + 15) & (row[:, 1] > 50)) | ((row[:, 2] > row[:, 0] + 15) & (row[:, 2] > 50))
+    filled_pixels = np.sum(is_hp)
     total_pixels = row.shape[0]
     
     return float(filled_pixels / total_pixels) if total_pixels > 0 else 0.0
@@ -124,6 +125,7 @@ def get_hp_percentage(img, roi: dict = HP_BAR_ROI) -> float:
 def get_mp_percentage(img, roi: dict = MP_BAR_ROI) -> float:
     """
     Calcula a porcentagem atual de Mana (MP) na ROI da barra (retorna valor de 0.0 a 1.0).
+    Filtra pixels azuis da barra de mana vs texto/fundo.
     """
     if np is None:
         return 0.0
@@ -132,9 +134,11 @@ def get_mp_percentage(img, roi: dict = MP_BAR_ROI) -> float:
         return 0.0
     
     mid_y = roi_img.shape[0] // 2
-    row = roi_img[mid_y, :]
+    row = roi_img[mid_y, :]  # BGR
     
-    filled_pixels = np.sum(np.sum(row, axis=1) > 40)
+    # Pixel ativo de MP: canal Azul dominante sobre o Verde e Vermelho
+    is_mp = (row[:, 0] > row[:, 1] + 15) & (row[:, 0] > row[:, 2] + 15) & (row[:, 0] > 50)
+    filled_pixels = np.sum(is_mp)
     total_pixels = row.shape[0]
     
     return float(filled_pixels / total_pixels) if total_pixels > 0 else 0.0

@@ -26,6 +26,10 @@ class AutoHealer:
         if not self.enabled:
             return
 
+        # Ignora frames não inicializados ou capturas pretas
+        if current_hp_pct <= 0.0 and current_mp_pct <= 0.0:
+            return
+
         if current_hp_pct < self.hp_threshold:
             print(f"[AutoHealer] HP baixo ({current_hp_pct * 100:.1f}%). Curando...")
             press_key('f1') # Exemplo de tecla para magia de cura

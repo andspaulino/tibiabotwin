@@ -10,7 +10,13 @@ from src.utils.window import (
     set_window_opacity,
     reset_window_opacity
 )
-from src.utils.screen import ScreenCapturer
+from src.utils.screen import (
+    ScreenCapturer,
+    pil_to_cv2,
+    get_hp_percentage,
+    get_mp_percentage,
+    get_status_bar_activity
+)
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
 
@@ -71,15 +77,39 @@ def run():
         healer.start()
         combat.start()
 
-        print("\nBot rodando! Pressione Ctrl+C no terminal para parar.")
+        print("\n[Monitoramento em Tempo Real Iniciado]")
+        print("Pressione Ctrl+C no terminal para parar.\n")
+        
+        last_print = 0
         while True:
-            # Exemplo de loop principal: captura a área do projetor do OBS
-            # img = capturer.capture_window_client_area(hwnd_obs)
-            # healer.check_and_heal(...)
-            time.sleep(0.1)
+            # 1. Captura a imagem da janela do Projetor OBS
+            pil_img = capturer.capture_window_client_area(hwnd_obs)
+            
+            # 2. Converte para array OpenCV BGR
+            img_bgr = pil_to_cv2(pil_img)
+            
+            # 3. Leitura contínua das barras
+            hp_pct = get_hp_percentage(img_bgr)
+            mp_pct = get_mp_percentage(img_bgr)
+            status_info = get_status_bar_activity(img_bgr)
+
+            # Exibe status atualizado no terminal a cada 0.2s
+            now = time.time()
+            if now - last_print >= 0.2:
+                status_txt = "Ativo" if status_info["active"] else "Neutro"
+                print(f"\r[Real-Time] HP: {hp_pct * 100:6.1f}% | MP: {mp_pct * 100:6.1f}% | Status: {status_txt:6s}", end="")
+                last_print = now
+
+            # 4. Executa verificação do Healer
+            healer.check_and_heal(hp_pct, mp_pct)
+            
+            # 5. Executa atualização do Combat
+            combat.update()
+
+            time.sleep(0.05)
 
     except KeyboardInterrupt:
-        print("\nEncerrando bot por solicitacao do usuario...")
+        print("\n\nEncerrando bot por solicitacao do usuario...")
     finally:
         print("Restaurando visibilidade normal da janela do Tibia...")
         reset_window_opacity(hwnd_tibia)
