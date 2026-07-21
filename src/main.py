@@ -19,6 +19,7 @@ from src.utils.screen import (
     is_in_pz
 )
 from src.utils.logger import logger
+from src.utils.overlay import OnScreenOverlay
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
 
@@ -73,9 +74,11 @@ def run():
     capturer = ScreenCapturer()
     healer = AutoHealer()
     combat = AutoAttacker()
+    overlay = OnScreenOverlay()
 
     try:
-        logger.log("SYSTEM", "Iniciando modulos do bot...")
+        logger.log("SYSTEM", "Iniciando modulos do bot e Overlay de tela...")
+        overlay.start()
         healer.start()
         combat.start()
 
@@ -98,9 +101,9 @@ def run():
             # 4. Log de evento ao entrar ou sair de Protection Zone (PZ)
             if last_pz_state is not None and in_pz != last_pz_state:
                 if in_pz:
-                    logger.log("PZ", "O personagem ENTROU em Protection Zone (PZ).", level="ACTION")
+                    logger.log("PZ", "Entrou em PZ", level="ACTION")
                 else:
-                    logger.log("PZ", "O personagem SAIU de Protection Zone (PZ).", level="ACTION")
+                    logger.log("PZ", "Saiu de PZ", level="ACTION")
             last_pz_state = in_pz
 
             # 5. Executa verificação do Healer (dispara apenas ao realizar ação de cura)
@@ -115,6 +118,7 @@ def run():
         logger.log("SYSTEM", "Encerrando bot por solicitacao do usuario...")
     finally:
         logger.log("SYSTEM", "Restaurando visibilidade normal da janela do Tibia...")
+        overlay.stop()
         reset_window_opacity(hwnd_tibia)
         capturer.close()
         logger.log("SYSTEM", "Visibilidade restaurada. Encerrado com sucesso.")

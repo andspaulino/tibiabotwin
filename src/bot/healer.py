@@ -26,7 +26,7 @@ class AutoHealer:
     def start(self):
         """Inicia o módulo de cura."""
         self.enabled = True
-        logger.log("HEALER", "Modulo de cura ativado (HK 1: Magia HP <= 90%, HK 3: Pocao HP <= 30%, HK 2: Mana MP <= 50%).")
+        logger.log("HEALER", "Modulo de cura ativado.")
 
     def stop(self):
         """Para o módulo de cura."""
@@ -49,7 +49,7 @@ class AutoHealer:
         # 1. EMERGÊNCIA: Poção de Vida (Hotkey 3) se HP <= 30%
         if current_hp_pct <= self.potion_hp_threshold:
             if now - self.last_potion_time >= self.potion_cooldown:
-                logger.log("HEALER", f"[!] Vida CRITICA em {current_hp_pct * 100:.1f}% (<= {self.potion_hp_threshold * 100:.0f}%). Usando Pocao de Vida (HK 3)!", level="WARNING")
+                logger.log("HEALER", f"Pocao de Vida ({current_hp_pct * 100:.0f}%)", level="WARNING")
                 press_key('3')
                 self.last_potion_time = now
                 return
@@ -57,13 +57,13 @@ class AutoHealer:
         # 2. CURA PRIMÁRIA: Magia de Cura (Hotkey 1) se HP <= 90%
         if current_hp_pct <= self.spell_hp_threshold:
             if now - self.last_spell_time >= self.spell_cooldown:
-                logger.log("HEALER", f"[+] Vida em {current_hp_pct * 100:.1f}% (<= {self.spell_hp_threshold * 100:.0f}%). Usando Magia de Cura (HK 1).", level="ACTION")
+                logger.log("HEALER", f"Magia de Cura ({current_hp_pct * 100:.0f}%)", level="ACTION")
                 press_key('1')
                 self.last_spell_time = now
 
         # 3. MANA: Poção de Mana (Hotkey 2) se MP <= 50%
         if current_mp_pct <= self.mp_threshold:
             if now - self.last_potion_time >= self.potion_cooldown:
-                logger.log("HEALER", f"[*] Mana em {current_mp_pct * 100:.1f}% (<= {self.mp_threshold * 100:.0f}%). Usando Pocao de Mana (HK 2).", level="ACTION")
+                logger.log("HEALER", f"Pocao de Mana ({current_mp_pct * 100:.0f}%)", level="ACTION")
                 press_key('2')
                 self.last_potion_time = now

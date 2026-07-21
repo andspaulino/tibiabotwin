@@ -1,19 +1,21 @@
 import time
+import os
 from collections import deque
 
 class Logger:
     """
     Gerenciador centralizado de logs do Tibia Bot.
-    Padroniza mensagens e mantém buffer histórico para renderização em Overlays de tela futuros.
+    Padroniza mensagens, mantém buffer histórico e sincroniza arquivo para OBS/HUD.
     """
 
     _instance = None
 
-    def __new__(cls, max_history: int = 50):
+    def __new__(cls, max_history: int = 50, hud_file: str = "logs_hud.txt"):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.history = deque(maxlen=max_history)
             cls._instance.listeners = []
+            cls._instance.hud_file = hud_file
         return cls._instance
 
     def log(self, category: str, message: str, level: str = "INFO"):
@@ -38,12 +40,25 @@ class Logger:
         cat_tag = f"[{entry['category']}]"
         print(f"{timestamp_str} {cat_tag:10s} {message}")
 
-        # Notifica inscritos (ex: futuro Overlay de tela / HUD)
+        # Sincroniza os últimos logs no arquivo logs_hud.txt para OBS Studio / HUD
+        self._sync_hud_file()
+
+        # Notifica inscritos (ex: Overlay transparente de tela / HUD)
         for listener in self.listeners:
             try:
                 listener(entry)
             except Exception:
                 pass
+
+    def _sync_hud_file(self, count: int = 7):
+        """Escreve os últimos N logs formatados em um arquivo texto para o OBS Studio."""
+        try:
+            recent = self.get_recent_logs(count)
+            lines = [f"{e['timestamp']} [{e['category']:7s}] {e['message']}" for e in recent]
+            with open(self.hud_file, "w", encoding="utf-8") as f:
+                f.write("\n".join(lines) + "\n")
+        except Exception:
+            pass
 
     def add_listener(self, callback):
         """Registra uma função callback para receber novos eventos em tempo real."""

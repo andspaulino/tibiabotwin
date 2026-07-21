@@ -1,6 +1,5 @@
 import time
 from src.utils.input import press_key
-from src.utils.humanizer import gaussian_delay
 from src.utils.screen import has_monsters_in_battle, has_active_target
 from src.utils.logger import logger
 
@@ -18,17 +17,16 @@ class AutoAttacker:
     def start(self):
         """Inicia o módulo de ataque."""
         self.enabled = True
-        logger.log("COMBAT", f"Modulo de combate ativado (Hotkey de ataque: '{self.attack_key.upper()}').")
+        logger.log("COMBAT", "Modulo de ataque ativado.")
 
     def stop(self):
         """Para o módulo de ataque."""
         self.enabled = False
-        logger.log("COMBAT", "Modulo de combate desativado.")
+        logger.log("COMBAT", "Modulo de ataque desativado.")
 
     def update(self, img_bgr, in_pz: bool = False):
         """
-        Lógica de combate executada continuamente no loop principal.
-        Emite logs estritamente orientados a eventos/ações (sem spam).
+        Lógica de combate leve e orientada a eventos (sem spam no log).
         """
         if not self.enabled or in_pz:
             self.had_target_last_check = False
@@ -36,28 +34,29 @@ class AutoAttacker:
             return
 
         now = time.time()
-        
         has_target = has_active_target(img_bgr)
         has_monsters = has_monsters_in_battle(img_bgr)
 
-        # 1. Se existe um alvo ativo selecionado (moldura de ataque vermelha)
+        # 1. Alvo ativo selecionado (moldura de ataque vermelha)
         if has_target:
             if not self.had_target_last_check:
-                logger.log("COMBAT", "Alvo travado e sob ataque.", level="ACTION")
+                logger.log("COMBAT", "Alvo travado", level="ACTION")
             self.had_target_last_check = True
             self.had_monsters_last_check = True
             return
 
         self.had_target_last_check = False
 
-        # 2. Se não houver alvo ativo, verifica se há monstros presentes na Battle List
+        # 2. Se há monstros na Battle List mas sem alvo travado
         if has_monsters:
             if now - self.last_attack_time >= self.attack_cooldown:
-                logger.log("COMBAT", f"Inimigo detectado na Battle List. Atacando (HK '{self.attack_key.upper()}')...", level="ACTION")
+                # Loga apenas na primeira detecção de combate ou troca de alvo
+                if not self.had_monsters_last_check:
+                    logger.log("COMBAT", "Atacando inimigo", level="ACTION")
                 press_key(self.attack_key)
                 self.last_attack_time = now
             self.had_monsters_last_check = True
         else:
             if self.had_monsters_last_check:
-                logger.log("COMBAT", "Batalha encerrada / Nenhum inimigo na Battle List.", level="INFO")
+                logger.log("COMBAT", "Batalha encerrada", level="INFO")
             self.had_monsters_last_check = False
