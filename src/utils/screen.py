@@ -169,3 +169,32 @@ def get_status_bar_activity(img, roi: dict = STATUS_BAR_ROI) -> dict:
         "active_pixels": active_pixels,
         "roi": roi
     }
+
+def is_in_pz(img, pz_template_path: str = "templates/pz.png", threshold: float = 0.82) -> bool:
+    """
+    Verifica se o personagem está em Protection Zone (PZ) utilizando Template Matching e validação de cor azul/branca.
+    """
+    if cv2 is None or np is None or not os.path.exists(pz_template_path):
+        return False
+    
+    pz_template = cv2.imread(pz_template_path)
+    if pz_template is None:
+        return False
+    
+    status_img = get_status_bar_image(img)
+    if status_img.size == 0:
+        return False
+
+    # 1. Busca por correspondência visual de template
+    res = cv2.matchTemplate(status_img, pz_template, cv2.TM_CCOEFF_NORMED)
+    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+
+    if max_val < threshold:
+        return False
+
+    # 2. Confirmação pela presença de pixels com azul característico da pombinha de PZ (BGR)
+    has_blue_dove = np.any((status_img[:, :, 0] > status_img[:, :, 1] + 20) & 
+                           (status_img[:, :, 0] > status_img[:, :, 2] + 20) & 
+                           (status_img[:, :, 0] > 100))
+
+    return bool(has_blue_dove)

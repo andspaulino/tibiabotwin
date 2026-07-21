@@ -15,7 +15,8 @@ from src.utils.screen import (
     pil_to_cv2,
     get_hp_percentage,
     get_mp_percentage,
-    get_status_bar_activity
+    get_status_bar_activity,
+    is_in_pz
 )
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
@@ -81,6 +82,8 @@ def run():
         print("Pressione Ctrl+C no terminal para parar.\n")
         
         last_print = 0
+        last_pz_state = None
+
         while True:
             # 1. Captura a imagem da janela do Projetor OBS
             pil_img = capturer.capture_window_client_area(hwnd_obs)
@@ -88,22 +91,32 @@ def run():
             # 2. Converte para array OpenCV BGR
             img_bgr = pil_to_cv2(pil_img)
             
-            # 3. Leitura contínua das barras
+            # 3. Leitura contínua das barras e estado de PZ
             hp_pct = get_hp_percentage(img_bgr)
             mp_pct = get_mp_percentage(img_bgr)
             status_info = get_status_bar_activity(img_bgr)
+            in_pz = is_in_pz(img_bgr)
 
-            # Exibe status atualizado no terminal a cada 0.2s
+            # 4. Log de transição de entrada/saída de Protection Zone (PZ)
+            if last_pz_state is not None and in_pz != last_pz_state:
+                if in_pz:
+                    print("\n[PZ Event] O personagem ENTROU em Protection Zone (PZ).")
+                else:
+                    print("\n[PZ Event] O personagem SAIU de Protection Zone (PZ).")
+            last_pz_state = in_pz
+
+            # 5. Exibe status atualizado no terminal a cada 0.2s
             now = time.time()
             if now - last_print >= 0.2:
                 status_txt = "Ativo" if status_info["active"] else "Neutro"
-                print(f"\r[Real-Time] HP: {hp_pct * 100:6.1f}% | MP: {mp_pct * 100:6.1f}% | Status: {status_txt:6s}", end="")
+                pz_str = "SIM" if in_pz else "NAO"
+                print(f"\r[Real-Time] HP: {hp_pct * 100:5.1f}% | MP: {mp_pct * 100:5.1f}% | PZ: {pz_str:3s} | Status: {status_txt:6s}", end="")
                 last_print = now
 
-            # 4. Executa verificação do Healer
-            healer.check_and_heal(hp_pct, mp_pct)
+            # 6. Executa verificação do Healer (respeitando PZ)
+            healer.check_and_heal(hp_pct, mp_pct, in_pz)
             
-            # 5. Executa atualização do Combat
+            # 7. Executa atualização do Combat
             combat.update()
 
             time.sleep(0.05)

@@ -46,18 +46,16 @@ def main():
     projectors = find_projector_windows()
 
     if not projectors:
-        print("\n❌ Nenhuma janela de 'OBS' ou 'Projetor' foi encontrada!")
+        print("\n[X] Nenhuma janela de 'OBS' ou 'Projetor' foi encontrada!")
         print("Certifique-se de que a janela do OBS/Projetor está aberta.")
         return
 
-    if len(projectors) > 1:
-        for idx, (hwnd, title) in enumerate(projectors):
-            print(f"[{idx}] HWND: {hwnd} | Título: '{title}'")
-        choice = int(input("\nDigite o número da janela desejada: "))
-        hwnd, title = projectors[choice]
-    else:
-        hwnd, title = projectors[0]
-        print(f"\nProjetor encontrado: '{title}'")
+    # Prioriza janelas que contêm especificamente 'projetor' ou 'projector' no título
+    pref_projectors = [w for w in projectors if "projetor" in w[1].lower() or "projector" in w[1].lower()]
+    target_window = pref_projectors[0] if pref_projectors else projectors[0]
+
+    hwnd, title = target_window
+    print(f"\n[OK] Janela do Projetor selecionada automaticamente: '{title}' (HWND: {hwnd})")
 
     print("\nTirando print ajustado em 2 segundos...")
     time.sleep(2)
