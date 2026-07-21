@@ -1,5 +1,6 @@
 import time
 from src.utils.input import press_key
+from src.utils.logger import logger
 
 class AutoHealer:
     """Módulo responsável pelo monitoramento e execução da cura automática de HP e Mana."""
@@ -25,19 +26,16 @@ class AutoHealer:
     def start(self):
         """Inicia o módulo de cura."""
         self.enabled = True
-        print("[AutoHealer] Módulo ativado (HK 1: Magia HP <= 90%, HK 3: Poção HP <= 30%, HK 2: Mana MP <= 50%).")
+        logger.log("HEALER", "Modulo de cura ativado (HK 1: Magia HP <= 90%, HK 3: Pocao HP <= 30%, HK 2: Mana MP <= 50%).")
 
     def stop(self):
         """Para o módulo de cura."""
         self.enabled = False
-        print("[AutoHealer] Módulo desativado.")
+        logger.log("HEALER", "Modulo de cura desativado.")
 
     def check_and_heal(self, current_hp_pct: float, current_mp_pct: float, in_pz: bool = False):
         """
         Verifica as porcentagens atuais de HP e MP e aciona as hotkeys correspondentes.
-        - Hotkey 1: Magia de Cura (HP <= 90%)
-        - Hotkey 2: Poção de Mana (MP <= 50%)
-        - Hotkey 3: Poção de Vida (HP <= 30%)
         """
         if not self.enabled or in_pz:
             return
@@ -51,7 +49,7 @@ class AutoHealer:
         # 1. EMERGÊNCIA: Poção de Vida (Hotkey 3) se HP <= 30%
         if current_hp_pct <= self.potion_hp_threshold:
             if now - self.last_potion_time >= self.potion_cooldown:
-                print(f"\n[AutoHealer] [!] HP CRITICO ({current_hp_pct * 100:.1f}% <= {self.potion_hp_threshold * 100:.0f}%). Usando Pocao de Vida (HK 3)!")
+                logger.log("HEALER", f"[!] Vida CRITICA em {current_hp_pct * 100:.1f}% (<= {self.potion_hp_threshold * 100:.0f}%). Usando Pocao de Vida (HK 3)!", level="WARNING")
                 press_key('3')
                 self.last_potion_time = now
                 return
@@ -59,13 +57,13 @@ class AutoHealer:
         # 2. CURA PRIMÁRIA: Magia de Cura (Hotkey 1) se HP <= 90%
         if current_hp_pct <= self.spell_hp_threshold:
             if now - self.last_spell_time >= self.spell_cooldown:
-                print(f"\n[AutoHealer] [+] HP Baixo ({current_hp_pct * 100:.1f}% <= {self.spell_hp_threshold * 100:.0f}%). Usando Magia de Cura (HK 1)!")
+                logger.log("HEALER", f"[+] Vida em {current_hp_pct * 100:.1f}% (<= {self.spell_hp_threshold * 100:.0f}%). Usando Magia de Cura (HK 1).", level="ACTION")
                 press_key('1')
                 self.last_spell_time = now
 
         # 3. MANA: Poção de Mana (Hotkey 2) se MP <= 50%
         if current_mp_pct <= self.mp_threshold:
             if now - self.last_potion_time >= self.potion_cooldown:
-                print(f"\n[AutoHealer] [*] MP Baixo ({current_mp_pct * 100:.1f}% <= {self.mp_threshold * 100:.0f}%). Usando Pocao de Mana (HK 2)!")
+                logger.log("HEALER", f"[*] Mana em {current_mp_pct * 100:.1f}% (<= {self.mp_threshold * 100:.0f}%). Usando Pocao de Mana (HK 2).", level="ACTION")
                 press_key('2')
                 self.last_potion_time = now

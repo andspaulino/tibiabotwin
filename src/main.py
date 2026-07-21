@@ -18,6 +18,7 @@ from src.utils.screen import (
     get_status_bar_activity,
     is_in_pz
 )
+from src.utils.logger import logger
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
 
@@ -30,7 +31,7 @@ if sys.platform == "win32":
 
 def check_and_prepare_windows():
     """Verifica e prepara as janelas do Tibia e OBS."""
-    print("\n[Main] Verificando janelas abertas...")
+    logger.log("SYSTEM", "Verificando janelas abertas...")
     
     tibia_windows = find_windows_by_title("Tibia")
     tibia = [w for w in tibia_windows if w[1].startswith("Tibia - ")]
@@ -40,17 +41,17 @@ def check_and_prepare_windows():
     obs_windows = find_windows_by_title("obs") or find_windows_by_title("projetor") or find_windows_by_title("projector")
 
     if not tibia:
-        print("[X] Janela do Tibia nao encontrada!")
+        logger.log("SYSTEM", "Janela do Tibia nao encontrada!", level="ERROR")
         return None, None
     if not obs_windows:
-        print("[X] Janela do OBS Studio / Projetor nao encontrada!")
+        logger.log("SYSTEM", "Janela do OBS Studio / Projetor nao encontrada!", level="ERROR")
         return None, None
 
     hwnd_tibia, title_tibia = tibia[0]
     hwnd_obs, title_obs = obs_windows[0]
 
-    print(f"[OK] Tibia encontrado: '{title_tibia}' (HWND: {hwnd_tibia})")
-    print(f"[OK] OBS encontrado: '{title_obs}' (HWND: {hwnd_obs})")
+    logger.log("SYSTEM", f"Tibia encontrado: '{title_tibia}' (HWND: {hwnd_tibia})")
+    logger.log("SYSTEM", f"OBS encontrado: '{title_obs}' (HWND: {hwnd_obs})")
     return hwnd_tibia, hwnd_obs
 
 def run():
@@ -61,27 +62,25 @@ def run():
     hwnd_tibia, hwnd_obs = check_and_prepare_windows()
     
     if not hwnd_tibia or not hwnd_obs:
-        print("\n[!] Por favor, certifique-se de que o Tibia e o OBS estao abertos antes de iniciar.")
+        logger.log("SYSTEM", "Por favor, certifique-se de que o Tibia e o OBS estao abertos antes de iniciar.", level="WARNING")
         return
 
     # Ajusta opacidade da janela do Tibia
-    print("\nAplicando opacidade para ocultar a janela do Tibia...")
+    logger.log("SYSTEM", "Aplicando opacidade para ocultar a janela do Tibia...")
     set_window_opacity(hwnd_tibia, 1)
-    print("[OK] Janela do Tibia configurada como INVISIVEL.")
+    logger.log("SYSTEM", "Janela do Tibia configurada como INVISIVEL.")
 
     capturer = ScreenCapturer()
     healer = AutoHealer()
     combat = AutoAttacker()
 
     try:
-        print("\nIniciando modulos do bot...")
+        logger.log("SYSTEM", "Iniciando modulos do bot...")
         healer.start()
         combat.start()
 
-        print("\n[Monitoramento em Tempo Real Iniciado]")
-        print("Pressione Ctrl+C no terminal para parar.\n")
+        logger.log("SYSTEM", "Bot Ativo - Registrando Acoes em Tempo Real.")
         
-        last_print = 0
         last_pz_state = None
 
         while True:
@@ -94,40 +93,31 @@ def run():
             # 3. Leitura contínua das barras e estado de PZ
             hp_pct = get_hp_percentage(img_bgr)
             mp_pct = get_mp_percentage(img_bgr)
-            status_info = get_status_bar_activity(img_bgr)
             in_pz = is_in_pz(img_bgr)
 
-            # 4. Log de transição de entrada/saída de Protection Zone (PZ)
+            # 4. Log de evento ao entrar ou sair de Protection Zone (PZ)
             if last_pz_state is not None and in_pz != last_pz_state:
                 if in_pz:
-                    print("\n[PZ Event] O personagem ENTROU em Protection Zone (PZ).")
+                    logger.log("PZ", "O personagem ENTROU em Protection Zone (PZ).", level="ACTION")
                 else:
-                    print("\n[PZ Event] O personagem SAIU de Protection Zone (PZ).")
+                    logger.log("PZ", "O personagem SAIU de Protection Zone (PZ).", level="ACTION")
             last_pz_state = in_pz
 
-            # 5. Exibe status atualizado no terminal a cada 0.2s
-            now = time.time()
-            if now - last_print >= 0.2:
-                status_txt = "Ativo" if status_info["active"] else "Neutro"
-                pz_str = "SIM" if in_pz else "NAO"
-                print(f"\r[Real-Time] HP: {hp_pct * 100:5.1f}% | MP: {mp_pct * 100:5.1f}% | PZ: {pz_str:3s} | Status: {status_txt:6s}", end="")
-                last_print = now
-
-            # 6. Executa verificação do Healer (respeitando PZ)
+            # 5. Executa verificação do Healer (dispara apenas ao realizar ação de cura)
             healer.check_and_heal(hp_pct, mp_pct, in_pz)
             
-            # 7. Executa atualização do Combat (Battle List e seleção de alvos)
+            # 6. Executa atualização do Combat (dispara apenas ao realizar ação de combate)
             combat.update(img_bgr, in_pz)
 
             time.sleep(0.05)
 
     except KeyboardInterrupt:
-        print("\n\nEncerrando bot por solicitacao do usuario...")
+        logger.log("SYSTEM", "Encerrando bot por solicitacao do usuario...")
     finally:
-        print("Restaurando visibilidade normal da janela do Tibia...")
+        logger.log("SYSTEM", "Restaurando visibilidade normal da janela do Tibia...")
         reset_window_opacity(hwnd_tibia)
         capturer.close()
-        print("[OK] Visibilidade restaurada. Encerrado com sucesso.")
+        logger.log("SYSTEM", "Visibilidade restaurada. Encerrado com sucesso.")
 
 if __name__ == "__main__":
     run()
