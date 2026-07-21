@@ -18,11 +18,21 @@ EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPAR
 GetWindowTextW = ctypes.windll.user32.GetWindowTextW
 GetWindowTextLengthW = ctypes.windll.user32.GetWindowTextLengthW
 IsWindowVisible = ctypes.windll.user32.IsWindowVisible
+IsIconic = ctypes.windll.user32.IsIconic
+GetForegroundWindow = ctypes.windll.user32.GetForegroundWindow
 GetWindowLongW = ctypes.windll.user32.GetWindowLongW
 SetWindowLongW = ctypes.windll.user32.SetWindowLongW
 SetLayeredWindowAttributes = ctypes.windll.user32.SetLayeredWindowAttributes
 SetWindowPos = ctypes.windll.user32.SetWindowPos
 RedrawWindow = ctypes.windll.user32.RedrawWindow
+
+def is_window_minimized(hwnd: int) -> bool:
+    """Verifica se a janela está minimizada no Windows."""
+    return bool(IsIconic(hwnd))
+
+def is_window_active(hwnd: int) -> bool:
+    """Verifica se a janela informada está no primeiro plano (foco ativo) do Windows."""
+    return GetForegroundWindow() == hwnd
 
 RDW_INVALIDATE = 0x0001
 RDW_ERASE = 0x0004

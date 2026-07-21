@@ -8,7 +8,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.utils.window import (
     find_windows_by_title,
     set_window_opacity,
-    reset_window_opacity
+    reset_window_opacity,
+    is_window_minimized,
+    is_window_active
 )
 from src.utils.screen import (
     ScreenCapturer,
@@ -82,11 +84,24 @@ def run():
         healer.start()
         combat.start()
 
-        logger.log("SYSTEM", "Bot Ativo - Registrando Acoes em Tempo Real.")
+        logger.log("SYSTEM", "Aguardando foco na janela do Tibia para iniciar...")
         
         last_pz_state = None
+        was_inactive = False
 
         while True:
+            # 0. Garante que o bot só executa se a janela do Tibia for a JANELA ATIVA (Foco do Windows)
+            if not is_window_active(hwnd_tibia):
+                if not was_inactive:
+                    logger.log("SYSTEM", "Tibia sem foco/fora de selecao. Bot pausado...", level="WARNING")
+                    was_inactive = True
+                time.sleep(0.2)
+                continue
+
+            if was_inactive:
+                logger.log("SYSTEM", "Tibia selecionado! Bot em execucao.", level="INFO")
+                was_inactive = False
+
             # 1. Captura a imagem da janela do Projetor OBS
             pil_img = capturer.capture_window_client_area(hwnd_obs)
             
