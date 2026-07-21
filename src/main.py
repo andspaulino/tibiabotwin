@@ -116,8 +116,8 @@ def run():
             # 6. Executa verificação do Healer (respeitando PZ)
             healer.check_and_heal(hp_pct, mp_pct, in_pz)
             
-            # 7. Executa atualização do Combat
-            combat.update()
+            # 7. Executa atualização do Combat (Battle List e seleção de alvos)
+            combat.update(img_bgr, in_pz)
 
             time.sleep(0.05)
 

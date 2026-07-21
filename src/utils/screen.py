@@ -95,6 +95,7 @@ def locate_template(img, template, threshold: float = 0.8):
 HP_BAR_ROI = {'top': 0, 'left': 359, 'width': 539, 'height': 20}
 MP_BAR_ROI = {'top': 1, 'left': 1024, 'width': 537, 'height': 19}
 STATUS_BAR_ROI = {'top': 1, 'left': 915, 'width': 110, 'height': 18}
+BATTLE_LIST_ROI = {'top': 160, 'left': 1740, 'width': 160, 'height': 350}
 
 def crop_roi(img, roi: dict):
     """Corta uma Região de Interesse (ROI) da imagem OpenCV BGR."""
@@ -198,3 +199,36 @@ def is_in_pz(img, pz_template_path: str = "templates/pz.png", threshold: float =
                            (status_img[:, :, 0] > 100))
 
     return bool(has_blue_dove)
+
+def has_monsters_in_battle(img, roi: dict = BATTLE_LIST_ROI) -> bool:
+    """
+    Verifica se há alvos/criaturas presentes na região da Battle List.
+    Avalia a contagem de pixels ativos (barras de vida de criaturas / nomes) em relação ao fundo escuro.
+    """
+    if np is None:
+        return False
+    battle_img = crop_roi(img, roi)
+    if battle_img.size == 0:
+        return False
+
+    # Na Battle List, entradas de monstros possuem nomes com pixels claros e barrinhas de vida
+    active_pixels = int(np.sum(np.sum(battle_img, axis=2) > 80))
+    return bool(active_pixels > 50)
+
+def has_active_target(img, roi: dict = BATTLE_LIST_ROI) -> bool:
+    """
+    Verifica se há um alvo ativo atualmente selecionado (moldura de ataque vermelha viva na Battle List).
+    Na interface do Tibia, o alvo selecionado possui uma moldura vermelha intensa em volta de sua linha.
+    """
+    if np is None:
+        return False
+    battle_img = crop_roi(img, roi)
+    if battle_img.size == 0:
+        return False
+
+    # Procura por pixels com Vermelho puro dominante (R > 180, G < 60, B < 60)
+    red_mask = (battle_img[:, :, 2] > 180) & (battle_img[:, :, 1] < 60) & (battle_img[:, :, 0] < 60)
+    red_target_pixels = int(np.sum(red_mask))
+    
+    # Se houver moldura vermelha (pelo menos 15 pixels formando a borda)
+    return bool(red_target_pixels >= 15)
