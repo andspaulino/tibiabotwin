@@ -5,7 +5,10 @@ __pycache__/
 
 # Screenshots and generated output
 *.png
-screenshot.png
+!templates/*.png
+!templates/**/*.png
+logs_hud.txt
+scratch/
 
 # Virtual environments
 .venv/
@@ -17,4 +20,3 @@ env/
 .vscode/
 .idea/
 *.swp
-logs_hud.txt
