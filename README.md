@@ -20,34 +20,39 @@ Diferente de bots que leem ou injetam dados na memória do jogo, este bot age pu
 - **`ROIResolver`**: Converte e valida ROIs relativas em pixels reais em tempo de execução. Redimensionar o Projetor do OBS recalcula automaticamente todas as regiões!
 - **Ferramenta de Calibração Interativa (`tools/calibrate_roi.py`)**: Selecione regiões na tela com o mouse e salve diretamente as coordenadas relativas no perfil `.yaml`.
 
-### 3. Captura Otimizada & Trava de Foco (`launcher.py` + `src/utils/window.py`)
+### 3. Captura Única por Ciclo & Infraestrutura (`src/infrastructure/capture/`)
+- **Single Frame Capture**: Exatamente uma captura de tela BGR é realizada por ciclo e compartilhada por todos os detectores.
+- **Timestamping & Status**: `CapturedFrame` imutável contendo timestamp, dimensões e status (`VALID`, `STALE`, `FROZEN`, `FAILED`).
+- **Detecção de Frames Congelados/Inválidos**: Se a imagem congelar por N ciclos ou falhar, o bot entra em pausa de segurança e **impede qualquer envio de atalhos**.
+
+### 4. Trava de Foco & Segurança de Janela (`launcher.py` + `src/utils/window.py`)
 - Ocultação da janela do Tibia com opacidade 1 via Win32 API `SetLayeredWindowAttributes`.
 - Captura de tela ao vivo sem lag focando na janela do **Projetor do OBS Studio**.
 - **Trava de Foco Ativo (`is_window_active`)**: O bot só executa ações quando a janela do Tibia for a janela ativa no Windows.
 - **Trava de Minimizado (`is_window_minimized`)**: Pausa automática caso a janela seja minimizada.
 - Restauração automática da visibilidade nativa ao encerrar.
 
-### 4. Killswitch de Emergência (`src/main.py`)
+### 5. Killswitch de Emergência (`src/main.py`)
 - **Tecla de Pânico (`Pause`)**: Atalho global do Windows que intercala entre **Pausado** e **Em Execução** instantaneamente a qualquer momento.
 
-### 5. Visão Computacional & Análise de Interface (`src/utils/screen.py`)
+### 6. Visão Computacional & Análise de Interface (`src/utils/screen.py`)
 - **Barra de Vida (HP)**: Análise por amostragem de dominância de cor BGR sobre a ROI proporcional.
 - **Barra de Mana (MP)**: Filtro de cor azul desconsiderando textos e bordas sobre a ROI proporcional.
 - **Protection Zone (PZ)**: Template Matching (`templates/pz.png`) + validação de cor azul (`is_in_pz()`).
 - **Battle List & Targeting**: Mapeamento de ROI proporcional e filtro de densidade de pixels de HP bar (`min_battle_pixels` configurável).
 
-### 6. Auto-Healer Inteligente (`src/bot/healer.py`)
+### 7. Auto-Healer Inteligente (`src/bot/healer.py`)
 - **Magia de Cura**: Limite de HP, hotkey e cooldown configuráveis.
 - **Poção de Mana**: Limite de MP, hotkey e cooldown configuráveis.
 - **Poção de Emergência**: Limite de HP crítico, hotkey e cooldown configuráveis (registrado no log de emergência).
 - **Pausa Automática em PZ**: Interrompe magias e poções em Protection Zone.
 
-### 7. Auto-Attacker & Targeting (`src/bot/combat.py`)
+### 8. Auto-Attacker & Targeting (`src/bot/combat.py`)
 - **Ataque Automático**: Seleção de alvos presentes na Battle List com atalho e cooldown configuráveis.
 - **Reconhecimento de Alvo Ativo**: Identificação de moldura vermelha via densidade de cor + Template Matching configurável (`target_template_path`).
 - **Zero Repetição de Atalhos**: Mantém o combate travado sem spam indevido de teclas.
 
-### 8. Logger Centralizado & HUD Overlay (`src/utils/logger.py` + `src/utils/overlay.py`)
+### 9. Logger Centralizado & HUD Overlay (`src/utils/logger.py` + `src/utils/overlay.py`)
 - **Logger Central**: Formatação padronizada por categorias (`HEALER`, `COMBAT`, `PZ`, `SYSTEM`).
 - **Sincronização para OBS**: Exportação contínua para `logs_hud.txt` (Fonte de texto GDI+ no OBS).
 - **HUD Transparente On-Screen**: Janela flutuante no canto inferior da tela com a flag **Click-Through** (`WS_EX_TRANSPARENT`).
@@ -130,6 +135,11 @@ tibia-bot/
 │   │   └── loader.py              # Carregador e validador estrito de YAML
 │   ├── domain/
 │   │   └── roi.py                 # RelativeROI, AbsoluteROI e ROIResolver
+│   ├── infrastructure/
+│   │   └── capture/               # CapturedFrame, FrameStatus e ProjectorFrameCapturer
+│   │       ├── base.py
+│   │       ├── frame.py
+│   │       └── projector.py
 │   ├── utils/
 │   │   ├── window.py              # Controle Win32, foco e minimização de janelas
 │   │   ├── screen.py              # Captura MSS, leitura de HP/MP/PZ/Battle List proporcional
@@ -144,7 +154,8 @@ tibia-bot/
 ├── tests/                         # Utilitários e testes automatizados
 │   ├── unit/
 │   │   ├── test_config.py         # Testes unitários do sistema de configuração
-│   │   └── test_roi.py            # Testes unitários da resolução proporcional de ROIs
+│   │   ├── test_roi.py            # Testes unitários da resolução proporcional de ROIs
+│   │   └── test_capture.py        # Testes unitários da captura de infraestrutura
 │   ├── test_bars.py               # Teste de leitura de HP/MP/Status
 │   ├── test_pz.py                 # Teste de detecção dinâmica de PZ
 │   ├── test_combat.py             # Teste de combate e Battle List

@@ -277,17 +277,17 @@ overlay.update(state, decision)
 
 ### Tarefas
 
-* [ ] Criar uma abstração `FrameCapturer`.
-* [ ] Fazer uma única captura em cada iteração.
-* [ ] Adicionar timestamp ao frame.
-* [ ] Enviar o mesmo frame para todos os detectores.
-* [ ] Remover capturas duplicadas dentro dos módulos.
-* [ ] Medir o tempo gasto em cada etapa.
-* [ ] Definir uma frequência máxima para o loop.
-* [ ] Detectar frames repetidos ou congelados.
-* [ ] Pausar ações quando o frame estiver antigo.
-* [ ] Registrar falhas consecutivas de captura.
-* [ ] Tentar recuperar a captura sem reiniciar todo o processo.
+* [x] Criar uma abstração `FrameCapturer`.
+* [x] Fazer uma única captura em cada iteração.
+* [x] Adicionar timestamp ao frame.
+* [x] Enviar o mesmo frame para todos os detectores.
+* [x] Remover capturas duplicadas dentro dos módulos.
+* [x] Medir o tempo gasto em cada etapa.
+* [x] Definir uma frequência máxima para o loop.
+* [x] Detectar frames repetidos ou congelados.
+* [x] Pausar ações quando o frame estiver antigo.
+* [x] Registrar falhas consecutivas de captura.
+* [x] Tentar recuperar a captura sem reiniciar todo o processo.
 
 ### Estrutura sugerida
 
@@ -320,10 +320,10 @@ class CapturedFrame:
 
 ### Critérios de conclusão
 
-* [ ] Cada ciclo realiza somente uma captura principal.
-* [ ] Todos os detectores recebem o mesmo frame.
-* [ ] O loop continua funcionando após uma falha temporária.
-* [ ] Nenhuma tecla é enviada a partir de um frame inválido.
+* [x] Cada ciclo realiza somente uma captura principal.
+* [x] Todos os detectores recebem o mesmo frame.
+* [x] O loop continua funcionando após uma falha temporária.
+* [x] Nenhuma tecla é enviada a partir de um frame inválido.
 
 ---
 

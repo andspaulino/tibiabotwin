@@ -12,6 +12,7 @@ except ImportError:
     keyboard = None
 
 from src.config import load_config, ConfigValidationError, AppConfig, WindowConfig
+from src.infrastructure.capture import ProjectorFrameCapturer, CapturedFrame, FrameStatus
 from src.utils.window import (
     find_windows_by_title,
     set_window_opacity,
@@ -20,8 +21,6 @@ from src.utils.window import (
     is_window_active
 )
 from src.utils.screen import (
-    ScreenCapturer,
-    pil_to_cv2,
     get_hp_percentage,
     get_mp_percentage,
     get_status_bar_activity,
@@ -132,7 +131,7 @@ def run():
     set_window_opacity(hwnd_tibia, 1)
     logger.log("SYSTEM", "Janela do Tibia configurada como INVISIVEL.")
 
-    capturer = ScreenCapturer()
+    capturer = ProjectorFrameCapturer()
     healer = AutoHealer(config.healer)
     combat = AutoAttacker(config.combat)
     overlay = OnScreenOverlay()
@@ -167,13 +166,18 @@ def run():
                 logger.log("SYSTEM", "Tibia selecionado! Bot em execucao.", level="INFO")
                 was_inactive = False
 
-            # 1. Captura a imagem da janela do Projetor OBS
-            pil_img = capturer.capture_window_client_area(hwnd_obs)
+            # 1. Captura única do frame por ciclo (camada de infraestrutura)
+            start_cycle = time.perf_counter()
+            frame: CapturedFrame = capturer.capture(hwnd_obs)
             
-            # 2. Converte para array OpenCV BGR
-            img_bgr = pil_to_cv2(pil_img)
+            # Trava de Segurança: Não envia NENHUM comando se o frame for inválido, estático ou com falha
+            if not frame.is_valid:
+                time.sleep(sleep_sec)
+                continue
+
+            img_bgr = frame.image
             
-            # 3. Leitura contínua das barras e estado de PZ
+            # 2. Leitura contínua das barras e estado de PZ compartilhando o mesmo frame
             hp_pct = get_hp_percentage(img_bgr, roi=config.regions.hp)
             mp_pct = get_mp_percentage(img_bgr, roi=config.regions.mana)
             in_pz = is_in_pz(
@@ -183,7 +187,7 @@ def run():
                 threshold=config.pz.match_threshold
             )
 
-            # 4. Log de evento ao entrar ou sair de Protection Zone (PZ)
+            # 3. Log de evento ao entrar ou sair de Protection Zone (PZ)
             if last_pz_state is not None and in_pz != last_pz_state:
                 if in_pz:
                     logger.log("PZ", "Entrou em PZ", level="ACTION")
@@ -191,14 +195,16 @@ def run():
                     logger.log("PZ", "Saiu de PZ", level="ACTION")
             last_pz_state = in_pz
 
-            # 5. Executa verificação do Healer (dispara apenas ao realizar ação de cura)
+            # 4. Executa verificação do Healer utilizando a percepção do frame único
             healer.check_and_heal(hp_pct, mp_pct, in_pz)
             
-            # 6. Executa atualização do Combat (dispara apenas ao realizar ação de combate)
+            # 5. Executa atualização do Combat utilizando a percepção do frame único
             combat.update(img_bgr, in_pz, roi=config.regions.battle_list)
 
-
-            time.sleep(sleep_sec)
+            # 6. Mantém frequência de loop consistente
+            elapsed_sec = time.perf_counter() - start_cycle
+            remaining_sleep = max(0.0, sleep_sec - elapsed_sec)
+            time.sleep(remaining_sleep)
 
     except KeyboardInterrupt:
         logger.log("SYSTEM", "Encerrando bot por solicitacao do usuario...")
