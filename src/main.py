@@ -15,6 +15,8 @@ from src.config import load_config, ConfigValidationError, AppConfig, WindowConf
 from src.infrastructure.capture import ProjectorFrameCapturer, CapturedFrame
 from src.domain.analyzer import GameAnalyzer
 from src.domain.game_state import GameState
+from src.domain.bot_state import BotMode, BotState
+from src.application.state_machine import StateMachine
 from src.utils.window import (
     find_windows_by_title,
     set_window_opacity,
@@ -129,6 +131,7 @@ def run():
 
     capturer = ProjectorFrameCapturer()
     analyzer = GameAnalyzer(config)
+    state_machine = StateMachine(initial_mode=BotMode.IDLE)
     healer = AutoHealer(config.healer)
     combat = AutoAttacker(config.combat)
     overlay = OnScreenOverlay()
@@ -142,15 +145,9 @@ def run():
         logger.log("SYSTEM", "Aguardando foco na janela do Tibia para iniciar...")
         
         last_pz_state = None
-        was_inactive = False
         sleep_sec = config.loop_interval_ms / 1000.0
 
         while True:
-            # 0A. Verifica se o Killswitch de emergência está pausado
-            if killswitch_paused:
-                time.sleep(0.2)
-                continue
-
             start_cycle = time.perf_counter()
 
             # 1. Captura única do frame por ciclo
@@ -159,18 +156,8 @@ def run():
             # 2. Converte percepção em snapshot imutável do Estado Central do Jogo (GameState)
             game_state: GameState = analyzer.analyze(frame, hwnd_tibia, hwnd_obs, config)
 
-            # 3. Trava de Foco e Inatividade
-            if not game_state.window.tibia_focused or game_state.window.tibia_minimized:
-                if not was_inactive:
-                    logger.log("SYSTEM", "Tibia sem foco/fora de selecao. Bot pausado...", level="WARNING")
-                    was_inactive = True
-                overlay.update(game_state)
-                time.sleep(0.2)
-                continue
-
-            if was_inactive:
-                logger.log("SYSTEM", "Tibia selecionado! Bot em execucao.", level="INFO")
-                was_inactive = False
+            # 3. Atualiza a Máquina de Estados Finitos (BotState)
+            bot_state: BotState = state_machine.update(game_state, killswitch_paused)
 
             # 4. Log de evento ao entrar ou sair de Protection Zone (PZ)
             in_pz = game_state.player.in_protection_zone
@@ -182,12 +169,14 @@ def run():
             if in_pz is not None:
                 last_pz_state = in_pz
 
-            # 5. Atualiza HUD Overlay com o GameState imutável
-            overlay.update(game_state)
+            # 5. Atualiza HUD Overlay com GameState e BotState imutáveis
+            overlay.update(game_state, bot_state)
 
-            # 6. Executa módulos consumidores de estado somente se for seguro atuar
-            if game_state.is_safe_to_act:
+            # 6. Executa módulos consumidores dependendo do modo ativo da Máquina de Estados
+            if bot_state.current_mode in (BotMode.COMBAT, BotMode.IDLE, BotMode.IN_PROTECTION_ZONE):
                 healer.check_and_heal(game_state)
+
+            if bot_state.current_mode == BotMode.COMBAT:
                 combat.update(game_state)
 
             # 7. Mantém frequência de loop consistente

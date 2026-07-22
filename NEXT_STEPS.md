@@ -440,25 +440,25 @@ class BotMode(Enum):
 
 ### Tarefas
 
-* [ ] Criar `BotMode`.
-* [ ] Criar controlador de transições.
-* [ ] Registrar cada mudança de estado.
-* [ ] Impedir estados incompatíveis simultaneamente.
-* [ ] Impedir movimento durante cura de emergência.
-* [ ] Impedir loot enquanto existir alvo ativo.
-* [ ] Impedir ações de combate em Protection Zone.
-* [ ] Pausar quando a captura estiver inválida.
-* [ ] Pausar quando a janela perder foco.
-* [ ] Retomar somente quando todas as condições forem válidas.
-* [ ] Definir tempo mínimo em estados sensíveis.
-* [ ] Adicionar timeout para estados que não progridem.
+* [x] Criar `BotMode`.
+* [x] Criar controlador de transições.
+* [x] Registrar cada mudança de estado.
+* [x] Impedir estados incompatíveis simultaneamente.
+* [x] Impedir movimento durante cura de emergência.
+* [x] Impedir loot enquanto existir alvo ativo.
+* [x] Impedir ações de combate em Protection Zone.
+* [x] Pausar quando a captura estiver inválida.
+* [x] Pausar quando a janela perder foco.
+* [x] Retomar somente quando todas as condições forem válidas.
+* [x] Definir tempo mínimo em estados sensíveis.
+* [x] Adicionar timeout para estados que não progridem.
 
 ### Critérios de conclusão
 
-* [ ] Existe somente um modo principal ativo por ciclo.
-* [ ] Toda transição possui causa registrada.
-* [ ] As prioridades são testadas automaticamente.
-* [ ] Nenhum módulo ignora o estado global de segurança.
+* [x] Existe somente um modo principal ativo por ciclo.
+* [x] Toda transição possui causa registrada.
+* [x] As prioridades são testadas automaticamente.
+* [x] Nenhum módulo ignora o estado global de segurança.
 
 ---
 

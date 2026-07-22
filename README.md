@@ -29,33 +29,37 @@ Diferente de bots que leem ou injetam dados na memória do jogo, este bot age pu
 - **`GameState` Snapshot**: Objeto imutável que consolida a percepção do ciclo (`PlayerState`, `TargetState`, `WindowState`, `CaptureState`).
 - **`GameAnalyzer`**: Converte frames e estado das janelas em `GameState`. Valores indeterminados são explicitamente `None` (sem assunções inseguras de 100% HP).
 - **Consumo Exclusivo por Estado**: `AutoHealer`, `AutoAttacker` e `OnScreenOverlay` consomem apenas o `GameState`, sem capturar a tela ou executar Win32 diretamente.
-- **Propriedade `is_safe_to_act`**: Avalia de forma unificada se o bot está seguro para enviar atalhos.
 
-### 5. Trava de Foco & Segurança de Janela (`launcher.py` + `src/utils/window.py`)
+### 5. Máquina de Estados Finitos do Bot (`src/application/state_machine.py` + `BotMode`)
+- **`BotMode` Finito**: Apenas um modo principal ativo por ciclo (`PAUSED`, `UNSAFE`, `IN_PROTECTION_ZONE`, `COMBAT`, `IDLE`).
+- **Hierarquia Estrita de Prioridades**: Killswitch > Foco/Minimização > Validade da Captura > Protection Zone > Combate > Ocioso.
+- **Auditoria de Transições**: Registra eventos no log `[STATE]` detalhando o modo anterior, novo modo e o motivo rastreável sem logs repetitivos.
+
+### 6. Trava de Foco & Segurança de Janela (`launcher.py` + `src/utils/window.py`)
 - Ocultação da janela do Tibia com opacidade 1 via Win32 API `SetLayeredWindowAttributes`.
 - Captura de tela ao vivo sem lag focando na janela do **Projetor do OBS Studio**.
 - **Trava de Foco Ativo (`is_window_active`)**: O bot só executa ações quando a janela do Tibia for a janela ativa no Windows.
 - **Trava de Minimizado (`is_window_minimized`)**: Pausa automática caso a janela seja minimizada.
 - Restauração automática da visibilidade nativa ao encerrar.
 
-### 6. Killswitch de Emergência (`src/main.py`)
+### 7. Killswitch de Emergência (`src/main.py`)
 - **Tecla de Pânico (`Pause`)**: Atalho global do Windows que intercala entre **Pausado** e **Em Execução** instantaneamente a qualquer momento.
 
-### 7. Auto-Healer Inteligente (`src/bot/healer.py`)
+### 8. Auto-Healer Inteligente (`src/bot/healer.py`)
 - **Magia de Cura**: Limite de HP, hotkey e cooldown configuráveis.
 - **Poção de Mana**: Limite de MP, hotkey e cooldown configuráveis.
 - **Poção de Emergência**: Limite de HP crítico, hotkey e cooldown configuráveis (registrado no log de emergência).
 - **Pausa Automática em PZ**: Interrompe magias e poções em Protection Zone.
 
-### 8. Auto-Attacker & Targeting (`src/bot/combat.py`)
+### 9. Auto-Attacker & Targeting (`src/bot/combat.py`)
 - **Ataque Automático**: Seleção de alvos presentes na Battle List com atalho e cooldown configuráveis.
 - **Reconhecimento de Alvo Ativo**: Identificação de moldura vermelha via densidade de cor + Template Matching configurável (`target_template_path`).
 - **Zero Repetição de Atalhos**: Mantém o combate travado sem spam indevido de teclas.
 
-### 9. Logger Centralizado & HUD Overlay (`src/utils/logger.py` + `src/utils/overlay.py`)
-- **Logger Central**: Formatação padronizada por categorias (`HEALER`, `COMBAT`, `PZ`, `SYSTEM`).
+### 10. Logger Centralizado & HUD Overlay (`src/utils/logger.py` + `src/utils/overlay.py`)
+- **Logger Central**: Formatação padronizada por categorias (`HEALER`, `COMBAT`, `PZ`, `STATE`, `SYSTEM`).
 - **Sincronização para OBS**: Exportação contínua para `logs_hud.txt` (Fonte de texto GDI+ no OBS).
-- **HUD Transparente On-Screen**: Renderização em tempo real do estado central (`HP`, `MP`, `PZ`, `State`) + Click-Through (`WS_EX_TRANSPARENT`).
+- **HUD Transparente On-Screen**: Renderização em tempo real do estado central e modo ativo (`HP`, `MP`, `PZ`, `MODE`) + Click-Through (`WS_EX_TRANSPARENT`).
 - **Módulo de Humanização (`src/utils/humanizer.py`)**: Delays com Curva de Gauss, retenção de teclas entre 30ms-75ms e Curvas de Bézier.
 
 ---
@@ -127,6 +131,8 @@ tibia-bot/
 │   └── schemas/                   # JSON Schema para validação
 │       └── config.schema.json
 ├── src/
+│   ├── application/
+│   │   └── state_machine.py       # Controlador StateMachine (hierarquia de prioridades de BotMode)
 │   ├── bot/
 │   │   ├── healer.py              # Módulo AutoHealer (consome GameState)
 │   │   └── combat.py              # Módulo AutoAttacker (consome GameState)
@@ -135,6 +141,7 @@ tibia-bot/
 │   │   └── loader.py              # Carregador e validador estrito de YAML
 │   ├── domain/
 │   │   ├── roi.py                 # RelativeROI, AbsoluteROI e ROIResolver
+│   │   ├── bot_state.py           # BotMode, StateTransition e BotState
 │   │   ├── game_state.py          # PlayerState, TargetState, WindowState, CaptureState, GameState
 │   │   └── analyzer.py           # GameAnalyzer (percepção -> GameState)
 │   ├── infrastructure/
@@ -148,7 +155,7 @@ tibia-bot/
 │   │   ├── input.py               # Simulação DirectX (pydirectinput)
 │   │   ├── humanizer.py           # Delays gaussianos, key holds e curvas de Bézier
 │   │   ├── logger.py              # Logger centralizado e sincronização de logs_hud.txt
-│   │   └── overlay.py             # HUD Transparente On-Screen (renderiza GameState)
+│   │   └── overlay.py             # HUD Transparente On-Screen (renderiza GameState e BotState)
 │   └── main.py                    # Motor principal, CLI args e Killswitch (Pause)
 ├── tools/
 │   └── calibrate_roi.py           # Ferramenta interativa de calibração de ROIs
@@ -158,7 +165,8 @@ tibia-bot/
 │   │   ├── test_config.py         # Testes unitários do sistema de configuração
 │   │   ├── test_roi.py            # Testes unitários da resolução proporcional de ROIs
 │   │   ├── test_capture.py        # Testes unitários da captura de infraestrutura
-│   │   └── test_game_state.py     # Testes unitários do estado central imutável
+│   │   ├── test_game_state.py     # Testes unitários do estado central imutável
+│   │   └── test_state_machine.py # Testes unitários da máquina de estados finitos
 │   ├── test_bars.py               # Teste de leitura de HP/MP/Status
 │   ├── test_pz.py                 # Teste de detecção dinâmica de PZ
 │   ├── test_combat.py             # Teste de combate e Battle List

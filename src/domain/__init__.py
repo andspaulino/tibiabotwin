@@ -7,6 +7,11 @@ from src.domain.game_state import (
     CaptureState,
     GameState,
 )
+from src.domain.bot_state import (
+    BotMode,
+    StateTransition,
+    BotState,
+)
 
 __all__ = [
     "RelativeROI",
@@ -17,4 +22,7 @@ __all__ = [
     "WindowState",
     "CaptureState",
     "GameState",
+    "BotMode",
+    "StateTransition",
+    "BotState",
 ]

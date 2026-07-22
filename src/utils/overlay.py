@@ -7,6 +7,7 @@ from typing import Optional, Union
 
 from src.utils.logger import logger
 from src.domain.game_state import GameState
+from src.domain.bot_state import BotState, BotMode
 
 if sys.platform == "win32":
     import ctypes
@@ -32,6 +33,7 @@ class OnScreenOverlay:
         self.thread = None
         self.running = False
         self.last_game_state: Optional[GameState] = None
+        self.last_bot_state: Optional[BotState] = None
         self.status_label = None
 
     def _create_window(self):
@@ -91,10 +93,16 @@ class OnScreenOverlay:
         self.running = True
         self.root.mainloop()
 
-    def update(self, game_state: Optional[GameState] = None):
-        """Atualiza a interface do Overlay com o GameState imutável mais recente."""
+    def update(
+        self,
+        game_state: Optional[GameState] = None,
+        bot_state: Optional[BotState] = None
+    ):
+        """Atualiza a interface do Overlay com os snapshots mais recentes de GameState e BotState."""
         if game_state is not None:
             self.last_game_state = game_state
+        if bot_state is not None:
+            self.last_bot_state = bot_state
 
         if self.root and self.running:
             try:
@@ -107,13 +115,21 @@ class OnScreenOverlay:
             return
 
         gs = self.last_game_state
+        bs = self.last_bot_state
+
         hp_str = f"{gs.player.hp_percent * 100:.0f}%" if gs.player.hp_percent is not None else "??"
         mp_str = f"{gs.player.mana_percent * 100:.0f}%" if gs.player.mana_percent is not None else "??"
         pz_str = "SIM" if gs.player.in_protection_zone else ("NAO" if gs.player.in_protection_zone is False else "??")
-        status_str = "SEGURO" if gs.is_safe_to_act else f"PAUSA({gs.capture.status.value})"
+        
+        mode_str = bs.current_mode.value.upper() if bs else ("SEGURO" if gs.is_safe_to_act else "UNSAFE")
 
-        txt = f"HP:{hp_str} | MP:{mp_str} | PZ:{pz_str} | State:{status_str}"
-        fg = "#3fb950" if gs.is_safe_to_act else "#f85149"
+        txt = f"HP:{hp_str} | MP:{mp_str} | PZ:{pz_str} | MODE:{mode_str}"
+        
+        if bs:
+            fg = "#3fb950" if bs.current_mode in (BotMode.IDLE, BotMode.COMBAT) else ("#58a6ff" if bs.current_mode == BotMode.IN_PROTECTION_ZONE else "#f85149")
+        else:
+            fg = "#3fb950" if gs.is_safe_to_act else "#f85149"
+
         self.status_label.config(text=txt, fg=fg)
 
     def _on_log_event(self, entry: dict):
@@ -137,7 +153,8 @@ class OnScreenOverlay:
             "HEALER": "#3fb950",   # Verde
             "COMBAT": "#f85149",   # Vermelho
             "PZ": "#58a6ff",       # Azul
-            "SYSTEM": "#d29922"    # Amarelo/Dourado
+            "STATE": "#d29922",    # Amarelo/Dourado
+            "SYSTEM": "#8b949e"    # Cinza
         }
 
         for log in recent_logs:
