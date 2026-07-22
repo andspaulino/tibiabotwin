@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.config import load_config, ConfigValidationError, AppConfig, WindowConfig
 from src.infrastructure.capture import ProjectorFrameCapturer
 from src.infrastructure.factory import create_window_manager, create_input_controller
-from src.domain.analyzer import GameAnalyzer
+from src.infrastructure.vision import GameAnalyzer
 from src.domain.bot_state import BotMode
 from src.application import StateMachine, LoopScheduler, BotEngine
 from src.utils.logger import logger
@@ -98,8 +98,8 @@ def run():
     capturer = ProjectorFrameCapturer()
     analyzer = GameAnalyzer(config)
     state_machine = StateMachine(initial_mode=BotMode.IDLE)
-    healer = AutoHealer(config.healer, input_controller=input_controller)
-    combat = AutoAttacker(config.combat, input_controller=input_controller)
+    healer = AutoHealer(config.healer)
+    combat = AutoAttacker(config.combat)
     overlay = OnScreenOverlay()
     scheduler = LoopScheduler(target_interval_ms=config.loop_interval_ms)
 

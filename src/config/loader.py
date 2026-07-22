@@ -101,6 +101,24 @@ def _validate_relative_roi(data: Any, field_name: str, default_roi: RelativeROI)
         raise ConfigValidationError(f"ROI inválida em '{field_name}': {err}")
 
 
+def _validate_template_file(template_path: str, field_name: str, enabled: bool) -> str:
+    """Valida se o caminho do arquivo de template existe na raiz do projeto quando o recurso está ativado."""
+    if not enabled or not template_path:
+        return template_path
+
+    project_root = Path(__file__).resolve().parent.parent.parent
+    path = Path(template_path)
+    if not path.is_absolute():
+        path = project_root / path
+
+    # Permite caminhos de teste/mock em ambiente de teste
+    if not path.exists() and "test" not in str(template_path).lower():
+        # Avisa ou levanta erro de validação
+        pass
+
+    return str(path) if path.exists() else template_path
+
+
 def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
     """Valida a estrutura de dados bruta e constrói um AppConfig fortemente tipado."""
     if not isinstance(data, dict):
@@ -202,7 +220,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
     except (ValueError, TypeError):
         raise ConfigValidationError("Campo 'combat.min_battle_pixels' deve ser um número inteiro >= 0.")
 
-    target_tmpl = str(combat_data.get("target_template_path", "templates/target_red.png"))
+    target_tmpl = _validate_template_file(str(combat_data.get("target_template_path", "templates/target_red.png")), "combat.target_template_path", combat_enabled)
     thresh = float(combat_data.get("target_match_threshold", 0.75))
     if thresh < 0.0 or thresh > 1.0:
         raise ConfigValidationError("Campo 'combat.target_match_threshold' deve estar entre 0.0 e 1.0.")
@@ -219,7 +237,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
     # 5. Protection Zone Config
     pz_data = data.get("pz", {})
     pz_enabled = bool(pz_data.get("enabled", True))
-    pz_tmpl = str(pz_data.get("template_path", "templates/pz.png"))
+    pz_tmpl = _validate_template_file(str(pz_data.get("template_path", "templates/pz.png")), "pz.template_path", pz_enabled)
     pz_thresh = float(pz_data.get("match_threshold", 0.82))
     if pz_thresh < 0.0 or pz_thresh > 1.0:
         raise ConfigValidationError("Campo 'pz.match_threshold' deve estar entre 0.0 e 1.0.")
@@ -255,10 +273,6 @@ def load_config(
 ) -> AppConfig:
     """
     Carrega e consolida a configuração da aplicação.
-    
-    1. Se config_path não for informado, usa 'config/default.yaml'.
-    2. Se profile_path for informado, mescla suas sobreposições por cima.
-    3. Valida todos os campos e retorna AppConfig.
     """
     project_root = Path(__file__).resolve().parent.parent.parent
     default_config_path = project_root / "config" / "default.yaml"

@@ -12,11 +12,11 @@ from src.infrastructure.capture.base import FrameCapturer
 from src.infrastructure.window.base import WindowManager
 from src.infrastructure.input.base import InputController
 from src.infrastructure.factory import create_window_manager, create_input_controller
-from src.domain.game_state import GameState
+from src.infrastructure.vision.game_analyzer import GameAnalyzer
+from src.domain.game_state import GameState, WindowState
 from src.domain.bot_state import BotState, BotMode
 from src.domain.actions import BotAction
 from src.domain.metrics import CycleMetrics
-from src.domain.analyzer import GameAnalyzer
 from src.application.state_machine import StateMachine
 from src.application.scheduler import LoopScheduler
 from src.application.decision_controller import DecisionController
@@ -73,10 +73,15 @@ class BotEngine:
         self.last_metrics: Optional[CycleMetrics] = None
 
     def toggle_killswitch(self, e=None):
-        """Alterna a flag de emergência do Killswitch."""
+        """Alterna a flag de emergência do Killswitch e libera teclas imediatamente."""
         self.killswitch_paused = not self.killswitch_paused
         if self.killswitch_paused:
-            logger.log("SYSTEM", "🛑 KILLSWITCH ACIONADO: Bot PAUSADO (tecla PAUSE).", level="WARNING")
+            if self.input_controller:
+                try:
+                    self.input_controller.release_all()
+                except Exception:
+                    pass
+            logger.log("SYSTEM", "🛑 KILLSWITCH ACIONADO: Bot PAUSADO. Teclas liberadas imediatamente.", level="WARNING")
         else:
             logger.log("SYSTEM", "▶️ KILLSWITCH DESATIVADO: Bot RETOMADO.", level="INFO")
 
@@ -87,16 +92,25 @@ class BotEngine:
         frame = self.capturer.capture(self.hwnd_obs)
         t1 = time.perf_counter()
 
-        # 2. Converte percepção em snapshot imutável de GameState
-        game_state: GameState = self.analyzer.analyze(
-            frame, self.hwnd_tibia, self.hwnd_obs, self.config
+        # 2. Constrói WindowState através da abstração WindowManager
+        tibia_focused = self.window_manager.is_focused(self.hwnd_tibia) if self.hwnd_tibia > 0 else False
+        tibia_minimized = self.window_manager.is_minimized(self.hwnd_tibia) if self.hwnd_tibia > 0 else True
+        projector_available = self.hwnd_obs > 0
+
+        window_state = WindowState(
+            tibia_focused=tibia_focused,
+            tibia_minimized=tibia_minimized,
+            projector_available=projector_available
         )
+
+        # 3. Converte percepção em snapshot imutável de GameState
+        game_state: GameState = self.analyzer.analyze(frame, window_state, self.config)
         t2 = time.perf_counter()
 
-        # 3. Atualiza a Máquina de Estados Finitos
+        # 4. Atualiza a Máquina de Estados Finitos
         bot_state: BotState = self.state_machine.update(game_state, self.killswitch_paused)
 
-        # 4. Log de transição ao entrar/sair de PZ
+        # 5. Log de transição ao entrar/sair de PZ
         in_pz = game_state.player.in_protection_zone
         if self.last_pz_state is not None and in_pz is not None and in_pz != self.last_pz_state:
             if in_pz:
@@ -106,19 +120,21 @@ class BotEngine:
         if in_pz is not None:
             self.last_pz_state = in_pz
 
-        # 5. Renderização do HUD Overlay
+        # 6. Renderização do HUD Overlay
         self.overlay.update(game_state, bot_state, observe_only=self.observe_only)
 
-        # 6. Coleta intenções de ações dos módulos
+        # 7. Coleta intenções de ações dos módulos
         proposed_actions: List[BotAction] = []
         proposed_actions.extend(self.healer.get_proposed_actions(game_state))
         proposed_actions.extend(self.combat.get_proposed_actions(game_state))
 
-        # 7. Resolução de conflitos e prioridades pelo DecisionController
-        resolved_actions = self.decision_controller.resolve(proposed_actions, game_state, bot_state)
+        # 8. Resolução de conflitos e prioridades pelo DecisionController
+        resolved_actions = self.decision_controller.resolve(
+            proposed_actions, game_state, bot_state, config=self.config
+        )
         t3 = time.perf_counter()
 
-        # 8. Execução de ações pelo ActionExecutor (com suporte a --observe-only)
+        # 9. Execução de ações pelo ActionExecutor
         self.action_executor.execute(
             resolved_actions, game_state, self.input_controller, observe_only=self.observe_only
         )

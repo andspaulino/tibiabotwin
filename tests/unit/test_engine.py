@@ -6,7 +6,7 @@ import numpy as np
 from src.config.models import AppConfig
 from src.domain.game_state import GameState, CaptureState, WindowState, PlayerState, TargetState
 from src.domain.bot_state import BotMode, BotState
-from src.domain.analyzer import GameAnalyzer
+from src.infrastructure.vision import GameAnalyzer
 from src.application.state_machine import StateMachine
 from src.application.scheduler import LoopScheduler
 from src.application.bot_engine import BotEngine

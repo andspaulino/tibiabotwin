@@ -6,7 +6,7 @@ from src.config.models import AppConfig, HealerConfig, EmergencyPotionConfig, Sp
 from src.infrastructure.capture.recorded import RecordedFrameCapturer
 from src.infrastructure.input.mock_input import MockInputController
 from src.infrastructure.window.windows_manager import WindowsWindowManager
-from src.domain.analyzer import GameAnalyzer
+from src.infrastructure.vision import GameAnalyzer
 from src.domain.bot_state import BotMode
 from src.domain.actions import ActionType
 from src.application.state_machine import StateMachine
@@ -44,8 +44,8 @@ class TestFullPipelineIntegration(unittest.TestCase):
 
         analyzer = GameAnalyzer(config)
         state_machine = StateMachine(initial_mode=BotMode.IDLE)
-        healer = AutoHealer(config.healer, input_controller=mock_input)
-        combat = AutoAttacker(config.combat, input_controller=mock_input)
+        healer = AutoHealer(config.healer)
+        combat = AutoAttacker(config.combat)
         overlay = OnScreenOverlay()
         scheduler = LoopScheduler()
 

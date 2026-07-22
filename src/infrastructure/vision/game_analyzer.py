@@ -12,7 +12,6 @@ from src.domain.game_state import (
     PlayerState,
     TargetState,
 )
-from src.utils.window import is_window_active, is_window_minimized
 from src.utils.screen import (
     get_hp_percentage,
     get_mp_percentage,
@@ -24,8 +23,8 @@ from src.utils.screen import (
 
 class GameAnalyzer:
     """
-    Analisador de percepção pura. Converte um CapturedFrame e o estado das janelas
-    em um snapshot imutável de GameState.
+    Analisador de percepção pura (Visão Computacional).
+    Converte um CapturedFrame e um WindowState em um snapshot imutável de GameState.
     """
 
     def __init__(self, config: Optional[AppConfig] = None):
@@ -34,7 +33,7 @@ class GameAnalyzer:
     def _save_failed_frame(self, frame: CapturedFrame):
         """Salva um frame com falha/congelado na pasta logs/failed_frames para diagnóstico."""
         try:
-            save_dir = Path(__file__).resolve().parent.parent.parent / "logs" / "failed_frames"
+            save_dir = Path(__file__).resolve().parent.parent.parent.parent / "logs" / "failed_frames"
             save_dir.mkdir(parents=True, exist_ok=True)
             filename = f"frame_{frame.captured_at.strftime('%Y%m%d_%H%M%S_%f')}_{frame.status.value}.png"
             cv2.imwrite(str(save_dir / filename), frame.image)
@@ -44,23 +43,11 @@ class GameAnalyzer:
     def analyze(
         self,
         frame: CapturedFrame,
-        hwnd_tibia: int,
-        hwnd_obs: int,
+        window_state: WindowState,
         config: Optional[AppConfig] = None
     ) -> GameState:
         now = datetime.now(timezone.utc)
         cfg = config or self.config
-
-        # 1. Analisa estado do sistema/janelas
-        tibia_focused = is_window_active(hwnd_tibia) if hwnd_tibia > 0 else False
-        tibia_minimized = is_window_minimized(hwnd_tibia) if hwnd_tibia > 0 else True
-        projector_available = hwnd_obs > 0
-
-        win_state = WindowState(
-            tibia_focused=tibia_focused,
-            tibia_minimized=tibia_minimized,
-            projector_available=projector_available
-        )
 
         cap_state = CaptureState(
             status=frame.status,
@@ -68,31 +55,35 @@ class GameAnalyzer:
             age_seconds=frame.age_seconds(now)
         )
 
-        # 2. Se a captura for inválida ou o ambiente inseguro, retorna estado nulo (sem dados presumidos)
-        if not frame.is_valid or not tibia_focused or tibia_minimized or not projector_available:
+        # 1. Se a captura for inválida ou o ambiente inseguro, retorna estado nulo (sem dados presumidos)
+        if not frame.is_valid or not window_state.is_safe:
             if frame.status in (FrameStatus.FAILED, FrameStatus.FROZEN) and frame.image is not None and frame.image.size > 0:
                 self._save_failed_frame(frame)
 
             return GameState(
                 timestamp=now,
                 capture=cap_state,
-                window=win_state,
+                window=window_state,
                 player=PlayerState(hp_percent=None, mana_percent=None, in_protection_zone=None),
                 target=TargetState(has_monsters_in_battle=None, has_active_target=None)
             )
 
-        # 3. Analisa pixels e padrões visuais do frame BGR único
+        # 2. Analisa pixels e padrões visuais do frame BGR único
         img_bgr = frame.image
 
         hp_pct = get_hp_percentage(img_bgr, roi=cfg.regions.hp) if cfg else get_hp_percentage(img_bgr)
         mp_pct = get_mp_percentage(img_bgr, roi=cfg.regions.mana) if cfg else get_mp_percentage(img_bgr)
 
-        in_pz = is_in_pz(
-            img_bgr,
-            roi=cfg.regions.status_bar if cfg else None,
-            pz_template_path=cfg.pz.template_path if cfg else "templates/pz.png",
-            threshold=cfg.pz.match_threshold if cfg else 0.82
-        )
+        # Respeita a flag pz.enabled
+        if cfg and not cfg.pz.enabled:
+            in_pz = None
+        else:
+            in_pz = is_in_pz(
+                img_bgr,
+                roi=cfg.regions.status_bar if cfg else None,
+                pz_template_path=cfg.pz.template_path if cfg else "templates/pz.png",
+                threshold=cfg.pz.match_threshold if cfg else 0.82
+            )
 
         has_monsters = has_monsters_in_battle(
             img_bgr,
@@ -121,7 +112,7 @@ class GameAnalyzer:
         return GameState(
             timestamp=now,
             capture=cap_state,
-            window=win_state,
+            window=window_state,
             player=player_state,
             target=target_state
         )

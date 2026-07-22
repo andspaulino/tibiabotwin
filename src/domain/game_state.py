@@ -7,41 +7,42 @@ from src.infrastructure.capture.frame import FrameStatus
 
 @dataclass(frozen=True)
 class PlayerState:
-    """Representa o estado do jogador inferido puramente da visão computacional."""
-    hp_percent: Optional[float] = None
-    mana_percent: Optional[float] = None
-    in_protection_zone: Optional[bool] = None
+    """Snapshot do estado do jogador no ciclo atual."""
+    hp_percent: Optional[float]
+    mana_percent: Optional[float]
+    in_protection_zone: Optional[bool]
 
 
 @dataclass(frozen=True)
 class TargetState:
-    """Representa o estado de combate e alvos do jogo."""
-    has_monsters_in_battle: Optional[bool] = None
-    has_active_target: Optional[bool] = None
+    """Snapshot do estado do alvo no ciclo atual."""
+    has_monsters_in_battle: Optional[bool]
+    has_active_target: Optional[bool]
 
 
 @dataclass(frozen=True)
 class WindowState:
-    """Representa o estado do sistema operacional quanto às janelas envolvidas."""
-    tibia_focused: bool = False
-    tibia_minimized: bool = False
-    projector_available: bool = False
+    """Snapshot do estado das janelas do sistema."""
+    tibia_focused: bool
+    tibia_minimized: bool
+    projector_available: bool
+
+    @property
+    def is_safe(self) -> bool:
+        return self.tibia_focused and not self.tibia_minimized and self.projector_available
 
 
 @dataclass(frozen=True)
 class CaptureState:
-    """Representa a saúde e integridade da captura de imagem do ciclo."""
-    status: FrameStatus = FrameStatus.FAILED
-    captured_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    age_seconds: float = 0.0
+    """Snapshot da integridade da captura no ciclo atual."""
+    status: FrameStatus
+    captured_at: datetime
+    age_seconds: float
 
 
 @dataclass(frozen=True)
 class GameState:
-    """
-    Snapshot imutável do estado central do jogo percebido em um ciclo.
-    Consolida captura, janelas, jogador e alvos.
-    """
+    """Snapshot imutável e consolidado do estado do jogo para o ciclo de iteração atual."""
     timestamp: datetime
     capture: CaptureState
     window: WindowState
@@ -50,14 +51,11 @@ class GameState:
 
     @property
     def is_safe_to_act(self) -> bool:
-        """
-        Retorna True somente quando todas as condições operacionais são seguras para envio de inputs:
-        - Janela do Tibia focada e não minimizada.
-        - Janela do Projetor disponível.
-        - Frame de captura VÁLIDO e recente (idade <= 1.0s).
-        """
-        if not self.window.tibia_focused or self.window.tibia_minimized or not self.window.projector_available:
+        """Retorna True apenas se todas as verificações de segurança forem atendidas simultaneamente."""
+        if not self.window.is_safe:
             return False
-        if self.capture.status != FrameStatus.VALID or self.capture.age_seconds > 1.0:
+        if not self.capture.status == FrameStatus.VALID:
+            return False
+        if self.capture.age_seconds > 1.0:
             return False
         return True

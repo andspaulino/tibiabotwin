@@ -10,7 +10,7 @@ from src.domain.game_state import (
     PlayerState,
     TargetState,
 )
-from src.domain.analyzer import GameAnalyzer
+from src.infrastructure.vision import GameAnalyzer
 from src.infrastructure.capture.frame import CapturedFrame, FrameStatus
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
@@ -81,8 +81,9 @@ class TestGameState(unittest.TestCase):
             status=FrameStatus.FAILED
         )
 
+        win_state = WindowState(tibia_focused=True, tibia_minimized=False, projector_available=True)
         analyzer = GameAnalyzer()
-        game_state = analyzer.analyze(failed_frame, hwnd_tibia=123, hwnd_obs=456)
+        game_state = analyzer.analyze(failed_frame, window_state=win_state)
 
         self.assertFalse(game_state.is_safe_to_act)
         self.assertIsNone(game_state.player.hp_percent)

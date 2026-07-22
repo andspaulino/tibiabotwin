@@ -8,7 +8,7 @@ from src.domain.metrics import CycleMetrics
 from src.domain.actions import ActionType, BotAction
 from src.domain.game_state import GameState, CaptureState, WindowState, PlayerState, TargetState
 from src.domain.bot_state import BotMode, BotState
-from src.domain.analyzer import GameAnalyzer
+from src.infrastructure.vision import GameAnalyzer
 from src.infrastructure.capture.recorded import RecordedFrameCapturer
 from src.infrastructure.capture.frame import CapturedFrame, FrameStatus
 from src.infrastructure.input.mock_input import MockInputController
@@ -34,8 +34,8 @@ class TestDiagnosticsAndObservability(unittest.TestCase):
 
         analyzer = GameAnalyzer(config)
         state_machine = StateMachine(initial_mode=BotMode.IDLE)
-        healer = AutoHealer(config.healer, input_controller=mock_input)
-        combat = AutoAttacker(config.combat, input_controller=mock_input)
+        healer = AutoHealer(config.healer)
+        combat = AutoAttacker(config.combat)
         overlay = OnScreenOverlay()
         scheduler = LoopScheduler()
 
@@ -111,7 +111,8 @@ class TestDiagnosticsAndObservability(unittest.TestCase):
             status=FrameStatus.FAILED
         )
 
-        analyzer.analyze(failed_frame, hwnd_tibia=0, hwnd_obs=0)
+        win_state = WindowState(tibia_focused=False, tibia_minimized=True, projector_available=False)
+        analyzer.analyze(failed_frame, window_state=win_state)
 
         failed_dir = Path(__file__).resolve().parent.parent.parent / "logs" / "failed_frames"
         self.assertTrue(failed_dir.exists())

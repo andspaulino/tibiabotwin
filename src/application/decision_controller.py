@@ -1,29 +1,46 @@
 import time
-from typing import List, Dict
+from typing import List, Optional
 
+from src.config.models import AppConfig
 from src.domain.game_state import GameState
 from src.domain.bot_state import BotState, BotMode
 from src.domain.actions import BotAction, ActionType
+from src.application.cooldown_manager import CooldownManager
 from src.utils.logger import logger
 
 
 class DecisionController:
     """
-    Resolvedor central de conflitos e prioridades de ações do bot.
-    Recebe intenções de ações propostas pelos módulos e filtra apenas as autorizadas e compatíveis.
+    Resolvedor central de conflitos, prioridades e compatibilidade de ações do bot.
+    Recebe intenções de ações propostas pelos módulos e filtra apenas as autorizadas e compatíveis com cooldowns.
     """
 
-    def __init__(self):
-        self.last_action_times: Dict[ActionType, float] = {}
+    def __init__(self, cooldown_manager: Optional[CooldownManager] = None):
+        self.cooldown_manager = cooldown_manager or CooldownManager()
+
+    def _get_cooldown_ms(self, action: BotAction, config: Optional[AppConfig]) -> float:
+        if not config:
+            return 0.0
+
+        if action.action_type == ActionType.EMERGENCY_HEAL:
+            return config.healer.emergency_potion.cooldown_ms
+        elif action.action_type == ActionType.HEAL:
+            return config.healer.spell.cooldown_ms
+        elif action.action_type == ActionType.USE_MANA:
+            return config.healer.mana_potion.cooldown_ms
+        elif action.action_type == ActionType.ATTACK:
+            return config.combat.attack_cooldown_ms
+        return 0.0
 
     def resolve(
         self,
         proposed_actions: List[BotAction],
         game_state: GameState,
-        bot_state: BotState
+        bot_state: BotState,
+        config: Optional[AppConfig] = None
     ) -> List[BotAction]:
         """
-        Ordena, valida e resolve conflitos entre ações propostas.
+        Ordena, valida cooldowns e resolve conflitos entre ações propostas.
         """
         if not proposed_actions:
             return []
@@ -43,11 +60,20 @@ class DecisionController:
                 if action.action_type in (ActionType.ATTACK, ActionType.LOOT, ActionType.MOVE):
                     continue
 
-            # 4. Ação de emergência (EMERGENCY_HEAL) se selecionada, cancela ações secundárias de menor prioridade
+            # 4. Verifica se a ação respeita o CooldownManager
+            cd_ms = self._get_cooldown_ms(action, config)
+            if not self.cooldown_manager.can_execute(action.action_type, cd_ms, now):
+                continue
+            if action.key and not self.cooldown_manager.can_execute(action.key, cd_ms, now):
+                continue
+
+            # 5. Ação de emergência (EMERGENCY_HEAL) cancela qualquer outra ação do mesmo ciclo
             if action.action_type == ActionType.EMERGENCY_HEAL:
                 resolved = [action]
                 break
 
-            resolved.append(action)
+            # Adiciona ação se ainda não houver uma ação da mesma categoria na lista de resolvidos
+            if not any(existing.action_type == action.action_type for existing in resolved):
+                resolved.append(action)
 
         return resolved

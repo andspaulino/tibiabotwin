@@ -28,11 +28,10 @@ class TestPlatformAbstractions(unittest.TestCase):
         mock_input = create_input_controller(mock=True)
         self.assertIsInstance(mock_input, MockInputController)
 
-    def test_healer_with_mock_input(self):
-        """Verifica se o AutoHealer executa atalhos no MockInputController sem acionar o SO."""
-        mock_input = MockInputController()
+    def test_healer_proposes_action(self):
+        """Verifica se o AutoHealer propõe a ação correta sem executar inputs físicos."""
         cfg = HealerConfig(spell=SpellActionConfig(enabled=True, hp_below=80.0, key="F1", cooldown_ms=0))
-        healer = AutoHealer(config=cfg, input_controller=mock_input)
+        healer = AutoHealer(config=cfg)
         healer.start()
 
         now = datetime.now(timezone.utc)
@@ -44,14 +43,14 @@ class TestPlatformAbstractions(unittest.TestCase):
             target=TargetState(has_monsters_in_battle=False, has_active_target=False)
         )
 
-        healer.check_and_heal(low_hp_state)
-        self.assertEqual(mock_input.key_history, ["F1"])
+        actions = healer.check_and_heal(low_hp_state)
+        self.assertEqual(len(actions), 1)
+        self.assertEqual(actions[0].key, "F1")
 
-    def test_combat_with_mock_input(self):
-        """Verifica se o AutoAttacker executa atalhos no MockInputController sem acionar o SO."""
-        mock_input = MockInputController()
+    def test_combat_proposes_action(self):
+        """Verifica se o AutoAttacker propõe a ação de ataque sem executar inputs físicos."""
         cfg = CombatConfig(enabled=True, attack_key="space", attack_cooldown_ms=0)
-        combat = AutoAttacker(config=cfg, input_controller=mock_input)
+        combat = AutoAttacker(config=cfg)
         combat.start()
 
         now = datetime.now(timezone.utc)
@@ -63,8 +62,9 @@ class TestPlatformAbstractions(unittest.TestCase):
             target=TargetState(has_monsters_in_battle=True, has_active_target=False)
         )
 
-        combat.update(combat_state)
-        self.assertEqual(mock_input.key_history, ["space"])
+        actions = combat.update(combat_state)
+        self.assertEqual(len(actions), 1)
+        self.assertEqual(actions[0].key, "space")
 
 
 if __name__ == "__main__":
