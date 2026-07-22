@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TibiaBotConfig",
+  "description": "Schema de validação para as configurações do Tibia Bot",
+  "type": "object",
+  "properties": {
+    "loop_interval_ms": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 50
+    },
+    "window": {
+      "type": "object",
+      "properties": {
+        "tibia_title": { "type": "string", "minLength": 1, "default": "Tibia" },
+        "obs_title": { "type": "string", "minLength": 1, "default": "obs" },
+        "allow_partial_match": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": false
+    },
+    "healer": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "spell": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "key": { "type": "string", "minLength": 1, "default": "1" },
+            "hp_below": { "type": "number", "minimum": 0, "maximum": 100, "default": 90 },
+            "cooldown_ms": { "type": "integer", "minimum": 0, "default": 1000 }
+          },
+          "additionalProperties": false
+        },
+        "mana_potion": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "key": { "type": "string", "minLength": 1, "default": "2" },
+            "mana_below": { "type": "number", "minimum": 0, "maximum": 100, "default": 50 },
+            "cooldown_ms": { "type": "integer", "minimum": 0, "default": 1000 }
+          },
+          "additionalProperties": false
+        },
+        "emergency_potion": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "key": { "type": "string", "minLength": 1, "default": "3" },
+            "hp_below": { "type": "number", "minimum": 0, "maximum": 100, "default": 30 },
+            "cooldown_ms": { "type": "integer", "minimum": 0, "default": 1000 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "combat": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "attack_key": { "type": "string", "minLength": 1, "default": "space" },
+        "cooldown_ms": { "type": "integer", "minimum": 0, "default": 1000 },
+        "min_battle_pixels": { "type": "integer", "minimum": 0, "default": 10 },
+        "target_template_path": { "type": "string", "default": "templates/target_red.png" },
+        "target_match_threshold": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.75 }
+      },
+      "additionalProperties": false
+    },
+    "pz": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "template_path": { "type": "string", "default": "templates/pz.png" },
+        "match_threshold": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.82 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,30 +1,29 @@
 import time
+from typing import Optional
+
+from src.config.models import HealerConfig
 from src.utils.input import press_key
 from src.utils.logger import logger
+
 
 class AutoHealer:
     """Módulo responsável pelo monitoramento e execução da cura automática de HP e Mana."""
 
-    def __init__(
-        self,
-        spell_hp_threshold: float = 0.90,     # Magia de Cura (HK 1) se HP <= 90%
-        potion_hp_threshold: float = 0.30,    # Poção de Vida (HK 3) se HP <= 30%
-        mp_threshold: float = 0.50,           # Poção de Mana (HK 2) se MP <= 50%
-        spell_cooldown: float = 1.0,          # Cooldown de magia (segundos)
-        potion_cooldown: float = 1.0          # Cooldown de poção (segundos)
-    ):
-        self.spell_hp_threshold = spell_hp_threshold
-        self.potion_hp_threshold = potion_hp_threshold
-        self.mp_threshold = mp_threshold
-        self.spell_cooldown = spell_cooldown
-        self.potion_cooldown = potion_cooldown
+    def __init__(self, config: Optional[HealerConfig] = None):
+        self.config = config or HealerConfig()
         
-        self.last_spell_time = 0
-        self.last_potion_time = 0
+        self.last_spell_time = 0.0
+        self.last_mana_potion_time = 0.0
+        self.last_emergency_potion_time = 0.0
         self.enabled = False
 
     def start(self):
-        """Inicia o módulo de cura."""
+        """Inicia o módulo de cura se ativado na configuração."""
+        if not self.config.enabled:
+            logger.log("HEALER", "Modulo de cura desativado na configuracao.")
+            self.enabled = False
+            return
+        
         self.enabled = True
         logger.log("HEALER", "Modulo de cura ativado.")
 
@@ -35,11 +34,11 @@ class AutoHealer:
 
     def check_and_heal(self, current_hp_pct: float, current_mp_pct: float, in_pz: bool = False):
         """
-        Verifica as porcentagens atuais de HP e MP e aciona as hotkeys correspondentes.
-        - Magias de cura e poções de mana executam silenciosamente.
-        - Apenas emergências com Poção de Vida são registradas no log.
+        Verifica as porcentagens atuais de HP e MP e aciona as hotkeys configuradas.
+        - current_hp_pct e current_mp_pct estão na faixa de 0.0 a 1.0.
+        - As configurações hp_below / mana_below estão na faixa de 0.0 a 100.0.
         """
-        if not self.enabled or in_pz:
+        if not self.enabled or not self.config.enabled or in_pz:
             return
 
         # Ignora frames não inicializados ou capturas pretas
@@ -47,23 +46,31 @@ class AutoHealer:
             return
 
         now = time.time()
+        hp_pct_100 = current_hp_pct * 100.0
+        mp_pct_100 = current_mp_pct * 100.0
 
-        # 1. EMERGÊNCIA: Poção de Vida (Hotkey 3) se HP <= 30% -> REGISTRA NO LOG
-        if current_hp_pct <= self.potion_hp_threshold:
-            if now - self.last_potion_time >= self.potion_cooldown:
-                logger.log("HEALER", f"Pocao de Vida ({current_hp_pct * 100:.0f}%)", level="WARNING")
-                press_key('3')
-                self.last_potion_time = now
+        # 1. EMERGÊNCIA: Poção de Vida
+        emerg_cfg = self.config.emergency_potion
+        if emerg_cfg.enabled and hp_pct_100 <= emerg_cfg.hp_below:
+            cd_sec = emerg_cfg.cooldown_ms / 1000.0
+            if now - self.last_emergency_potion_time >= cd_sec:
+                logger.log("HEALER", f"Pocao de Vida ({hp_pct_100:.0f}%)", level="WARNING")
+                press_key(emerg_cfg.key)
+                self.last_emergency_potion_time = now
                 return
 
-        # 2. CURA PRIMÁRIA: Magia de Cura (Hotkey 1) se HP <= 90% -> Silencioso
-        if current_hp_pct <= self.spell_hp_threshold:
-            if now - self.last_spell_time >= self.spell_cooldown:
-                press_key('1')
+        # 2. CURA PRIMÁRIA: Magia de Cura
+        spell_cfg = self.config.spell
+        if spell_cfg.enabled and hp_pct_100 <= spell_cfg.hp_below:
+            cd_sec = spell_cfg.cooldown_ms / 1000.0
+            if now - self.last_spell_time >= cd_sec:
+                press_key(spell_cfg.key)
                 self.last_spell_time = now
 
-        # 3. MANA: Poção de Mana (Hotkey 2) se MP <= 50% -> Silencioso
-        if current_mp_pct <= self.mp_threshold:
-            if now - self.last_potion_time >= self.potion_cooldown:
-                press_key('2')
-                self.last_potion_time = now
+        # 3. MANA: Poção de Mana
+        mana_cfg = self.config.mana_potion
+        if mana_cfg.enabled and mp_pct_100 <= mana_cfg.threshold_below:
+            cd_sec = mana_cfg.cooldown_ms / 1000.0
+            if now - self.last_mana_potion_time >= cd_sec:
+                press_key(mana_cfg.key)
+                self.last_mana_potion_time = now

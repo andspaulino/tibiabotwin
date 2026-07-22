@@ -1,0 +1,21 @@
+# Perfil de Exemplo para Personagem Customizado
+
+healer:
+  spell:
+    key: "F1"
+    hp_below: 85.0
+    cooldown_ms: 1200
+
+  mana_potion:
+    key: "F2"
+    mana_below: 60.0
+    cooldown_ms: 1000
+
+  emergency_potion:
+    key: "F3"
+    hp_below: 35.0
+    cooldown_ms: 800
+
+combat:
+  attack_key: "space"
+  cooldown_ms: 1000

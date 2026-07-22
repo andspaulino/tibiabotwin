@@ -1,0 +1,246 @@
+import os
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
+import yaml
+
+from src.config.models import (
+    AppConfig,
+    WindowConfig,
+    HealerConfig,
+    SpellActionConfig,
+    PotionActionConfig,
+    EmergencyPotionConfig,
+    CombatConfig,
+    PZConfig,
+)
+
+
+class ConfigValidationError(Exception):
+    """Exceção lançada quando as configurações do bot são inválidas."""
+    pass
+
+
+def deep_merge(base: Dict[str, Any], update: Dict[str, Any]) -> Dict[str, Any]:
+    """Mescla recursivamente duas estruturas de dicionários."""
+    merged = dict(base)
+    for key, value in update.items():
+        if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
+            merged[key] = deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def load_raw_yaml(file_path: Union[str, Path]) -> Dict[str, Any]:
+    """Carrega um arquivo YAML e retorna um dicionário de dados."""
+    path = Path(file_path)
+    if not path.exists():
+        raise ConfigValidationError(f"Arquivo de configuração não encontrado: '{path.resolve()}'")
+    
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = yaml.safe_load(f)
+            return content if isinstance(content, dict) else {}
+    except yaml.YAMLError as err:
+        raise ConfigValidationError(f"Erro ao ler YAML do arquivo '{path}': {err}")
+    except Exception as err:
+        raise ConfigValidationError(f"Erro inesperado ao abrir arquivo '{path}': {err}")
+
+
+def _validate_percentage(val: Any, field_name: str) -> float:
+    """Valida se o valor é uma porcentagem válida (0.0 a 100.0 ou 0.0 a 1.0)."""
+    try:
+        fval = float(val)
+    except (ValueError, TypeError):
+        raise ConfigValidationError(f"Campo '{field_name}' deve ser um número, recebido: {val}")
+
+    if fval < 0.0 or fval > 100.0:
+        raise ConfigValidationError(f"Campo '{field_name}' deve estar entre 0 e 100%, recebido: {fval}")
+
+    return fval
+
+
+def _validate_cooldown(val: Any, field_name: str) -> int:
+    """Valida se o cooldown em milissegundos é maior ou igual a 0."""
+    try:
+        ival = int(val)
+    except (ValueError, TypeError):
+        raise ConfigValidationError(f"Campo '{field_name}' deve ser um número inteiro, recebido: {val}")
+
+    if ival < 0:
+        raise ConfigValidationError(f"Campo '{field_name}' não pode ser negativo, recebido: {ival}")
+
+    return ival
+
+
+def _validate_hotkey(val: Any, field_name: str, enabled: bool) -> str:
+    """Valida se a hotkey é uma string válida quando o recurso está ativado."""
+    if not enabled:
+        return str(val) if val is not None else ""
+
+    if not isinstance(val, str) or not val.strip():
+        raise ConfigValidationError(f"Campo '{field_name}' é obrigatório quando o recurso está ativado.")
+
+    return val.strip()
+
+
+def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
+    """Valida a estrutura de dados bruta e constrói um AppConfig fortemente tipado."""
+    if not isinstance(data, dict):
+        raise ConfigValidationError("Configuração raiz deve ser um objeto/dicionário.")
+
+    # 1. Window Config
+    window_data = data.get("window", {})
+    tibia_title = window_data.get("tibia_title", "Tibia")
+    obs_title = window_data.get("obs_title", "obs")
+    allow_partial = bool(window_data.get("allow_partial_match", True))
+
+    if not isinstance(tibia_title, str) or not tibia_title.strip():
+        raise ConfigValidationError("Campo 'window.tibia_title' não pode ser vazio.")
+    if not isinstance(obs_title, str) or not obs_title.strip():
+        raise ConfigValidationError("Campo 'window.obs_title' não pode ser vazio.")
+
+    win_cfg = WindowConfig(
+        tibia_title=tibia_title.strip(),
+        obs_title=obs_title.strip(),
+        allow_partial_match=allow_partial
+    )
+
+    # 2. Healer Config
+    healer_data = data.get("healer", {})
+    healer_enabled = bool(healer_data.get("enabled", True))
+
+    spell_data = healer_data.get("spell", {})
+    spell_enabled = bool(spell_data.get("enabled", True))
+    spell_key = _validate_hotkey(spell_data.get("key", "1"), "healer.spell.key", spell_enabled)
+    spell_hp = _validate_percentage(spell_data.get("hp_below", 90.0), "healer.spell.hp_below")
+    spell_cd = _validate_cooldown(spell_data.get("cooldown_ms", 1000), "healer.spell.cooldown_ms")
+
+    spell_cfg = SpellActionConfig(
+        enabled=spell_enabled,
+        key=spell_key,
+        hp_below=spell_hp,
+        cooldown_ms=spell_cd
+    )
+
+    mana_data = healer_data.get("mana_potion", {})
+    mana_enabled = bool(mana_data.get("enabled", True))
+    mana_key = _validate_hotkey(mana_data.get("key", "2"), "healer.mana_potion.key", mana_enabled)
+    mana_thresh = _validate_percentage(mana_data.get("mana_below", 50.0), "healer.mana_potion.mana_below")
+    mana_cd = _validate_cooldown(mana_data.get("cooldown_ms", 1000), "healer.mana_potion.cooldown_ms")
+
+    mana_cfg = PotionActionConfig(
+        enabled=mana_enabled,
+        key=mana_key,
+        threshold_below=mana_thresh,
+        cooldown_ms=mana_cd
+    )
+
+    emerg_data = healer_data.get("emergency_potion", {})
+    emerg_enabled = bool(emerg_data.get("enabled", True))
+    emerg_key = _validate_hotkey(emerg_data.get("key", "3"), "healer.emergency_potion.key", emerg_enabled)
+    emerg_hp = _validate_percentage(emerg_data.get("hp_below", 30.0), "healer.emergency_potion.hp_below")
+    emerg_cd = _validate_cooldown(emerg_data.get("cooldown_ms", 1000), "healer.emergency_potion.cooldown_ms")
+
+    emerg_cfg = EmergencyPotionConfig(
+        enabled=emerg_enabled,
+        key=emerg_key,
+        hp_below=emerg_hp,
+        cooldown_ms=emerg_cd
+    )
+
+    healer_cfg = HealerConfig(
+        enabled=healer_enabled,
+        spell=spell_cfg,
+        mana_potion=mana_cfg,
+        emergency_potion=emerg_cfg
+    )
+
+    # 3. Combat Config
+    combat_data = data.get("combat", {})
+    combat_enabled = bool(combat_data.get("enabled", True))
+    attack_key = _validate_hotkey(combat_data.get("attack_key", "space"), "combat.attack_key", combat_enabled)
+    attack_cd = _validate_cooldown(combat_data.get("cooldown_ms", 1000), "combat.cooldown_ms")
+    min_pixels = combat_data.get("min_battle_pixels", 10)
+    try:
+        min_pixels = int(min_pixels)
+        if min_pixels < 0:
+            raise ValueError()
+    except (ValueError, TypeError):
+        raise ConfigValidationError("Campo 'combat.min_battle_pixels' deve ser um número inteiro >= 0.")
+
+    target_tmpl = str(combat_data.get("target_template_path", "templates/target_red.png"))
+    thresh = float(combat_data.get("target_match_threshold", 0.75))
+    if thresh < 0.0 or thresh > 1.0:
+        raise ConfigValidationError("Campo 'combat.target_match_threshold' deve estar entre 0.0 e 1.0.")
+
+    combat_cfg = CombatConfig(
+        enabled=combat_enabled,
+        attack_key=attack_key,
+        attack_cooldown_ms=attack_cd,
+        min_battle_pixels=min_pixels,
+        target_template_path=target_tmpl,
+        target_match_threshold=thresh
+    )
+
+    # 4. Protection Zone Config
+    pz_data = data.get("pz", {})
+    pz_enabled = bool(pz_data.get("enabled", True))
+    pz_tmpl = str(pz_data.get("template_path", "templates/pz.png"))
+    pz_thresh = float(pz_data.get("match_threshold", 0.82))
+    if pz_thresh < 0.0 or pz_thresh > 1.0:
+        raise ConfigValidationError("Campo 'pz.match_threshold' deve estar entre 0.0 e 1.0.")
+
+    pz_cfg = PZConfig(
+        enabled=pz_enabled,
+        template_path=pz_tmpl,
+        match_threshold=pz_thresh
+    )
+
+    # 5. Global loop interval
+    loop_ms = data.get("loop_interval_ms", 50)
+    try:
+        loop_ms = int(loop_ms)
+        if loop_ms <= 0:
+            raise ValueError()
+    except (ValueError, TypeError):
+        raise ConfigValidationError("Campo 'loop_interval_ms' deve ser um inteiro > 0.")
+
+    return AppConfig(
+        window=win_cfg,
+        healer=healer_cfg,
+        combat=combat_cfg,
+        pz=pz_cfg,
+        loop_interval_ms=loop_ms
+    )
+
+
+def load_config(
+    config_path: Optional[Union[str, Path]] = None,
+    profile_path: Optional[Union[str, Path]] = None
+) -> AppConfig:
+    """
+    Carrega e consolida a configuração da aplicação.
+    
+    1. Se config_path não for informado, usa 'config/default.yaml'.
+    2. Se profile_path for informado, mescla suas sobreposições por cima.
+    3. Valida todos os campos e retorna AppConfig.
+    """
+    project_root = Path(__file__).resolve().parent.parent.parent
+    default_config_path = project_root / "config" / "default.yaml"
+
+    target_config = Path(config_path) if config_path else default_config_path
+
+    raw_base = load_raw_yaml(target_config)
+
+    if profile_path:
+        profile_file = Path(profile_path)
+        if not profile_file.is_absolute():
+            profile_file = project_root / "config" / "profiles" / profile_file
+            if not profile_file.suffix:
+                profile_file = profile_file.with_suffix(".yaml")
+        
+        raw_profile = load_raw_yaml(profile_file)
+        raw_base = deep_merge(raw_base, raw_profile)
+
+    return validate_and_parse(raw_base)

@@ -1,0 +1,8 @@
+# Perfil de Exemplo — Ajustes para Resolução 1920x1080
+
+window:
+  tibia_title: "Tibia"
+  obs_title: "projetor"
+  allow_partial_match: true
+
+loop_interval_ms: 50

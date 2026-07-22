@@ -85,8 +85,8 @@ Esses valores são temporários e dependem da resolução, da escala, do tamanho
 * [x] Usar poção de emergência quando o HP estiver crítico.
 * [x] Aplicar cooldown para evitar spam de teclas.
 * [x] Registrar ações importantes no log.
-* [ ] Remover thresholds fixos do código.
-* [ ] Carregar hotkeys, limites e cooldowns pela configuração.
+* [x] Remover thresholds fixos do código.
+* [x] Carregar hotkeys, limites e cooldowns pela configuração.
 * [ ] Adicionar histerese para evitar alternância rápida perto dos limites.
 * [ ] Adicionar prioridade explícita entre os diferentes tipos de cura.
 
@@ -139,22 +139,22 @@ config/
 
 ### Configurações de janela
 
-* [ ] Mover o título da janela do Tibia para a configuração.
-* [ ] Mover o título do Projetor do OBS para a configuração.
-* [ ] Permitir busca parcial por título.
-* [ ] Permitir selecionar entre múltiplas janelas encontradas.
-* [ ] Validar a configuração antes de iniciar o loop.
+* [x] Mover o título da janela do Tibia para a configuração.
+* [x] Mover o título do Projetor do OBS para a configuração.
+* [x] Permitir busca parcial por título.
+* [x] Permitir selecionar entre múltiplas janelas encontradas.
+* [x] Validar a configuração antes de iniciar o loop.
 
 ### Configurações do healer
 
-* [ ] Externalizar hotkey da magia de cura.
-* [ ] Externalizar percentual de HP da magia.
-* [ ] Externalizar cooldown da magia.
-* [ ] Externalizar hotkey da poção de mana.
-* [ ] Externalizar percentual mínimo de mana.
-* [ ] Externalizar hotkey da poção de emergência.
-* [ ] Externalizar percentual crítico de HP.
-* [ ] Permitir habilitar ou desabilitar cada recurso.
+* [x] Externalizar hotkey da magia de cura.
+* [x] Externalizar percentual de HP da magia.
+* [x] Externalizar cooldown da magia.
+* [x] Externalizar hotkey da poção de mana.
+* [x] Externalizar percentual mínimo de mana.
+* [x] Externalizar hotkey da poção de emergência.
+* [x] Externalizar percentual crítico de HP.
+* [x] Permitir habilitar ou desabilitar cada recurso.
 
 Exemplo:
 
@@ -183,20 +183,20 @@ healer:
 
 ### Configurações de combate
 
-* [ ] Externalizar a hotkey de ataque.
-* [ ] Externalizar o limite mínimo de pixels da Battle List.
-* [ ] Externalizar thresholds das cores utilizadas.
-* [ ] Externalizar cooldown para seleção de alvo.
-* [ ] Permitir ativar ou desativar o AutoAttacker.
+* [x] Externalizar a hotkey de ataque.
+* [x] Externalizar o limite mínimo de pixels da Battle List.
+* [x] Externalizar thresholds das cores utilizadas.
+* [x] Externalizar cooldown para seleção de alvo.
+* [x] Permitir ativar ou desativar o AutoAttacker.
 
 ### Critérios de conclusão
 
-* [ ] Nenhuma hotkey de gameplay permanece hardcoded.
-* [ ] Nenhum threshold de HP ou mana permanece hardcoded.
-* [ ] Nenhum caminho de template permanece hardcoded.
-* [ ] Erros de configuração apresentam mensagens claras.
-* [ ] Existe pelo menos um arquivo de configuração de exemplo.
-* [ ] O README explica como criar um perfil.
+* [x] Nenhuma hotkey de gameplay permanece hardcoded.
+* [x] Nenhum threshold de HP ou mana permanece hardcoded.
+* [x] Nenhum caminho de template permanece hardcoded.
+* [x] Erros de configuração apresentam mensagens claras.
+* [x] Existe pelo menos um arquivo de configuração de exemplo.
+* [x] O README explica como criar um perfil.
 
 ---
 

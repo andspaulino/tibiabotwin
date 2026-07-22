@@ -200,10 +200,10 @@ def is_in_pz(img, pz_template_path: str = "templates/pz.png", threshold: float =
 
     return bool(has_blue_dove)
 
-def has_monsters_in_battle(img, roi: dict = BATTLE_LIST_ROI) -> bool:
+def has_monsters_in_battle(img, roi: dict = BATTLE_LIST_ROI, min_pixels: int = 10) -> bool:
     """
     Verifica se há alvos/criaturas presentes na região da Battle List.
-    Avalia se há uma barrinha de vida real de criatura (pelo menos 10 pixels de HP bar).
+    Avalia se há uma barrinha de vida real de criatura (pelo menos min_pixels de HP bar).
     """
     if np is None:
         return False
@@ -218,9 +218,9 @@ def has_monsters_in_battle(img, roi: dict = BATTLE_LIST_ROI) -> bool:
 
     hp_pixels = int(np.sum(hp_mask))
     # Exige uma quantidade mínima de pixels para ser uma barrinha de vida de monstro real
-    return bool(hp_pixels >= 10)
+    return bool(hp_pixels >= min_pixels)
 
-def has_active_target(img, roi: dict = BATTLE_LIST_ROI, target_template_path: str = "templates/target_red.png") -> bool:
+def has_active_target(img, roi: dict = BATTLE_LIST_ROI, target_template_path: str = "templates/target_red.png", threshold: float = 0.75) -> bool:
     """
     Verifica se há um alvo ativo atualmente selecionado (moldura de ataque vermelha viva na Battle List).
     Utiliza filtro de cor vermelha pura e validação por template matching (target_red.png).
@@ -244,7 +244,8 @@ def has_active_target(img, roi: dict = BATTLE_LIST_ROI, target_template_path: st
         if template is not None and battle_img.shape[0] >= template.shape[0] and battle_img.shape[1] >= template.shape[1]:
             res = cv2.matchTemplate(battle_img, template, cv2.TM_CCOEFF_NORMED)
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-            if max_val >= 0.75:
+            if max_val >= threshold:
                 return True
 
     return False
+

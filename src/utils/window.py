@@ -47,19 +47,24 @@ def get_window_title(hwnd: int) -> str:
     GetWindowTextW(hwnd, buff, length + 1)
     return buff.value
 
-def find_windows_by_title(title_substring: str) -> list[tuple[int, str]]:
-    """Busca todas as janelas visíveis cujo título contenha a substring fornecida."""
+def find_windows_by_title(title_query: str, allow_partial: bool = True) -> list[tuple[int, str]]:
+    """Busca todas as janelas visíveis cujo título contenha ou coincida com a string fornecida."""
     matching_windows = []
     
     def enum_handler(hwnd, lparam):
         if IsWindowVisible(hwnd):
             title = get_window_title(hwnd)
-            if title_substring.lower() in title.lower():
-                matching_windows.append((hwnd, title))
+            if allow_partial:
+                if title_query.lower() in title.lower():
+                    matching_windows.append((hwnd, title))
+            else:
+                if title_query.lower() == title.lower():
+                    matching_windows.append((hwnd, title))
         return True
 
     EnumWindows(EnumWindowsProc(enum_handler), 0)
     return matching_windows
+
 
 def set_window_opacity(hwnd: int, opacity: int) -> bool:
     """

@@ -1,0 +1,42 @@
+# Configuração Padrão do Tibia Bot
+
+loop_interval_ms: 50
+
+window:
+  tibia_title: "Tibia"
+  obs_title: "obs"
+  allow_partial_match: true
+
+healer:
+  enabled: true
+
+  spell:
+    enabled: true
+    key: "1"
+    hp_below: 80.0
+    cooldown_ms: 1000
+
+  mana_potion:
+    enabled: true
+    key: "2"
+    mana_below: 50.0
+    cooldown_ms: 1000
+
+  emergency_potion:
+    enabled: true
+    key: "3"
+    hp_below: 30.0
+    cooldown_ms: 1000
+
+combat:
+  enabled: true
+  attack_key: "space"
+  cooldown_ms: 1000
+  min_battle_pixels: 10
+  target_template_path: "templates/target_red.png"
+  target_match_threshold: 0.75
+
+pz:
+  enabled: true
+  template_path: "templates/pz.png"
+  match_threshold: 0.82

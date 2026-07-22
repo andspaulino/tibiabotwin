@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 import time
@@ -10,6 +11,7 @@ try:
 except ImportError:
     keyboard = None
 
+from src.config import load_config, ConfigValidationError, AppConfig, WindowConfig
 from src.utils.window import (
     find_windows_by_title,
     set_window_opacity,
@@ -39,6 +41,7 @@ if sys.platform == "win32":
 
 killswitch_paused = False
 
+
 def toggle_killswitch(e=None):
     """Callback acionado ao pressionar a tecla de emergência (Pause)."""
     global killswitch_paused
@@ -48,22 +51,26 @@ def toggle_killswitch(e=None):
     else:
         logger.log("SYSTEM", "▶️ KILLSWITCH DESATIVADO: Bot RETOMADO.", level="INFO")
 
-def check_and_prepare_windows():
-    """Verifica e prepara as janelas do Tibia e OBS."""
+
+def check_and_prepare_windows(window_cfg: WindowConfig):
+    """Verifica e prepara as janelas do Tibia e OBS utilizando a configuração."""
     logger.log("SYSTEM", "Verificando janelas abertas...")
     
-    tibia_windows = find_windows_by_title("Tibia")
+    tibia_windows = find_windows_by_title(window_cfg.tibia_title, allow_partial=window_cfg.allow_partial_match)
     tibia = [w for w in tibia_windows if w[1].startswith("Tibia - ")]
     if not tibia:
         tibia = tibia_windows
 
-    obs_windows = find_windows_by_title("obs") or find_windows_by_title("projetor") or find_windows_by_title("projector")
+    obs_windows = find_windows_by_title(window_cfg.obs_title, allow_partial=window_cfg.allow_partial_match)
+    if not obs_windows:
+        # Fallback para variações comuns se busca específica falhar
+        obs_windows = find_windows_by_title("obs") or find_windows_by_title("projetor") or find_windows_by_title("projector")
 
     if not tibia:
-        logger.log("SYSTEM", "Janela do Tibia nao encontrada!", level="ERROR")
+        logger.log("SYSTEM", f"Janela do Tibia (busca: '{window_cfg.tibia_title}') nao encontrada!", level="ERROR")
         return None, None
     if not obs_windows:
-        logger.log("SYSTEM", "Janela do OBS Studio / Projetor nao encontrada!", level="ERROR")
+        logger.log("SYSTEM", f"Janela do OBS Studio / Projetor (busca: '{window_cfg.obs_title}') nao encontrada!", level="ERROR")
         return None, None
 
     hwnd_tibia, title_tibia = tibia[0]
@@ -73,12 +80,40 @@ def check_and_prepare_windows():
     logger.log("SYSTEM", f"OBS encontrado: '{title_obs}' (HWND: {hwnd_obs})")
     return hwnd_tibia, hwnd_obs
 
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Tibia Bot — Engine Principal")
+    parser.add_argument(
+        "-c", "--config",
+        type=str,
+        default=None,
+        help="Caminho para o arquivo YAML de configuração (padrão: config/default.yaml)"
+    )
+    parser.add_argument(
+        "-p", "--profile",
+        type=str,
+        default=None,
+        help="Nome ou caminho do perfil de sobreposição em config/profiles/ (ex: character-example ou 1920x1080)"
+    )
+    return parser.parse_args()
+
+
 def run():
+    args = parse_args()
+
     print("==================================================")
     print("           Tibia Bot - Engine Principal           ")
     print("==================================================")
 
-    hwnd_tibia, hwnd_obs = check_and_prepare_windows()
+    try:
+        config: AppConfig = load_config(config_path=args.config, profile_path=args.profile)
+        logger.log("SYSTEM", "Configuracao carregada e validada com sucesso.")
+    except ConfigValidationError as err:
+        logger.log("SYSTEM", f"ERRO DE CONFIGURACAO: {err}", level="ERROR")
+        print(f"\n[ERRO CRITICO DE CONFIGURACAO]: {err}\n")
+        sys.exit(1)
+
+    hwnd_tibia, hwnd_obs = check_and_prepare_windows(config.window)
     
     if not hwnd_tibia or not hwnd_obs:
         logger.log("SYSTEM", "Por favor, certifique-se de que o Tibia e o OBS estao abertos antes de iniciar.", level="WARNING")
@@ -98,8 +133,8 @@ def run():
     logger.log("SYSTEM", "Janela do Tibia configurada como INVISIVEL.")
 
     capturer = ScreenCapturer()
-    healer = AutoHealer()
-    combat = AutoAttacker()
+    healer = AutoHealer(config.healer)
+    combat = AutoAttacker(config.combat)
     overlay = OnScreenOverlay()
 
     try:
@@ -112,6 +147,7 @@ def run():
         
         last_pz_state = None
         was_inactive = False
+        sleep_sec = config.loop_interval_ms / 1000.0
 
         while True:
             # 0A. Verifica se o Killswitch de emergência está pausado
@@ -140,7 +176,11 @@ def run():
             # 3. Leitura contínua das barras e estado de PZ
             hp_pct = get_hp_percentage(img_bgr)
             mp_pct = get_mp_percentage(img_bgr)
-            in_pz = is_in_pz(img_bgr)
+            in_pz = is_in_pz(
+                img_bgr,
+                pz_template_path=config.pz.template_path,
+                threshold=config.pz.match_threshold
+            )
 
             # 4. Log de evento ao entrar ou sair de Protection Zone (PZ)
             if last_pz_state is not None and in_pz != last_pz_state:
@@ -156,7 +196,7 @@ def run():
             # 6. Executa atualização do Combat (dispara apenas ao realizar ação de combate)
             combat.update(img_bgr, in_pz)
 
-            time.sleep(0.05)
+            time.sleep(sleep_sec)
 
     except KeyboardInterrupt:
         logger.log("SYSTEM", "Encerrando bot por solicitacao do usuario...")
@@ -171,6 +211,7 @@ def run():
         reset_window_opacity(hwnd_tibia)
         capturer.close()
         logger.log("SYSTEM", "Visibilidade restaurada. Encerrado com sucesso.")
+
 
 if __name__ == "__main__":
     run()
