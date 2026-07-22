@@ -75,9 +75,16 @@ class WindowsWindowManager(WindowManager):
         return windows[0] if windows else None
 
     def find_projector(self, window_cfg: WindowConfig) -> Optional[Tuple[int, str]]:
+        # Prioriza janelas que contenham 'projetor' ou 'projector' no título (evita selecionar a janela principal do OBS)
+        projectors = self._find_windows_by_title("projetor") or self._find_windows_by_title("projector")
+        if projectors:
+            return projectors[0]
+
         windows = self._find_windows_by_title(window_cfg.obs_title, allow_partial=window_cfg.allow_partial_match)
-        if not windows:
-            windows = self._find_windows_by_title("obs") or self._find_windows_by_title("projetor") or self._find_windows_by_title("projector")
+        projector_specific = [w for w in windows if "projetor" in w[1].lower() or "projector" in w[1].lower()]
+        if projector_specific:
+            return projector_specific[0]
+
         return windows[0] if windows else None
 
     def is_focused(self, hwnd: int) -> bool:
