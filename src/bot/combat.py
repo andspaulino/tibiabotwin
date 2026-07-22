@@ -2,6 +2,7 @@ import time
 from typing import Optional, Union, Dict, Any
 
 from src.config.models import CombatConfig
+from src.domain.game_state import GameState
 from src.domain.roi import RelativeROI, AbsoluteROI
 from src.utils.input import press_key
 from src.utils.screen import has_monsters_in_battle, has_active_target, BATTLE_LIST_ROI
@@ -35,30 +36,51 @@ class AutoAttacker:
 
     def update(
         self,
-        img_bgr,
+        state_or_img: Union[GameState, Any],
         in_pz: bool = False,
         roi: Union[RelativeROI, AbsoluteROI, Dict[str, Any]] = BATTLE_LIST_ROI
     ):
         """
         Lógica de combate leve e orientada a eventos (sem spam no log).
+        Pode receber um GameState imutável ou uma imagem BGR direta.
         """
-        if not self.enabled or not self.config.enabled or in_pz:
+        if not self.enabled or not self.config.enabled:
             self.had_target_last_check = False
             self.had_monsters_last_check = False
             return
 
+        if isinstance(state_or_img, GameState):
+            state = state_or_img
+            if not state.is_safe_to_act or state.player.in_protection_zone:
+                self.had_target_last_check = False
+                self.had_monsters_last_check = False
+                return
+
+            if state.target.has_active_target is None or state.target.has_monsters_in_battle is None:
+                return
+
+            has_target = state.target.has_active_target
+            has_monsters = state.target.has_monsters_in_battle
+        else:
+            img_bgr = state_or_img
+            if in_pz:
+                self.had_target_last_check = False
+                self.had_monsters_last_check = False
+                return
+
+            has_target = has_active_target(
+                img_bgr,
+                roi=roi,
+                target_template_path=self.config.target_template_path,
+                threshold=self.config.target_match_threshold
+            )
+            has_monsters = has_monsters_in_battle(
+                img_bgr,
+                roi=roi,
+                min_pixels=self.config.min_battle_pixels
+            )
+
         now = time.time()
-        has_target = has_active_target(
-            img_bgr,
-            roi=roi,
-            target_template_path=self.config.target_template_path,
-            threshold=self.config.target_match_threshold
-        )
-        has_monsters = has_monsters_in_battle(
-            img_bgr,
-            roi=roi,
-            min_pixels=self.config.min_battle_pixels
-        )
 
         # 1. Alvo ativo selecionado (moldura de ataque vermelha)
         if has_target:

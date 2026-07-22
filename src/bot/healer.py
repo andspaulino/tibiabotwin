@@ -1,7 +1,8 @@
 import time
-from typing import Optional
+from typing import Optional, Union
 
 from src.config.models import HealerConfig
+from src.domain.game_state import GameState
 from src.utils.input import press_key
 from src.utils.logger import logger
 
@@ -32,22 +33,43 @@ class AutoHealer:
         self.enabled = False
         logger.log("HEALER", "Modulo de cura desativado.")
 
-    def check_and_heal(self, current_hp_pct: float, current_mp_pct: float, in_pz: bool = False):
+    def check_and_heal(
+        self,
+        state_or_hp: Union[GameState, float],
+        current_mp_pct: Optional[float] = None,
+        in_pz: bool = False
+    ):
         """
-        Verifica as porcentagens atuais de HP e MP e aciona as hotkeys configuradas.
-        - current_hp_pct e current_mp_pct estão na faixa de 0.0 a 1.0.
-        - As configurações hp_below / mana_below estão na faixa de 0.0 a 100.0.
+        Verifica o estado de vida e mana e aciona as hotkeys configuradas.
+        Pode receber um GameState imutável ou valores individuais de porcentagem.
         """
-        if not self.enabled or not self.config.enabled or in_pz:
+        if not self.enabled or not self.config.enabled:
             return
 
+        if isinstance(state_or_hp, GameState):
+            state = state_or_hp
+            if not state.is_safe_to_act:
+                return
+            if state.player.in_protection_zone:
+                return
+            if state.player.hp_percent is None or state.player.mana_percent is None:
+                return
+            
+            hp_pct = state.player.hp_percent
+            mp_pct = state.player.mana_percent
+        else:
+            hp_pct = state_or_hp
+            mp_pct = current_mp_pct if current_mp_pct is not None else 0.0
+            if in_pz:
+                return
+
         # Ignora frames não inicializados ou capturas pretas
-        if current_hp_pct <= 0.0 and current_mp_pct <= 0.0:
+        if hp_pct <= 0.0 and mp_pct <= 0.0:
             return
 
         now = time.time()
-        hp_pct_100 = current_hp_pct * 100.0
-        mp_pct_100 = current_mp_pct * 100.0
+        hp_pct_100 = hp_pct * 100.0
+        mp_pct_100 = mp_pct * 100.0
 
         # 1. EMERGÊNCIA: Poção de Vida
         emerg_cfg = self.config.emergency_potion

@@ -3,15 +3,19 @@ import sys
 import threading
 import time
 import tkinter as tk
+from typing import Optional, Union
+
 from src.utils.logger import logger
+from src.domain.game_state import GameState
 
 if sys.platform == "win32":
     import ctypes
     from ctypes import wintypes
     GWL_EXSTYLE = -20
     WS_EX_LAYERED = 0x00080000
-    WS_EX_TRANSPARENT = 0x00000020
+    WS_EX_TRANSPARENT = 0x0000020
     WS_EX_TOPMOST = 0x00000008
+
 
 class OnScreenOverlay:
     """
@@ -19,7 +23,7 @@ class OnScreenOverlay:
     Exibe logs em tempo real por cima do jogo/OBS sem bloquear cliques do mouse (Click-Through).
     """
 
-    def __init__(self, width: int = 350, height: int = 230, pos_x: int = 0, pos_y: int = 800):
+    def __init__(self, width: int = 360, height: int = 250, pos_x: int = 0, pos_y: int = 780):
         self.width = width
         self.height = height
         self.pos_x = pos_x
@@ -27,7 +31,8 @@ class OnScreenOverlay:
         self.root = None
         self.thread = None
         self.running = False
-        self.labels = []
+        self.last_game_state: Optional[GameState] = None
+        self.status_label = None
 
     def _create_window(self):
         self.root = tk.Tk()
@@ -65,6 +70,16 @@ class OnScreenOverlay:
         )
         title_label.pack(fill="x", padx=2, pady=2)
 
+        self.status_label = tk.Label(
+            frame,
+            text="[STATUS]: Inicializando...",
+            font=("Consolas", 8, "bold"),
+            fg="#8b949e",
+            bg="#161b22",
+            anchor="w"
+        )
+        self.status_label.pack(fill="x", padx=2, pady=1)
+
         self.log_container = tk.Frame(frame, bg="#0d1117")
         self.log_container.pack(fill="both", expand=True, padx=6, pady=4)
 
@@ -75,6 +90,31 @@ class OnScreenOverlay:
 
         self.running = True
         self.root.mainloop()
+
+    def update(self, game_state: Optional[GameState] = None):
+        """Atualiza a interface do Overlay com o GameState imutável mais recente."""
+        if game_state is not None:
+            self.last_game_state = game_state
+
+        if self.root and self.running:
+            try:
+                self.root.after(0, self._render_status_ui)
+            except Exception:
+                pass
+
+    def _render_status_ui(self):
+        if not self.root or not self.status_label or not self.last_game_state:
+            return
+
+        gs = self.last_game_state
+        hp_str = f"{gs.player.hp_percent * 100:.0f}%" if gs.player.hp_percent is not None else "??"
+        mp_str = f"{gs.player.mana_percent * 100:.0f}%" if gs.player.mana_percent is not None else "??"
+        pz_str = "SIM" if gs.player.in_protection_zone else ("NAO" if gs.player.in_protection_zone is False else "??")
+        status_str = "SEGURO" if gs.is_safe_to_act else f"PAUSA({gs.capture.status.value})"
+
+        txt = f"HP:{hp_str} | MP:{mp_str} | PZ:{pz_str} | State:{status_str}"
+        fg = "#3fb950" if gs.is_safe_to_act else "#f85149"
+        self.status_label.config(text=txt, fg=fg)
 
     def _on_log_event(self, entry: dict):
         if self.root and self.running:
@@ -91,7 +131,7 @@ class OnScreenOverlay:
         for widget in self.log_container.winfo_children():
             widget.destroy()
 
-        recent_logs = logger.get_recent_logs(count=7)
+        recent_logs = logger.get_recent_logs(count=6)
 
         color_map = {
             "HEALER": "#3fb950",   # Verde

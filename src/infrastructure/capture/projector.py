@@ -4,7 +4,6 @@ import numpy as np
 
 from src.infrastructure.capture.frame import CapturedFrame, FrameStatus
 from src.infrastructure.capture.base import FrameCapturer
-from src.utils.screen import ScreenCapturer, pil_to_cv2
 from src.utils.logger import logger
 
 
@@ -19,6 +18,7 @@ class ProjectorFrameCapturer(FrameCapturer):
         frozen_threshold_diff: float = 0.05,
         frozen_consecutive_limit: int = 30
     ):
+        from src.utils.screen import ScreenCapturer
         self.screen_capturer = ScreenCapturer()
         self.frozen_threshold_diff = frozen_threshold_diff
         self.frozen_consecutive_limit = frozen_consecutive_limit
@@ -42,6 +42,7 @@ class ProjectorFrameCapturer(FrameCapturer):
             )
 
         try:
+            from src.utils.screen import pil_to_cv2
             pil_img = self.screen_capturer.capture_window_client_area(hwnd)
             img_bgr = pil_to_cv2(pil_img)
         except Exception as err:

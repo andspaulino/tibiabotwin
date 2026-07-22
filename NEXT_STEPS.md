@@ -364,19 +364,19 @@ class GameState:
 
 ### Tarefas
 
-* [ ] Criar `GameState`.
-* [ ] Criar `PlayerState`.
-* [ ] Criar `TargetState`.
-* [ ] Criar `WindowState`.
-* [ ] Criar `CaptureState`.
-* [ ] Fazer os detectores retornarem dados, sem enviar comandos.
-* [ ] Fazer o healer consumir somente o estado.
-* [ ] Fazer o combat consumir somente o estado.
-* [ ] Fazer o overlay consumir somente o estado.
-* [ ] Preservar o estado anterior para detectar transições.
-* [ ] Registrar mudanças importantes, em vez de repetir o mesmo log.
-* [ ] Adicionar nível de confiança às detecções.
-* [ ] Marcar valores desconhecidos como `None`, sem assumir valores seguros.
+* [x] Criar `GameState`.
+* [x] Criar `PlayerState`.
+* [x] Criar `TargetState`.
+* [x] Criar `WindowState`.
+* [x] Criar `CaptureState`.
+* [x] Fazer os detectores retornarem dados, sem enviar comandos.
+* [x] Fazer o healer consumir somente o estado.
+* [x] Fazer o combat consumir somente o estado.
+* [x] Fazer o overlay consumir somente o estado.
+* [x] Preservar o estado anterior para detectar transições.
+* [x] Registrar mudanças importantes, em vez de repetir o mesmo log.
+* [x] Adicionar nível de confiança às detecções.
+* [x] Marcar valores desconhecidos como `None`, sem assumir valores seguros.
 
 ### Separação obrigatória
 
@@ -393,11 +393,11 @@ intenção → input
 
 ### Critérios de conclusão
 
-* [ ] Detectores não pressionam teclas.
-* [ ] Detectores não movem o mouse.
-* [ ] Módulos não capturam a tela.
-* [ ] O executor não interpreta pixels.
-* [ ] Um estado pode ser salvo e reproduzido em testes.
+* [x] Detectores não pressionam teclas.
+* [x] Detectores não movem o mouse.
+* [x] Módulos não capturam a tela.
+* [x] O executor não interpreta pixels.
+* [x] Um estado pode ser salvo e reproduzido em testes.
 
 ---
 

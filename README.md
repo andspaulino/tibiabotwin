@@ -25,21 +25,21 @@ Diferente de bots que leem ou injetam dados na memória do jogo, este bot age pu
 - **Timestamping & Status**: `CapturedFrame` imutável contendo timestamp, dimensões e status (`VALID`, `STALE`, `FROZEN`, `FAILED`).
 - **Detecção de Frames Congelados/Inválidos**: Se a imagem congelar por N ciclos ou falhar, o bot entra em pausa de segurança e **impede qualquer envio de atalhos**.
 
-### 4. Trava de Foco & Segurança de Janela (`launcher.py` + `src/utils/window.py`)
+### 4. Estado Central do Jogo Imutável (`src/domain/game_state.py` + `analyzer.py`)
+- **`GameState` Snapshot**: Objeto imutável que consolida a percepção do ciclo (`PlayerState`, `TargetState`, `WindowState`, `CaptureState`).
+- **`GameAnalyzer`**: Converte frames e estado das janelas em `GameState`. Valores indeterminados são explicitamente `None` (sem assunções inseguras de 100% HP).
+- **Consumo Exclusivo por Estado**: `AutoHealer`, `AutoAttacker` e `OnScreenOverlay` consomem apenas o `GameState`, sem capturar a tela ou executar Win32 diretamente.
+- **Propriedade `is_safe_to_act`**: Avalia de forma unificada se o bot está seguro para enviar atalhos.
+
+### 5. Trava de Foco & Segurança de Janela (`launcher.py` + `src/utils/window.py`)
 - Ocultação da janela do Tibia com opacidade 1 via Win32 API `SetLayeredWindowAttributes`.
 - Captura de tela ao vivo sem lag focando na janela do **Projetor do OBS Studio**.
 - **Trava de Foco Ativo (`is_window_active`)**: O bot só executa ações quando a janela do Tibia for a janela ativa no Windows.
 - **Trava de Minimizado (`is_window_minimized`)**: Pausa automática caso a janela seja minimizada.
 - Restauração automática da visibilidade nativa ao encerrar.
 
-### 5. Killswitch de Emergência (`src/main.py`)
+### 6. Killswitch de Emergência (`src/main.py`)
 - **Tecla de Pânico (`Pause`)**: Atalho global do Windows que intercala entre **Pausado** e **Em Execução** instantaneamente a qualquer momento.
-
-### 6. Visão Computacional & Análise de Interface (`src/utils/screen.py`)
-- **Barra de Vida (HP)**: Análise por amostragem de dominância de cor BGR sobre a ROI proporcional.
-- **Barra de Mana (MP)**: Filtro de cor azul desconsiderando textos e bordas sobre a ROI proporcional.
-- **Protection Zone (PZ)**: Template Matching (`templates/pz.png`) + validação de cor azul (`is_in_pz()`).
-- **Battle List & Targeting**: Mapeamento de ROI proporcional e filtro de densidade de pixels de HP bar (`min_battle_pixels` configurável).
 
 ### 7. Auto-Healer Inteligente (`src/bot/healer.py`)
 - **Magia de Cura**: Limite de HP, hotkey e cooldown configuráveis.
@@ -55,7 +55,7 @@ Diferente de bots que leem ou injetam dados na memória do jogo, este bot age pu
 ### 9. Logger Centralizado & HUD Overlay (`src/utils/logger.py` + `src/utils/overlay.py`)
 - **Logger Central**: Formatação padronizada por categorias (`HEALER`, `COMBAT`, `PZ`, `SYSTEM`).
 - **Sincronização para OBS**: Exportação contínua para `logs_hud.txt` (Fonte de texto GDI+ no OBS).
-- **HUD Transparente On-Screen**: Janela flutuante no canto inferior da tela com a flag **Click-Through** (`WS_EX_TRANSPARENT`).
+- **HUD Transparente On-Screen**: Renderização em tempo real do estado central (`HP`, `MP`, `PZ`, `State`) + Click-Through (`WS_EX_TRANSPARENT`).
 - **Módulo de Humanização (`src/utils/humanizer.py`)**: Delays com Curva de Gauss, retenção de teclas entre 30ms-75ms e Curvas de Bézier.
 
 ---
@@ -128,13 +128,15 @@ tibia-bot/
 │       └── config.schema.json
 ├── src/
 │   ├── bot/
-│   │   ├── healer.py              # Módulo AutoHealer configurável
-│   │   └── combat.py              # Módulo AutoAttacker configurável
+│   │   ├── healer.py              # Módulo AutoHealer (consome GameState)
+│   │   └── combat.py              # Módulo AutoAttacker (consome GameState)
 │   ├── config/
 │   │   ├── models.py              # Dataclasses de configuração (inclui RegionsConfig)
 │   │   └── loader.py              # Carregador e validador estrito de YAML
 │   ├── domain/
-│   │   └── roi.py                 # RelativeROI, AbsoluteROI e ROIResolver
+│   │   ├── roi.py                 # RelativeROI, AbsoluteROI e ROIResolver
+│   │   ├── game_state.py          # PlayerState, TargetState, WindowState, CaptureState, GameState
+│   │   └── analyzer.py           # GameAnalyzer (percepção -> GameState)
 │   ├── infrastructure/
 │   │   └── capture/               # CapturedFrame, FrameStatus e ProjectorFrameCapturer
 │   │       ├── base.py
@@ -142,11 +144,11 @@ tibia-bot/
 │   │       └── projector.py
 │   ├── utils/
 │   │   ├── window.py              # Controle Win32, foco e minimização de janelas
-│   │   ├── screen.py              # Captura MSS, leitura de HP/MP/PZ/Battle List proporcional
+│   │   ├── screen.py              # Análise de amostragem e visão computacional
 │   │   ├── input.py               # Simulação DirectX (pydirectinput)
 │   │   ├── humanizer.py           # Delays gaussianos, key holds e curvas de Bézier
 │   │   ├── logger.py              # Logger centralizado e sincronização de logs_hud.txt
-│   │   └── overlay.py             # HUD Transparente On-Screen (Click-Through)
+│   │   └── overlay.py             # HUD Transparente On-Screen (renderiza GameState)
 │   └── main.py                    # Motor principal, CLI args e Killswitch (Pause)
 ├── tools/
 │   └── calibrate_roi.py           # Ferramenta interativa de calibração de ROIs
@@ -155,7 +157,8 @@ tibia-bot/
 │   ├── unit/
 │   │   ├── test_config.py         # Testes unitários do sistema de configuração
 │   │   ├── test_roi.py            # Testes unitários da resolução proporcional de ROIs
-│   │   └── test_capture.py        # Testes unitários da captura de infraestrutura
+│   │   ├── test_capture.py        # Testes unitários da captura de infraestrutura
+│   │   └── test_game_state.py     # Testes unitários do estado central imutável
 │   ├── test_bars.py               # Teste de leitura de HP/MP/Status
 │   ├── test_pz.py                 # Teste de detecção dinâmica de PZ
 │   ├── test_combat.py             # Teste de combate e Battle List

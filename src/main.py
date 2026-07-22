@@ -12,19 +12,15 @@ except ImportError:
     keyboard = None
 
 from src.config import load_config, ConfigValidationError, AppConfig, WindowConfig
-from src.infrastructure.capture import ProjectorFrameCapturer, CapturedFrame, FrameStatus
+from src.infrastructure.capture import ProjectorFrameCapturer, CapturedFrame
+from src.domain.analyzer import GameAnalyzer
+from src.domain.game_state import GameState
 from src.utils.window import (
     find_windows_by_title,
     set_window_opacity,
     reset_window_opacity,
     is_window_minimized,
     is_window_active
-)
-from src.utils.screen import (
-    get_hp_percentage,
-    get_mp_percentage,
-    get_status_bar_activity,
-    is_in_pz
 )
 from src.utils.logger import logger
 from src.utils.overlay import OnScreenOverlay
@@ -132,6 +128,7 @@ def run():
     logger.log("SYSTEM", "Janela do Tibia configurada como INVISIVEL.")
 
     capturer = ProjectorFrameCapturer()
+    analyzer = GameAnalyzer(config)
     healer = AutoHealer(config.healer)
     combat = AutoAttacker(config.combat)
     overlay = OnScreenOverlay()
@@ -154,11 +151,20 @@ def run():
                 time.sleep(0.2)
                 continue
 
-            # 0B. Garante que o bot só executa se a janela do Tibia for a JANELA ATIVA (Foco do Windows)
-            if not is_window_active(hwnd_tibia):
+            start_cycle = time.perf_counter()
+
+            # 1. Captura única do frame por ciclo
+            frame: CapturedFrame = capturer.capture(hwnd_obs)
+            
+            # 2. Converte percepção em snapshot imutável do Estado Central do Jogo (GameState)
+            game_state: GameState = analyzer.analyze(frame, hwnd_tibia, hwnd_obs, config)
+
+            # 3. Trava de Foco e Inatividade
+            if not game_state.window.tibia_focused or game_state.window.tibia_minimized:
                 if not was_inactive:
                     logger.log("SYSTEM", "Tibia sem foco/fora de selecao. Bot pausado...", level="WARNING")
                     was_inactive = True
+                overlay.update(game_state)
                 time.sleep(0.2)
                 continue
 
@@ -166,42 +172,25 @@ def run():
                 logger.log("SYSTEM", "Tibia selecionado! Bot em execucao.", level="INFO")
                 was_inactive = False
 
-            # 1. Captura única do frame por ciclo (camada de infraestrutura)
-            start_cycle = time.perf_counter()
-            frame: CapturedFrame = capturer.capture(hwnd_obs)
-            
-            # Trava de Segurança: Não envia NENHUM comando se o frame for inválido, estático ou com falha
-            if not frame.is_valid:
-                time.sleep(sleep_sec)
-                continue
-
-            img_bgr = frame.image
-            
-            # 2. Leitura contínua das barras e estado de PZ compartilhando o mesmo frame
-            hp_pct = get_hp_percentage(img_bgr, roi=config.regions.hp)
-            mp_pct = get_mp_percentage(img_bgr, roi=config.regions.mana)
-            in_pz = is_in_pz(
-                img_bgr,
-                roi=config.regions.status_bar,
-                pz_template_path=config.pz.template_path,
-                threshold=config.pz.match_threshold
-            )
-
-            # 3. Log de evento ao entrar ou sair de Protection Zone (PZ)
-            if last_pz_state is not None and in_pz != last_pz_state:
+            # 4. Log de evento ao entrar ou sair de Protection Zone (PZ)
+            in_pz = game_state.player.in_protection_zone
+            if last_pz_state is not None and in_pz is not None and in_pz != last_pz_state:
                 if in_pz:
                     logger.log("PZ", "Entrou em PZ", level="ACTION")
                 else:
                     logger.log("PZ", "Saiu de PZ", level="ACTION")
-            last_pz_state = in_pz
+            if in_pz is not None:
+                last_pz_state = in_pz
 
-            # 4. Executa verificação do Healer utilizando a percepção do frame único
-            healer.check_and_heal(hp_pct, mp_pct, in_pz)
-            
-            # 5. Executa atualização do Combat utilizando a percepção do frame único
-            combat.update(img_bgr, in_pz, roi=config.regions.battle_list)
+            # 5. Atualiza HUD Overlay com o GameState imutável
+            overlay.update(game_state)
 
-            # 6. Mantém frequência de loop consistente
+            # 6. Executa módulos consumidores de estado somente se for seguro atuar
+            if game_state.is_safe_to_act:
+                healer.check_and_heal(game_state)
+                combat.update(game_state)
+
+            # 7. Mantém frequência de loop consistente
             elapsed_sec = time.perf_counter() - start_cycle
             remaining_sleep = max(0.0, sleep_sec - elapsed_sec)
             time.sleep(remaining_sleep)
