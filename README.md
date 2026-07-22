@@ -35,28 +35,34 @@ Diferente de bots que leem ou injetam dados na memória do jogo, este bot age pu
 - **Hierarquia Estrita de Prioridades**: Killswitch > Foco/Minimização > Validade da Captura > Protection Zone > Combate > Ocioso.
 - **Auditoria de Transições**: Registra eventos no log `[STATE]` detalhando o modo anterior, novo modo e o motivo rastreável sem logs repetitivos.
 
-### 6. Trava de Foco & Segurança de Janela (`launcher.py` + `src/utils/window.py`)
+### 6. Motor Principal & LoopScheduler (`src/application/bot_engine.py` + `scheduler.py`)
+- **`BotEngine`**: Motor desacoplado que orquestra o ciclo de execução via injeção de dependências.
+- **`LoopScheduler`**: Controle de frequência de loop (FPS target) e cálculo de métricas de tempo de ciclo.
+- **Composition Root (`src/main.py`)**: `main.py` atua exclusivamente como ponto de composição (CLI -> Config -> Windows -> Motor).
+- **Execução Atômica (`run_cycle()`)**: Permite rodar 1 único ciclo isolado para testes unitários com mocks.
+
+### 7. Trava de Foco & Segurança de Janela (`launcher.py` + `src/utils/window.py`)
 - Ocultação da janela do Tibia com opacidade 1 via Win32 API `SetLayeredWindowAttributes`.
 - Captura de tela ao vivo sem lag focando na janela do **Projetor do OBS Studio**.
 - **Trava de Foco Ativo (`is_window_active`)**: O bot só executa ações quando a janela do Tibia for a janela ativa no Windows.
 - **Trava de Minimizado (`is_window_minimized`)**: Pausa automática caso a janela seja minimizada.
 - Restauração automática da visibilidade nativa ao encerrar.
 
-### 7. Killswitch de Emergência (`src/main.py`)
+### 8. Killswitch de Emergência (`src/main.py`)
 - **Tecla de Pânico (`Pause`)**: Atalho global do Windows que intercala entre **Pausado** e **Em Execução** instantaneamente a qualquer momento.
 
-### 8. Auto-Healer Inteligente (`src/bot/healer.py`)
+### 9. Auto-Healer Inteligente (`src/bot/healer.py`)
 - **Magia de Cura**: Limite de HP, hotkey e cooldown configuráveis.
 - **Poção de Mana**: Limite de MP, hotkey e cooldown configuráveis.
 - **Poção de Emergência**: Limite de HP crítico, hotkey e cooldown configuráveis (registrado no log de emergência).
 - **Pausa Automática em PZ**: Interrompe magias e poções em Protection Zone.
 
-### 9. Auto-Attacker & Targeting (`src/bot/combat.py`)
+### 10. Auto-Attacker & Targeting (`src/bot/combat.py`)
 - **Ataque Automático**: Seleção de alvos presentes na Battle List com atalho e cooldown configuráveis.
 - **Reconhecimento de Alvo Ativo**: Identificação de moldura vermelha via densidade de cor + Template Matching configurável (`target_template_path`).
 - **Zero Repetição de Atalhos**: Mantém o combate travado sem spam indevido de teclas.
 
-### 10. Logger Centralizado & HUD Overlay (`src/utils/logger.py` + `src/utils/overlay.py`)
+### 11. Logger Centralizado & HUD Overlay (`src/utils/logger.py` + `src/utils/overlay.py`)
 - **Logger Central**: Formatação padronizada por categorias (`HEALER`, `COMBAT`, `PZ`, `STATE`, `SYSTEM`).
 - **Sincronização para OBS**: Exportação contínua para `logs_hud.txt` (Fonte de texto GDI+ no OBS).
 - **HUD Transparente On-Screen**: Renderização em tempo real do estado central e modo ativo (`HP`, `MP`, `PZ`, `MODE`) + Click-Through (`WS_EX_TRANSPARENT`).
@@ -132,6 +138,8 @@ tibia-bot/
 │       └── config.schema.json
 ├── src/
 │   ├── application/
+│   │   ├── bot_engine.py          # Motor principal BotEngine (run, run_cycle, stop)
+│   │   ├── scheduler.py           # LoopScheduler (frequência de loop e métricas)
 │   │   └── state_machine.py       # Controlador StateMachine (hierarquia de prioridades de BotMode)
 │   ├── bot/
 │   │   ├── healer.py              # Módulo AutoHealer (consome GameState)
@@ -156,7 +164,7 @@ tibia-bot/
 │   │   ├── humanizer.py           # Delays gaussianos, key holds e curvas de Bézier
 │   │   ├── logger.py              # Logger centralizado e sincronização de logs_hud.txt
 │   │   └── overlay.py             # HUD Transparente On-Screen (renderiza GameState e BotState)
-│   └── main.py                    # Motor principal, CLI args e Killswitch (Pause)
+│   └── main.py                    # Composition Root (CLI args, config loader, DI, engine.run)
 ├── tools/
 │   └── calibrate_roi.py           # Ferramenta interativa de calibração de ROIs
 ├── templates/                     # Imagens base para Template Matching (pz.png, target_red.png)
@@ -166,7 +174,8 @@ tibia-bot/
 │   │   ├── test_roi.py            # Testes unitários da resolução proporcional de ROIs
 │   │   ├── test_capture.py        # Testes unitários da captura de infraestrutura
 │   │   ├── test_game_state.py     # Testes unitários do estado central imutável
-│   │   └── test_state_machine.py # Testes unitários da máquina de estados finitos
+│   │   ├── test_state_machine.py # Testes unitários da máquina de estados finitos
+│   │   └── test_engine.py        # Testes unitários do motor BotEngine e LoopScheduler
 │   ├── test_bars.py               # Teste de leitura de HP/MP/Status
 │   ├── test_pz.py                 # Teste de detecção dinâmica de PZ
 │   ├── test_combat.py             # Teste de combate e Battle List

@@ -1,29 +1,16 @@
 import argparse
 import os
 import sys
-import time
 
 # Garante importações a partir do diretório raiz
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-try:
-    import keyboard
-except ImportError:
-    keyboard = None
-
 from src.config import load_config, ConfigValidationError, AppConfig, WindowConfig
-from src.infrastructure.capture import ProjectorFrameCapturer, CapturedFrame
+from src.infrastructure.capture import ProjectorFrameCapturer
 from src.domain.analyzer import GameAnalyzer
-from src.domain.game_state import GameState
-from src.domain.bot_state import BotMode, BotState
-from src.application.state_machine import StateMachine
-from src.utils.window import (
-    find_windows_by_title,
-    set_window_opacity,
-    reset_window_opacity,
-    is_window_minimized,
-    is_window_active
-)
+from src.domain.bot_state import BotMode
+from src.application import StateMachine, LoopScheduler, BotEngine
+from src.utils.window import find_windows_by_title
 from src.utils.logger import logger
 from src.utils.overlay import OnScreenOverlay
 from src.bot.healer import AutoHealer
@@ -36,21 +23,9 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-killswitch_paused = False
-
-
-def toggle_killswitch(e=None):
-    """Callback acionado ao pressionar a tecla de emergência (Pause)."""
-    global killswitch_paused
-    killswitch_paused = not killswitch_paused
-    if killswitch_paused:
-        logger.log("SYSTEM", "🛑 KILLSWITCH ACIONADO: Bot PAUSADO (tecla PAUSE).", level="WARNING")
-    else:
-        logger.log("SYSTEM", "▶️ KILLSWITCH DESATIVADO: Bot RETOMADO.", level="INFO")
-
 
 def check_and_prepare_windows(window_cfg: WindowConfig):
-    """Verifica e prepara as janelas do Tibia e OBS utilizando a configuração."""
+    """Verifica as janelas do Tibia e OBS utilizando as regras configuradas."""
     logger.log("SYSTEM", "Verificando janelas abertas...")
     
     tibia_windows = find_windows_by_title(window_cfg.tibia_title, allow_partial=window_cfg.allow_partial_match)
@@ -60,7 +35,6 @@ def check_and_prepare_windows(window_cfg: WindowConfig):
 
     obs_windows = find_windows_by_title(window_cfg.obs_title, allow_partial=window_cfg.allow_partial_match)
     if not obs_windows:
-        # Fallback para variações comuns se busca específica falhar
         obs_windows = find_windows_by_title("obs") or find_windows_by_title("projetor") or find_windows_by_title("projector")
 
     if not tibia:
@@ -96,6 +70,7 @@ def parse_args():
 
 
 def run():
+    """Composition Root: carrega configurações, monta dependências e inicia o BotEngine."""
     args = parse_args()
 
     print("==================================================")
@@ -116,87 +91,29 @@ def run():
         logger.log("SYSTEM", "Por favor, certifique-se de que o Tibia e o OBS estao abertos antes de iniciar.", level="WARNING")
         return
 
-    # Registra o Killswitch de emergência na tecla Pause
-    if keyboard is not None:
-        try:
-            keyboard.on_press_key('pause', toggle_killswitch)
-            logger.log("SYSTEM", "Killswitch registrado na tecla PAUSE.")
-        except Exception as err:
-            logger.log("SYSTEM", f"Aviso ao registrar hotkey global: {err}", level="WARNING")
-
-    # Ajusta opacidade da janela do Tibia
-    logger.log("SYSTEM", "Aplicando opacidade para ocultar a janela do Tibia...")
-    set_window_opacity(hwnd_tibia, 1)
-    logger.log("SYSTEM", "Janela do Tibia configurada como INVISIVEL.")
-
+    # Composição de Dependências
     capturer = ProjectorFrameCapturer()
     analyzer = GameAnalyzer(config)
     state_machine = StateMachine(initial_mode=BotMode.IDLE)
     healer = AutoHealer(config.healer)
     combat = AutoAttacker(config.combat)
     overlay = OnScreenOverlay()
+    scheduler = LoopScheduler(target_interval_ms=config.loop_interval_ms)
 
-    try:
-        logger.log("SYSTEM", "Iniciando modulos do bot e Overlay de tela...")
-        overlay.start()
-        healer.start()
-        combat.start()
-
-        logger.log("SYSTEM", "Aguardando foco na janela do Tibia para iniciar...")
-        
-        last_pz_state = None
-        sleep_sec = config.loop_interval_ms / 1000.0
-
-        while True:
-            start_cycle = time.perf_counter()
-
-            # 1. Captura única do frame por ciclo
-            frame: CapturedFrame = capturer.capture(hwnd_obs)
-            
-            # 2. Converte percepção em snapshot imutável do Estado Central do Jogo (GameState)
-            game_state: GameState = analyzer.analyze(frame, hwnd_tibia, hwnd_obs, config)
-
-            # 3. Atualiza a Máquina de Estados Finitos (BotState)
-            bot_state: BotState = state_machine.update(game_state, killswitch_paused)
-
-            # 4. Log de evento ao entrar ou sair de Protection Zone (PZ)
-            in_pz = game_state.player.in_protection_zone
-            if last_pz_state is not None and in_pz is not None and in_pz != last_pz_state:
-                if in_pz:
-                    logger.log("PZ", "Entrou em PZ", level="ACTION")
-                else:
-                    logger.log("PZ", "Saiu de PZ", level="ACTION")
-            if in_pz is not None:
-                last_pz_state = in_pz
-
-            # 5. Atualiza HUD Overlay com GameState e BotState imutáveis
-            overlay.update(game_state, bot_state)
-
-            # 6. Executa módulos consumidores dependendo do modo ativo da Máquina de Estados
-            if bot_state.current_mode in (BotMode.COMBAT, BotMode.IDLE, BotMode.IN_PROTECTION_ZONE):
-                healer.check_and_heal(game_state)
-
-            if bot_state.current_mode == BotMode.COMBAT:
-                combat.update(game_state)
-
-            # 7. Mantém frequência de loop consistente
-            elapsed_sec = time.perf_counter() - start_cycle
-            remaining_sleep = max(0.0, sleep_sec - elapsed_sec)
-            time.sleep(remaining_sleep)
-
-    except KeyboardInterrupt:
-        logger.log("SYSTEM", "Encerrando bot por solicitacao do usuario...")
-    finally:
-        logger.log("SYSTEM", "Restaurando visibilidade normal da janela do Tibia...")
-        if keyboard is not None:
-            try:
-                keyboard.unhook_all()
-            except Exception:
-                pass
-        overlay.stop()
-        reset_window_opacity(hwnd_tibia)
-        capturer.close()
-        logger.log("SYSTEM", "Visibilidade restaurada. Encerrado com sucesso.")
+    # Injeção e Execução do BotEngine
+    engine = BotEngine(
+        config=config,
+        capturer=capturer,
+        analyzer=analyzer,
+        state_machine=state_machine,
+        healer=healer,
+        combat=combat,
+        overlay=overlay,
+        scheduler=scheduler,
+        hwnd_tibia=hwnd_tibia,
+        hwnd_obs=hwnd_obs
+    )
+    engine.run()
 
 
 if __name__ == "__main__":

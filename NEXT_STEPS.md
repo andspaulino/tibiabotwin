@@ -509,23 +509,23 @@ class BotEngine:
 
 ### Tarefas
 
-* [ ] Criar `BotEngine`.
-* [ ] Manter `main.py` somente como composition root.
-* [ ] Criar scheduler para controlar a frequência do loop.
-* [ ] Evitar `sleep()` espalhado pelos módulos.
-* [ ] Centralizar cooldowns.
-* [ ] Centralizar prioridades.
-* [ ] Permitir encerramento gracioso.
-* [ ] Restaurar recursos dentro de `finally`.
-* [ ] Garantir que uma exceção de módulo não deixe teclas pressionadas.
-* [ ] Adicionar métricas do ciclo.
+* [x] Criar `BotEngine`.
+* [x] Manter `main.py` somente como composition root.
+* [x] Criar scheduler para controlar a frequência do loop.
+* [x] Evitar `sleep()` espalhado pelos módulos.
+* [x] Centralizar cooldowns.
+* [x] Centralizar prioridades.
+* [x] Permitir encerramento gracioso.
+* [x] Restaurar recursos dentro de `finally`.
+* [x] Garantir que uma exceção de módulo não deixe teclas pressionadas.
+* [x] Adicionar métricas do ciclo.
 
 ### Critérios de conclusão
 
-* [ ] `main.py` apenas cria dependências e inicia o motor.
-* [ ] Módulos podem ser habilitados ou desabilitados.
-* [ ] O motor pode executar um único ciclo em testes.
-* [ ] O motor pode ser encerrado sem deixar recursos ativos.
+* [x] `main.py` apenas cria dependências e inicia o motor.
+* [x] Módulos podem ser habilitados ou desabilitados.
+* [x] O motor pode executar um único ciclo em testes.
+* [x] O motor pode ser encerrado sem deixar recursos ativos.
 
 ---
 
