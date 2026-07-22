@@ -9,6 +9,9 @@ except ImportError:
 
 from src.config.models import AppConfig
 from src.infrastructure.capture.base import FrameCapturer
+from src.infrastructure.window.base import WindowManager
+from src.infrastructure.input.base import InputController
+from src.infrastructure.factory import create_window_manager, create_input_controller
 from src.domain.game_state import GameState
 from src.domain.bot_state import BotState, BotMode
 from src.domain.analyzer import GameAnalyzer
@@ -17,7 +20,6 @@ from src.application.scheduler import LoopScheduler
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
 from src.utils.overlay import OnScreenOverlay
-from src.utils.window import set_window_opacity, reset_window_opacity
 from src.utils.logger import logger
 
 
@@ -38,7 +40,9 @@ class BotEngine:
         overlay: OnScreenOverlay,
         scheduler: LoopScheduler,
         hwnd_tibia: int,
-        hwnd_obs: int
+        hwnd_obs: int,
+        window_manager: Optional[WindowManager] = None,
+        input_controller: Optional[InputController] = None
     ):
         self.config = config
         self.capturer = capturer
@@ -50,6 +54,8 @@ class BotEngine:
         self.scheduler = scheduler
         self.hwnd_tibia = hwnd_tibia
         self.hwnd_obs = hwnd_obs
+        self.window_manager = window_manager or create_window_manager()
+        self.input_controller = input_controller or create_input_controller()
 
         self.running = False
         self.killswitch_paused = False
@@ -62,17 +68,6 @@ class BotEngine:
             logger.log("SYSTEM", "🛑 KILLSWITCH ACIONADO: Bot PAUSADO (tecla PAUSE).", level="WARNING")
         else:
             logger.log("SYSTEM", "▶️ KILLSWITCH DESATIVADO: Bot RETOMADO.", level="INFO")
-
-    def run_cycle() -> Tuple[GameState, BotState]:
-        """
-        Executa exatamente UM ciclo atômico do bot:
-        1. Captura de frame único
-        2. Percepção e construção do GameState imutável
-        3. Atualização da Máquina de Estados Finitos (BotState)
-        4. Renderização no HUD Overlay
-        5. Atuação dos módulos consumidores (Healer / Combat)
-        """
-        pass  # definido na implementação da classe
 
     def run_cycle(self) -> Tuple[GameState, BotState]:
         # 1. Captura única de frame por ciclo
@@ -121,7 +116,8 @@ class BotEngine:
                 logger.log("SYSTEM", f"Aviso ao registrar hotkey global: {err}", level="WARNING")
 
         logger.log("SYSTEM", "Aplicando opacidade para ocultar a janela do Tibia...")
-        set_window_opacity(self.hwnd_tibia, 1)
+        if self.hwnd_tibia > 0:
+            self.window_manager.set_opacity(self.hwnd_tibia, 1)
         logger.log("SYSTEM", "Janela do Tibia configurada como INVISIVEL.")
 
         try:
@@ -153,11 +149,17 @@ class BotEngine:
             except Exception:
                 pass
 
+        if self.input_controller:
+            try:
+                self.input_controller.release_all()
+            except Exception:
+                pass
+
         if self.overlay:
             self.overlay.stop()
 
-        if self.hwnd_tibia > 0:
-            reset_window_opacity(self.hwnd_tibia)
+        if self.hwnd_tibia > 0 and self.window_manager:
+            self.window_manager.reset_opacity(self.hwnd_tibia)
 
         if self.capturer:
             try:

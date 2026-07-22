@@ -3,15 +3,21 @@ from typing import Optional, Union
 
 from src.config.models import HealerConfig
 from src.domain.game_state import GameState
-from src.utils.input import press_key
+from src.infrastructure.input import InputController
+from src.infrastructure.factory import create_input_controller
 from src.utils.logger import logger
 
 
 class AutoHealer:
     """Módulo responsável pelo monitoramento e execução da cura automática de HP e Mana."""
 
-    def __init__(self, config: Optional[HealerConfig] = None):
+    def __init__(
+        self,
+        config: Optional[HealerConfig] = None,
+        input_controller: Optional[InputController] = None
+    ):
         self.config = config or HealerConfig()
+        self.input_controller = input_controller or create_input_controller()
         
         self.last_spell_time = 0.0
         self.last_mana_potion_time = 0.0
@@ -77,7 +83,7 @@ class AutoHealer:
             cd_sec = emerg_cfg.cooldown_ms / 1000.0
             if now - self.last_emergency_potion_time >= cd_sec:
                 logger.log("HEALER", f"Pocao de Vida ({hp_pct_100:.0f}%)", level="WARNING")
-                press_key(emerg_cfg.key)
+                self.input_controller.press_key(emerg_cfg.key)
                 self.last_emergency_potion_time = now
                 return
 
@@ -86,7 +92,7 @@ class AutoHealer:
         if spell_cfg.enabled and hp_pct_100 <= spell_cfg.hp_below:
             cd_sec = spell_cfg.cooldown_ms / 1000.0
             if now - self.last_spell_time >= cd_sec:
-                press_key(spell_cfg.key)
+                self.input_controller.press_key(spell_cfg.key)
                 self.last_spell_time = now
 
         # 3. MANA: Poção de Mana
@@ -94,5 +100,5 @@ class AutoHealer:
         if mana_cfg.enabled and mp_pct_100 <= mana_cfg.threshold_below:
             cd_sec = mana_cfg.cooldown_ms / 1000.0
             if now - self.last_mana_potion_time >= cd_sec:
-                press_key(mana_cfg.key)
+                self.input_controller.press_key(mana_cfg.key)
                 self.last_mana_potion_time = now

@@ -7,10 +7,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.config import load_config, ConfigValidationError, AppConfig, WindowConfig
 from src.infrastructure.capture import ProjectorFrameCapturer
+from src.infrastructure.factory import create_window_manager, create_input_controller
 from src.domain.analyzer import GameAnalyzer
 from src.domain.bot_state import BotMode
 from src.application import StateMachine, LoopScheduler, BotEngine
-from src.utils.window import find_windows_by_title
 from src.utils.logger import logger
 from src.utils.overlay import OnScreenOverlay
 from src.bot.healer import AutoHealer
@@ -24,28 +24,22 @@ if sys.platform == "win32":
         pass
 
 
-def check_and_prepare_windows(window_cfg: WindowConfig):
-    """Verifica as janelas do Tibia e OBS utilizando as regras configuradas."""
+def check_and_prepare_windows(window_manager, window_cfg: WindowConfig):
+    """Verifica as janelas do Tibia e OBS utilizando a abstração do WindowManager."""
     logger.log("SYSTEM", "Verificando janelas abertas...")
     
-    tibia_windows = find_windows_by_title(window_cfg.tibia_title, allow_partial=window_cfg.allow_partial_match)
-    tibia = [w for w in tibia_windows if w[1].startswith("Tibia - ")]
-    if not tibia:
-        tibia = tibia_windows
-
-    obs_windows = find_windows_by_title(window_cfg.obs_title, allow_partial=window_cfg.allow_partial_match)
-    if not obs_windows:
-        obs_windows = find_windows_by_title("obs") or find_windows_by_title("projetor") or find_windows_by_title("projector")
+    tibia = window_manager.find_tibia(window_cfg)
+    obs = window_manager.find_projector(window_cfg)
 
     if not tibia:
         logger.log("SYSTEM", f"Janela do Tibia (busca: '{window_cfg.tibia_title}') nao encontrada!", level="ERROR")
         return None, None
-    if not obs_windows:
+    if not obs:
         logger.log("SYSTEM", f"Janela do OBS Studio / Projetor (busca: '{window_cfg.obs_title}') nao encontrada!", level="ERROR")
         return None, None
 
-    hwnd_tibia, title_tibia = tibia[0]
-    hwnd_obs, title_obs = obs_windows[0]
+    hwnd_tibia, title_tibia = tibia
+    hwnd_obs, title_obs = obs
 
     logger.log("SYSTEM", f"Tibia encontrado: '{title_tibia}' (HWND: {hwnd_tibia})")
     logger.log("SYSTEM", f"OBS encontrado: '{title_obs}' (HWND: {hwnd_obs})")
@@ -70,7 +64,7 @@ def parse_args():
 
 
 def run():
-    """Composition Root: carrega configurações, monta dependências e inicia o BotEngine."""
+    """Composition Root: carrega configurações, monta dependências de infraestrutura e inicia o BotEngine."""
     args = parse_args()
 
     print("==================================================")
@@ -85,7 +79,11 @@ def run():
         print(f"\n[ERRO CRITICO DE CONFIGURACAO]: {err}\n")
         sys.exit(1)
 
-    hwnd_tibia, hwnd_obs = check_and_prepare_windows(config.window)
+    # Instancia Gerenciadores de Infraestrutura por Plataforma
+    window_manager = create_window_manager()
+    input_controller = create_input_controller()
+
+    hwnd_tibia, hwnd_obs = check_and_prepare_windows(window_manager, config.window)
     
     if not hwnd_tibia or not hwnd_obs:
         logger.log("SYSTEM", "Por favor, certifique-se de que o Tibia e o OBS estao abertos antes de iniciar.", level="WARNING")
@@ -95,8 +93,8 @@ def run():
     capturer = ProjectorFrameCapturer()
     analyzer = GameAnalyzer(config)
     state_machine = StateMachine(initial_mode=BotMode.IDLE)
-    healer = AutoHealer(config.healer)
-    combat = AutoAttacker(config.combat)
+    healer = AutoHealer(config.healer, input_controller=input_controller)
+    combat = AutoAttacker(config.combat, input_controller=input_controller)
     overlay = OnScreenOverlay()
     scheduler = LoopScheduler(target_interval_ms=config.loop_interval_ms)
 
@@ -111,7 +109,9 @@ def run():
         overlay=overlay,
         scheduler=scheduler,
         hwnd_tibia=hwnd_tibia,
-        hwnd_obs=hwnd_obs
+        hwnd_obs=hwnd_obs,
+        window_manager=window_manager,
+        input_controller=input_controller
     )
     engine.run()
 

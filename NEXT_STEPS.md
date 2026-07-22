@@ -581,24 +581,24 @@ class InputController(Protocol):
 
 ### Tarefas
 
-* [ ] Criar interfaces independentes de plataforma.
-* [ ] Isolar chamadas Win32.
-* [ ] Isolar chamadas X11/Xlib.
-* [ ] Isolar implementação de teclado e mouse.
-* [ ] Selecionar implementação pela plataforma.
-* [ ] Apresentar erro claro para plataforma não suportada.
-* [ ] Evitar condicionais de sistema operacional dentro do domínio.
-* [ ] Documentar diferenças de suporte entre plataformas.
-* [ ] Garantir que a captura continue sendo feita pelo Projetor do OBS.
-* [ ] Não utilizar câmera ou `/dev/video0`.
-* [ ] Não adicionar captura automática por câmera virtual do OBS.
+* [x] Criar interfaces independentes de plataforma.
+* [x] Isolar chamadas Win32.
+* [x] Isolar chamadas X11/Xlib.
+* [x] Isolar implementação de teclado e mouse.
+* [x] Selecionar implementação pela plataforma.
+* [x] Apresentar erro claro para plataforma não suportada.
+* [x] Evitar condicionais de sistema operacional dentro do domínio.
+* [x] Documentar diferenças de suporte entre plataformas.
+* [x] Garantir que a captura continue sendo feita pelo Projetor do OBS.
+* [x] Não utilizar câmera ou `/dev/video0`.
+* [x] Não adicionar captura automática por câmera virtual do OBS.
 
 ### Critérios de conclusão
 
-* [ ] Healer e combat não importam APIs de sistema operacional.
-* [ ] O motor principal não conhece detalhes de Win32 ou Xlib.
-* [ ] A implementação de plataforma pode ser substituída por mocks.
-* [ ] A origem da captura aparece claramente nos logs.
+* [x] Healer e combat não importam APIs de sistema operacional.
+* [x] O motor principal não conhece detalhes de Win32 ou Xlib.
+* [x] A implementação de plataforma pode ser substituída por mocks.
+* [x] A origem da captura aparece claramente nos logs.
 
 ---
 
