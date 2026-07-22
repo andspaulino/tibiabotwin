@@ -237,23 +237,23 @@ regions:
 
 ### Tarefas
 
-* [ ] Criar uma classe responsável por converter ROI relativa em pixels.
-* [ ] Calcular as coordenadas a partir da dimensão real do frame.
-* [ ] Impedir ROIs fora dos limites do frame.
-* [ ] Validar largura e altura mínimas.
-* [ ] Manter suporte temporário para ROIs absolutas.
-* [ ] Registrar no log as coordenadas calculadas.
-* [ ] Criar ferramenta visual para desenhar as ROIs sobre o frame.
-* [ ] Permitir salvar a calibração em um perfil.
-* [ ] Permitir recalibrar sem alterar o código.
-* [ ] Criar perfis diferentes para resoluções ou layouts distintos.
+* [x] Criar uma classe responsável por converter ROI relativa em pixels.
+* [x] Calcular as coordenadas a partir da dimensão real do frame.
+* [x] Impedir ROIs fora dos limites do frame.
+* [x] Validar largura e altura mínimas.
+* [x] Manter suporte temporário para ROIs absolutas.
+* [x] Registrar no log as coordenadas calculadas.
+* [x] Criar ferramenta visual para desenhar as ROIs sobre o frame.
+* [x] Permitir salvar a calibração em um perfil.
+* [x] Permitir recalibrar sem alterar o código.
+* [x] Criar perfis diferentes para resoluções ou layouts distintos.
 
 ### Critérios de conclusão
 
-* [ ] O mesmo código funciona com mais de uma resolução.
-* [ ] Redimensionar o Projetor atualiza corretamente as regiões.
-* [ ] Uma ROI inválida pausa o bot de forma segura.
-* [ ] O overlay consegue desenhar todas as regiões configuradas.
+* [x] O mesmo código funciona com mais de uma resolução.
+* [x] Redimensionar o Projetor atualiza corretamente as regiões.
+* [x] Uma ROI inválida pausa o bot de forma segura.
+* [x] O overlay consegue desenhar todas as regiões configuradas.
 
 ---
 

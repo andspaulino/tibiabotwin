@@ -174,10 +174,11 @@ def run():
             img_bgr = pil_to_cv2(pil_img)
             
             # 3. Leitura contínua das barras e estado de PZ
-            hp_pct = get_hp_percentage(img_bgr)
-            mp_pct = get_mp_percentage(img_bgr)
+            hp_pct = get_hp_percentage(img_bgr, roi=config.regions.hp)
+            mp_pct = get_mp_percentage(img_bgr, roi=config.regions.mana)
             in_pz = is_in_pz(
                 img_bgr,
+                roi=config.regions.status_bar,
                 pz_template_path=config.pz.template_path,
                 threshold=config.pz.match_threshold
             )
@@ -194,7 +195,8 @@ def run():
             healer.check_and_heal(hp_pct, mp_pct, in_pz)
             
             # 6. Executa atualização do Combat (dispara apenas ao realizar ação de combate)
-            combat.update(img_bgr, in_pz)
+            combat.update(img_bgr, in_pz, roi=config.regions.battle_list)
+
 
             time.sleep(sleep_sec)
 

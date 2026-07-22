@@ -17,7 +17,7 @@ class TestConfigLoader(unittest.TestCase):
         self.assertEqual(cfg.window.obs_title, "obs")
         self.assertTrue(cfg.healer.enabled)
         self.assertEqual(cfg.healer.spell.key, "1")
-        self.assertEqual(cfg.healer.spell.hp_below, 90.0)
+        self.assertEqual(cfg.healer.spell.hp_below, 80.0)
 
     def test_profile_override(self):
         """Verifica a sobreposição correta de valores ao carregar um perfil."""

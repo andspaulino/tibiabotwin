@@ -1,12 +1,22 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
+from src.domain.roi import RelativeROI
+
 
 @dataclass(frozen=True)
 class WindowConfig:
     tibia_title: str = "Tibia"
     obs_title: str = "obs"
     allow_partial_match: bool = True
+
+
+@dataclass(frozen=True)
+class RegionsConfig:
+    hp: RelativeROI = field(default_factory=lambda: RelativeROI(x=0.187, y=0.000, width=0.281, height=0.018))
+    mana: RelativeROI = field(default_factory=lambda: RelativeROI(x=0.533, y=0.001, width=0.280, height=0.018))
+    status_bar: RelativeROI = field(default_factory=lambda: RelativeROI(x=0.477, y=0.001, width=0.057, height=0.017))
+    battle_list: RelativeROI = field(default_factory=lambda: RelativeROI(x=0.908, y=0.361, width=0.058, height=0.091))
 
 
 @dataclass(frozen=True)
@@ -61,6 +71,7 @@ class PZConfig:
 @dataclass(frozen=True)
 class AppConfig:
     window: WindowConfig = field(default_factory=WindowConfig)
+    regions: RegionsConfig = field(default_factory=RegionsConfig)
     healer: HealerConfig = field(default_factory=HealerConfig)
     combat: CombatConfig = field(default_factory=CombatConfig)
     pz: PZConfig = field(default_factory=PZConfig)

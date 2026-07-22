@@ -1,6 +1,10 @@
 import ctypes
 from ctypes import wintypes
 import os
+from typing import Union, Dict, Any, Optional
+
+from src.domain.roi import RelativeROI, AbsoluteROI, ROIResolver
+
 try:
     import mss
 except ImportError:
@@ -24,8 +28,10 @@ except ImportError:
 ClientToScreen = ctypes.windll.user32.ClientToScreen
 GetClientRect = ctypes.windll.user32.GetClientRect
 
+
 class POINT(ctypes.Structure):
     _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+
 
 class ScreenCapturer:
     """Gerenciador de captura de tela de alta velocidade via MSS."""
@@ -70,11 +76,13 @@ class ScreenCapturer:
         """Libera os recursos do gravador de tela."""
         self.sct.close()
 
+
 def pil_to_cv2(pil_img) -> np.ndarray:
     """Converte uma imagem PIL para array NumPy no formato BGR do OpenCV."""
     if np is None or cv2 is None:
         raise RuntimeError("NumPy e OpenCV são necessários. Instale executando: pip install -r requirements.txt")
     return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+
 
 def locate_template(img, template, threshold: float = 0.8):
     """
@@ -91,23 +99,33 @@ def locate_template(img, template, threshold: float = 0.8):
         return max_val, max_loc
     return None
 
-# ROIs mapeadas da interface (Projetor OBS)
-HP_BAR_ROI = {'top': 0, 'left': 359, 'width': 539, 'height': 20}
-MP_BAR_ROI = {'top': 1, 'left': 1024, 'width': 537, 'height': 19}
-STATUS_BAR_ROI = {'top': 1, 'left': 915, 'width': 110, 'height': 18}
-BATTLE_LIST_ROI = {'top': 390, 'left': 1744, 'width': 111, 'height': 98}
 
-def crop_roi(img, roi: dict):
-    """Corta uma Região de Interesse (ROI) da imagem OpenCV BGR."""
-    top, left, width, height = roi['top'], roi['left'], roi['width'], roi['height']
+# ROIs padrão relativas (proporcionais às dimensões do frame 0.0 - 1.0)
+HP_BAR_ROI = RelativeROI(x=0.187, y=0.000, width=0.281, height=0.018)
+MP_BAR_ROI = RelativeROI(x=0.533, y=0.001, width=0.280, height=0.018)
+STATUS_BAR_ROI = RelativeROI(x=0.477, y=0.001, width=0.057, height=0.017)
+BATTLE_LIST_ROI = RelativeROI(x=0.908, y=0.361, width=0.058, height=0.091)
+
+
+def crop_roi(img, roi: Union[RelativeROI, AbsoluteROI, Dict[str, Any]]) -> np.ndarray:
+    """
+    Corta uma Região de Interesse (ROI) da imagem OpenCV BGR com base no tamanho do frame.
+    """
+    if np is None or img is None or img.size == 0:
+        return np.empty((0, 0, 3), dtype=np.uint8)
+
+    h, w = img.shape[:2]
+    abs_roi = ROIResolver.resolve(roi, w, h)
+    top, left, width, height = abs_roi.top, abs_roi.left, abs_roi.width, abs_roi.height
     return img[top:top+height, left:left+width]
 
-def get_hp_percentage(img, roi: dict = HP_BAR_ROI) -> float:
+
+def get_hp_percentage(img, roi: Union[RelativeROI, AbsoluteROI, Dict[str, Any]] = HP_BAR_ROI) -> float:
     """
     Calcula a porcentagem atual de Vida (HP) na ROI da barra (retorna valor de 0.0 a 1.0).
     Filtra pixels verdes/vermelhos da barra de vida vs fundo cinza/texto.
     """
-    if np is None:
+    if np is None or img is None:
         return 0.0
     roi_img = crop_roi(img, roi)
     if roi_img.size == 0:
@@ -123,12 +141,13 @@ def get_hp_percentage(img, roi: dict = HP_BAR_ROI) -> float:
     
     return float(filled_pixels / total_pixels) if total_pixels > 0 else 0.0
 
-def get_mp_percentage(img, roi: dict = MP_BAR_ROI) -> float:
+
+def get_mp_percentage(img, roi: Union[RelativeROI, AbsoluteROI, Dict[str, Any]] = MP_BAR_ROI) -> float:
     """
     Calcula a porcentagem atual de Mana (MP) na ROI da barra (retorna valor de 0.0 a 1.0).
     Filtra pixels azuis da barra de mana vs texto/fundo.
     """
-    if np is None:
+    if np is None or img is None:
         return 0.0
     roi_img = crop_roi(img, roi)
     if roi_img.size == 0:
@@ -144,17 +163,19 @@ def get_mp_percentage(img, roi: dict = MP_BAR_ROI) -> float:
     
     return float(filled_pixels / total_pixels) if total_pixels > 0 else 0.0
 
-def get_status_bar_image(img, roi: dict = STATUS_BAR_ROI):
+
+def get_status_bar_image(img, roi: Union[RelativeROI, AbsoluteROI, Dict[str, Any]] = STATUS_BAR_ROI):
     """
     Retorna o recorte NumPy BGR da Barra de Status (ícones de envenenamento, paralisação, PZ, etc.).
     """
     return crop_roi(img, roi)
 
-def get_status_bar_activity(img, roi: dict = STATUS_BAR_ROI) -> dict:
+
+def get_status_bar_activity(img, roi: Union[RelativeROI, AbsoluteROI, Dict[str, Any]] = STATUS_BAR_ROI) -> dict:
     """
     Analisa a Barra de Status e retorna informações sobre a presença de ícones ativos.
     """
-    if np is None:
+    if np is None or img is None:
         return {"active": False, "active_pixels": 0}
     
     status_img = crop_roi(img, roi)
@@ -171,18 +192,24 @@ def get_status_bar_activity(img, roi: dict = STATUS_BAR_ROI) -> dict:
         "roi": roi
     }
 
-def is_in_pz(img, pz_template_path: str = "templates/pz.png", threshold: float = 0.82) -> bool:
+
+def is_in_pz(
+    img,
+    roi: Union[RelativeROI, AbsoluteROI, Dict[str, Any]] = STATUS_BAR_ROI,
+    pz_template_path: str = "templates/pz.png",
+    threshold: float = 0.82
+) -> bool:
     """
     Verifica se o personagem está em Protection Zone (PZ) utilizando Template Matching e validação de cor azul/branca.
     """
-    if cv2 is None or np is None or not os.path.exists(pz_template_path):
+    if cv2 is None or np is None or img is None or not os.path.exists(pz_template_path):
         return False
     
     pz_template = cv2.imread(pz_template_path)
     if pz_template is None:
         return False
     
-    status_img = get_status_bar_image(img)
+    status_img = get_status_bar_image(img, roi=roi)
     if status_img.size == 0:
         return False
 
@@ -200,12 +227,17 @@ def is_in_pz(img, pz_template_path: str = "templates/pz.png", threshold: float =
 
     return bool(has_blue_dove)
 
-def has_monsters_in_battle(img, roi: dict = BATTLE_LIST_ROI, min_pixels: int = 10) -> bool:
+
+def has_monsters_in_battle(
+    img,
+    roi: Union[RelativeROI, AbsoluteROI, Dict[str, Any]] = BATTLE_LIST_ROI,
+    min_pixels: int = 10
+) -> bool:
     """
     Verifica se há alvos/criaturas presentes na região da Battle List.
     Avalia se há uma barrinha de vida real de criatura (pelo menos min_pixels de HP bar).
     """
-    if np is None:
+    if np is None or img is None:
         return False
     battle_img = crop_roi(img, roi)
     if battle_img.size == 0:
@@ -220,12 +252,18 @@ def has_monsters_in_battle(img, roi: dict = BATTLE_LIST_ROI, min_pixels: int = 1
     # Exige uma quantidade mínima de pixels para ser uma barrinha de vida de monstro real
     return bool(hp_pixels >= min_pixels)
 
-def has_active_target(img, roi: dict = BATTLE_LIST_ROI, target_template_path: str = "templates/target_red.png", threshold: float = 0.75) -> bool:
+
+def has_active_target(
+    img,
+    roi: Union[RelativeROI, AbsoluteROI, Dict[str, Any]] = BATTLE_LIST_ROI,
+    target_template_path: str = "templates/target_red.png",
+    threshold: float = 0.75
+) -> bool:
     """
     Verifica se há um alvo ativo atualmente selecionado (moldura de ataque vermelha viva na Battle List).
     Utiliza filtro de cor vermelha pura e validação por template matching (target_red.png).
     """
-    if np is None:
+    if np is None or img is None:
         return False
     battle_img = crop_roi(img, roi)
     if battle_img.size == 0:
@@ -248,4 +286,3 @@ def has_active_target(img, roi: dict = BATTLE_LIST_ROI, target_template_path: st
                 return True
 
     return False
-

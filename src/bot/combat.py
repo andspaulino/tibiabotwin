@@ -1,9 +1,10 @@
 import time
-from typing import Optional
+from typing import Optional, Union, Dict, Any
 
 from src.config.models import CombatConfig
+from src.domain.roi import RelativeROI, AbsoluteROI
 from src.utils.input import press_key
-from src.utils.screen import has_monsters_in_battle, has_active_target
+from src.utils.screen import has_monsters_in_battle, has_active_target, BATTLE_LIST_ROI
 from src.utils.logger import logger
 
 
@@ -32,7 +33,12 @@ class AutoAttacker:
         self.enabled = False
         logger.log("COMBAT", "Modulo de ataque desativado.")
 
-    def update(self, img_bgr, in_pz: bool = False):
+    def update(
+        self,
+        img_bgr,
+        in_pz: bool = False,
+        roi: Union[RelativeROI, AbsoluteROI, Dict[str, Any]] = BATTLE_LIST_ROI
+    ):
         """
         Lógica de combate leve e orientada a eventos (sem spam no log).
         """
@@ -44,11 +50,13 @@ class AutoAttacker:
         now = time.time()
         has_target = has_active_target(
             img_bgr,
+            roi=roi,
             target_template_path=self.config.target_template_path,
             threshold=self.config.target_match_threshold
         )
         has_monsters = has_monsters_in_battle(
             img_bgr,
+            roi=roi,
             min_pixels=self.config.min_battle_pixels
         )
 

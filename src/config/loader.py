@@ -3,9 +3,11 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union
 import yaml
 
+from src.domain.roi import RelativeROI, InvalidROIError
 from src.config.models import (
     AppConfig,
     WindowConfig,
+    RegionsConfig,
     HealerConfig,
     SpellActionConfig,
     PotionActionConfig,
@@ -84,6 +86,21 @@ def _validate_hotkey(val: Any, field_name: str, enabled: bool) -> str:
     return val.strip()
 
 
+def _validate_relative_roi(data: Any, field_name: str, default_roi: RelativeROI) -> RelativeROI:
+    """Valida um dicionário contendo coordenadas de ROI relativa."""
+    if not data or not isinstance(data, dict):
+        return default_roi
+
+    try:
+        x = float(data.get("x", default_roi.x))
+        y = float(data.get("y", default_roi.y))
+        w = float(data.get("width", default_roi.width))
+        h = float(data.get("height", default_roi.height))
+        return RelativeROI(x=x, y=y, width=w, height=h)
+    except (ValueError, TypeError, InvalidROIError) as err:
+        raise ConfigValidationError(f"ROI inválida em '{field_name}': {err}")
+
+
 def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
     """Valida a estrutura de dados bruta e constrói um AppConfig fortemente tipado."""
     if not isinstance(data, dict):
@@ -106,7 +123,23 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         allow_partial_match=allow_partial
     )
 
-    # 2. Healer Config
+    # 2. Regions Config
+    regions_data = data.get("regions", {})
+    def_regions = RegionsConfig()
+
+    hp_roi = _validate_relative_roi(regions_data.get("hp"), "regions.hp", def_regions.hp)
+    mp_roi = _validate_relative_roi(regions_data.get("mana"), "regions.mana", def_regions.mana)
+    sb_roi = _validate_relative_roi(regions_data.get("status_bar"), "regions.status_bar", def_regions.status_bar)
+    bl_roi = _validate_relative_roi(regions_data.get("battle_list"), "regions.battle_list", def_regions.battle_list)
+
+    regions_cfg = RegionsConfig(
+        hp=hp_roi,
+        mana=mp_roi,
+        status_bar=sb_roi,
+        battle_list=bl_roi
+    )
+
+    # 3. Healer Config
     healer_data = data.get("healer", {})
     healer_enabled = bool(healer_data.get("enabled", True))
 
@@ -156,7 +189,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         emergency_potion=emerg_cfg
     )
 
-    # 3. Combat Config
+    # 4. Combat Config
     combat_data = data.get("combat", {})
     combat_enabled = bool(combat_data.get("enabled", True))
     attack_key = _validate_hotkey(combat_data.get("attack_key", "space"), "combat.attack_key", combat_enabled)
@@ -183,7 +216,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         target_match_threshold=thresh
     )
 
-    # 4. Protection Zone Config
+    # 5. Protection Zone Config
     pz_data = data.get("pz", {})
     pz_enabled = bool(pz_data.get("enabled", True))
     pz_tmpl = str(pz_data.get("template_path", "templates/pz.png"))
@@ -197,7 +230,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         match_threshold=pz_thresh
     )
 
-    # 5. Global loop interval
+    # 6. Global loop interval
     loop_ms = data.get("loop_interval_ms", 50)
     try:
         loop_ms = int(loop_ms)
@@ -208,6 +241,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
 
     return AppConfig(
         window=win_cfg,
+        regions=regions_cfg,
         healer=healer_cfg,
         combat=combat_cfg,
         pz=pz_cfg,

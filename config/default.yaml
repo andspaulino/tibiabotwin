@@ -7,6 +7,32 @@ window:
   obs_title: "obs"
   allow_partial_match: true
 
+# Regiões de Interesse (ROIs) Relativas (0.0 a 1.0)
+regions:
+  hp:
+    x: 0.187
+    y: 0.000
+    width: 0.281
+    height: 0.018
+
+  mana:
+    x: 0.533
+    y: 0.001
+    width: 0.280
+    height: 0.018
+
+  status_bar:
+    x: 0.477
+    y: 0.001
+    width: 0.057
+    height: 0.017
+
+  battle_list:
+    x: 0.908
+    y: 0.361
+    width: 0.058
+    height: 0.091
+
 healer:
   enabled: true
 
