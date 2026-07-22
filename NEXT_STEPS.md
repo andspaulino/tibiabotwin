@@ -694,29 +694,29 @@ Salvar frames ou recortes representando:
 
 ### Tarefas
 
-* [ ] Separar testes automatizados de scripts manuais.
-* [ ] Criar fixtures versionadas.
-* [ ] Testar cálculo de HP.
-* [ ] Testar cálculo de mana.
-* [ ] Testar detecção de PZ.
-* [ ] Testar detecção de Battle List.
-* [ ] Testar detecção de alvo ativo.
-* [ ] Testar conversão de ROI relativa.
-* [ ] Testar prioridades de ação.
-* [ ] Testar máquina de estados.
-* [ ] Testar cooldowns com relógio falso.
-* [ ] Testar falhas de captura.
-* [ ] Testar perda de foco.
-* [ ] Testar comportamento em janela minimizada.
-* [ ] Testar encerramento gracioso.
-* [ ] Adicionar regressão para falsos positivos conhecidos.
+* [x] Separar testes automatizados de scripts manuais.
+* [x] Criar fixtures versionadas.
+* [x] Testar cálculo de HP.
+* [x] Testar cálculo de mana.
+* [x] Testar detecção de PZ.
+* [x] Testar detecção de Battle List.
+* [x] Testar detecção de alvo ativo.
+* [x] Testar conversão de ROI relativa.
+* [x] Testar prioridades de ação.
+* [x] Testar máquina de estados.
+* [x] Testar cooldowns com relógio falso.
+* [x] Testar falhas de captura.
+* [x] Testar perda de foco.
+* [x] Testar comportamento em janela minimizada.
+* [x] Testar encerramento gracioso.
+* [x] Adicionar regressão para falsos positivos conhecidos.
 
 ### Critérios de conclusão
 
-* [ ] Os detectores podem ser testados sem abrir o jogo.
-* [ ] Os testes não enviam comandos reais.
-* [ ] Existe cobertura das transições críticas.
-* [ ] Alterações nos thresholds podem ser comparadas com fixtures.
+* [x] Os detectores podem ser testados sem abrir o jogo.
+* [x] Os testes não enviam comandos reais.
+* [x] Existe cobertura das transições críticas.
+* [x] Alterações nos thresholds podem ser comparadas com fixtures.
 
 ---
 
