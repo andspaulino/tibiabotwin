@@ -1,6 +1,6 @@
 import sys
 import time
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 try:
     import keyboard
@@ -14,9 +14,12 @@ from src.infrastructure.input.base import InputController
 from src.infrastructure.factory import create_window_manager, create_input_controller
 from src.domain.game_state import GameState
 from src.domain.bot_state import BotState, BotMode
+from src.domain.actions import BotAction
 from src.domain.analyzer import GameAnalyzer
 from src.application.state_machine import StateMachine
 from src.application.scheduler import LoopScheduler
+from src.application.decision_controller import DecisionController
+from src.application.action_executor import ActionExecutor
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
 from src.utils.overlay import OnScreenOverlay
@@ -42,7 +45,9 @@ class BotEngine:
         hwnd_tibia: int,
         hwnd_obs: int,
         window_manager: Optional[WindowManager] = None,
-        input_controller: Optional[InputController] = None
+        input_controller: Optional[InputController] = None,
+        decision_controller: Optional[DecisionController] = None,
+        action_executor: Optional[ActionExecutor] = None
     ):
         self.config = config
         self.capturer = capturer
@@ -56,6 +61,8 @@ class BotEngine:
         self.hwnd_obs = hwnd_obs
         self.window_manager = window_manager or create_window_manager()
         self.input_controller = input_controller or create_input_controller()
+        self.decision_controller = decision_controller or DecisionController()
+        self.action_executor = action_executor or ActionExecutor()
 
         self.running = False
         self.killswitch_paused = False
@@ -94,12 +101,16 @@ class BotEngine:
         # 5. Renderização do HUD Overlay
         self.overlay.update(game_state, bot_state)
 
-        # 6. Execução de módulos autorizados pelo BotMode
-        if bot_state.current_mode in (BotMode.COMBAT, BotMode.IDLE, BotMode.IN_PROTECTION_ZONE):
-            self.healer.check_and_heal(game_state)
+        # 6. Coleta intenções de ações dos módulos
+        proposed_actions: List[BotAction] = []
+        proposed_actions.extend(self.healer.get_proposed_actions(game_state))
+        proposed_actions.extend(self.combat.get_proposed_actions(game_state))
 
-        if bot_state.current_mode == BotMode.COMBAT:
-            self.combat.update(game_state)
+        # 7. Resolução de conflitos e prioridades pelo DecisionController
+        resolved_actions = self.decision_controller.resolve(proposed_actions, game_state, bot_state)
+
+        # 8. Execução segura das ações autorizadas pelo ActionExecutor
+        self.action_executor.execute(resolved_actions, game_state, self.input_controller)
 
         return game_state, bot_state
 

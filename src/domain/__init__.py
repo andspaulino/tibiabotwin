@@ -12,6 +12,10 @@ from src.domain.bot_state import (
     StateTransition,
     BotState,
 )
+from src.domain.actions import (
+    ActionType,
+    BotAction,
+)
 
 __all__ = [
     "RelativeROI",
@@ -25,4 +29,6 @@ __all__ = [
     "BotMode",
     "StateTransition",
     "BotState",
+    "ActionType",
+    "BotAction",
 ]

@@ -632,22 +632,22 @@ class BotAction:
 
 ### Tarefas
 
-* [ ] Fazer cada módulo retornar zero ou mais intenções.
-* [ ] Criar resolvedor de conflitos.
-* [ ] Ordenar ações por prioridade.
-* [ ] Permitir somente ações compatíveis no mesmo ciclo.
-* [ ] Centralizar cooldowns por tipo de ação.
-* [ ] Registrar ações descartadas e o motivo.
-* [ ] Impedir repetição da mesma ação sem necessidade.
-* [ ] Fazer o executor validar o estado antes do input.
-* [ ] Cancelar a fila quando o killswitch for acionado.
+* [x] Fazer cada módulo retornar zero ou mais intenções.
+* [x] Criar resolvedor de conflitos.
+* [x] Ordenar ações por prioridade.
+* [x] Permitir somente ações compatíveis no mesmo ciclo.
+* [x] Centralizar cooldowns por tipo de ação.
+* [x] Registrar ações descartadas e o motivo.
+* [x] Impedir repetição da mesma ação sem necessidade.
+* [x] Fazer o executor validar o estado antes do input.
+* [x] Cancelar a fila quando o killswitch for acionado.
 
 ### Critérios de conclusão
 
-* [ ] Nenhum módulo chama diretamente `pydirectinput`, `keyboard` ou equivalente.
-* [ ] Toda entrada passa pelo executor.
-* [ ] Toda ação executada possui uma justificativa.
-* [ ] A cura de emergência sempre vence ações menos importantes.
+* [x] Nenhum módulo chama diretamente `pydirectinput`, `keyboard` ou equivalente.
+* [x] Toda entrada passa pelo executor.
+* [x] Toda ação executada possui uma justificativa.
+* [x] A cura de emergência sempre vence ações menos importantes.
 
 ---
 
