@@ -60,6 +60,11 @@ def parse_args():
         default=None,
         help="Nome ou caminho do perfil de sobreposição em config/profiles/ (ex: character-example ou 1920x1080)"
     )
+    parser.add_argument(
+        "--observe-only",
+        action="store_true",
+        help="Executa em modo de observação: analisa estado, logs e HUD, mas bloqueia envio de teclado/mouse."
+    )
     return parser.parse_args()
 
 
@@ -111,7 +116,8 @@ def run():
         hwnd_tibia=hwnd_tibia,
         hwnd_obs=hwnd_obs,
         window_manager=window_manager,
-        input_controller=input_controller
+        input_controller=input_controller,
+        observe_only=args.observe_only
     )
     engine.run()
 

@@ -75,7 +75,7 @@ class TestEngineAndScheduler(unittest.TestCase):
             hwnd_obs=0
         )
 
-        game_state, bot_state = engine.run_cycle()
+        game_state, bot_state, metrics = engine.run_cycle()
 
         self.assertIsInstance(game_state, GameState)
         self.assertIsInstance(bot_state, BotState)

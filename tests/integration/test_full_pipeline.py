@@ -80,7 +80,7 @@ class TestFullPipelineIntegration(unittest.TestCase):
         combat.start()
 
         # Executa 1 ciclo completo da pipeline
-        game_state, bot_state = engine.run_cycle()
+        game_state, bot_state, metrics = engine.run_cycle()
 
         # Valida se a detecção percebeu HP baixo (<= 25%)
         self.assertIsNotNone(game_state.player.hp_percent)

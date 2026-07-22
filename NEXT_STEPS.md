@@ -724,20 +724,20 @@ Salvar frames ou recortes representando:
 
 ### Tarefas
 
-* [ ] Adicionar tempo total de cada ciclo.
-* [ ] Adicionar tempo de captura.
-* [ ] Adicionar tempo de análise.
-* [ ] Adicionar tempo de decisão.
-* [ ] Adicionar contagem de falhas consecutivas.
-* [ ] Adicionar taxa de frames válidos.
-* [ ] Adicionar modo de diagnóstico sem inputs.
-* [ ] Adicionar opção para salvar frames problemáticos.
-* [ ] Adicionar rotação de arquivos de log.
-* [ ] Evitar logs repetidos em todos os ciclos.
-* [ ] Adicionar identificador da sessão.
-* [ ] Adicionar nível de log configurável.
-* [ ] Ocultar informações excessivas do HUD visual.
-* [ ] Manter detalhes completos no arquivo de log.
+* [x] Adicionar tempo total de cada ciclo.
+* [x] Adicionar tempo de captura.
+* [x] Adicionar tempo de análise.
+* [x] Adicionar tempo de decisão.
+* [x] Adicionar contagem de falhas consecutivas.
+* [x] Adicionar taxa de frames válidos.
+* [x] Adicionar modo de diagnóstico sem inputs.
+* [x] Adicionar opção para salvar frames problemáticos.
+* [x] Adicionar rotação de arquivos de log.
+* [x] Evitar logs repetidos em todos os ciclos.
+* [x] Adicionar identificador da sessão.
+* [x] Adicionar nível de log configurável.
+* [x] Ocultar informações excessivas do HUD visual.
+* [x] Manter detalhes completos no arquivo de log.
 
 ### Modo de observação
 
@@ -758,9 +758,9 @@ python -m src.main --observe-only
 
 ### Critérios de conclusão
 
-* [ ] É possível diagnosticar detectores sem executar ações.
-* [ ] Frames inválidos podem ser identificados posteriormente.
-* [ ] O overlay informa claramente quando inputs estão desabilitados.
+* [x] É possível diagnosticar detectores sem executar ações.
+* [x] Frames inválidos podem ser identificados posteriormente.
+* [x] O overlay informa claramente quando inputs estão desabilitados.
 
 ---
 

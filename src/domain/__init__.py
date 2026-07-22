@@ -16,6 +16,9 @@ from src.domain.actions import (
     ActionType,
     BotAction,
 )
+from src.domain.metrics import (
+    CycleMetrics,
+)
 
 __all__ = [
     "RelativeROI",
@@ -31,4 +34,5 @@ __all__ = [
     "BotState",
     "ActionType",
     "BotAction",
+    "CycleMetrics",
 ]

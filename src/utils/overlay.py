@@ -7,7 +7,7 @@ from typing import Optional, Union
 
 from src.utils.logger import logger
 from src.domain.game_state import GameState
-from src.domain.bot_state import BotState, BotMode
+from src.domain.bot_state import BotMode, BotState
 
 if sys.platform == "win32":
     import ctypes
@@ -34,6 +34,7 @@ class OnScreenOverlay:
         self.running = False
         self.last_game_state: Optional[GameState] = None
         self.last_bot_state: Optional[BotState] = None
+        self.observe_only = False
         self.status_label = None
 
     def _create_window(self):
@@ -96,13 +97,15 @@ class OnScreenOverlay:
     def update(
         self,
         game_state: Optional[GameState] = None,
-        bot_state: Optional[BotState] = None
+        bot_state: Optional[BotState] = None,
+        observe_only: bool = False
     ):
         """Atualiza a interface do Overlay com os snapshots mais recentes de GameState e BotState."""
         if game_state is not None:
             self.last_game_state = game_state
         if bot_state is not None:
             self.last_bot_state = bot_state
+        self.observe_only = observe_only
 
         if self.root and self.running:
             try:
@@ -122,6 +125,8 @@ class OnScreenOverlay:
         pz_str = "SIM" if gs.player.in_protection_zone else ("NAO" if gs.player.in_protection_zone is False else "??")
         
         mode_str = bs.current_mode.value.upper() if bs else ("SEGURO" if gs.is_safe_to_act else "UNSAFE")
+        if self.observe_only:
+            mode_str += " [OBSERVE ONLY]"
 
         txt = f"HP:{hp_str} | MP:{mp_str} | PZ:{pz_str} | MODE:{mode_str}"
         
@@ -140,49 +145,47 @@ class OnScreenOverlay:
                 pass
 
     def _update_logs_ui(self):
-        if not self.root:
+        if not self.root or not hasattr(self, "log_container"):
             return
 
-        # Limpa rótulos anteriores
         for widget in self.log_container.winfo_children():
             widget.destroy()
 
-        recent_logs = logger.get_recent_logs(count=6)
+        recent = logger.get_recent_logs(7)
 
-        color_map = {
-            "HEALER": "#3fb950",   # Verde
-            "COMBAT": "#f85149",   # Vermelho
-            "PZ": "#58a6ff",       # Azul
-            "STATE": "#d29922",    # Amarelo/Dourado
-            "SYSTEM": "#8b949e"    # Cinza
-        }
+        for log in recent:
+            level = log.get("level", "INFO")
 
-        for log in recent_logs:
-            cat = log["category"]
-            fg_color = color_map.get(cat, "#c9d1d9")
-            text_line = f"[{cat:7s}] {log['message']}"
+            color_map = {
+                "ACTION": "#3fb950",
+                "WARNING": "#d29922",
+                "ERROR": "#f85149",
+                "INFO": "#8b949e"
+            }
+            fg_color = color_map.get(level, "#8b949e")
+
+            line_str = f"{log['timestamp']} [{log['category']:7s}] {log['message']}"
 
             lbl = tk.Label(
                 self.log_container,
-                text=text_line,
-                font=("Consolas", 9, "bold"),
+                text=line_str,
+                font=("Consolas", 8),
                 fg=fg_color,
                 bg="#0d1117",
                 anchor="w",
                 justify="left"
             )
-            lbl.pack(fill="x", pady=1)
+            lbl.pack(fill="x", pady=0)
 
     def start(self):
-        """Inicia a janela de Overlay Transparente em uma thread separada."""
-        if self.thread and self.thread.is_alive():
+        """Inicia a janela do Overlay transparente em uma thread separada."""
+        if self.running:
             return
         self.thread = threading.Thread(target=self._create_window, daemon=True)
         self.thread.start()
-        time.sleep(0.5)
 
     def stop(self):
-        """Fecha a janela do Overlay."""
+        """Encerra graciosamente a janela do Overlay."""
         self.running = False
         if self.root:
             try:

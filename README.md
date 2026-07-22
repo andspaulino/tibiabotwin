@@ -56,31 +56,37 @@ Diferente de bots que leem ou injetam dados na memória do jogo, este bot age pu
 - **`RecordedFrameCapturer`**: Injeta sequências de imagens gravadas sem necessidade do Tibia ou OBS estarem abertos.
 - **Suíte de Integração de Pipeline (`tests/integration/test_full_pipeline.py`)**: Simulação offline de ciclos de jogo do motor com `MockInputController`.
 
-### 10. Trava de Foco & Segurança de Janela (`launcher.py` + `src/utils/window.py`)
+### 10. Observabilidade, Diagnóstico & Modo `--observe-only` (`src/domain/metrics.py` + `logger.py`)
+- **Telemetria por Ciclo (`CycleMetrics`)**: Medição em milissegundos do tempo gasto nas etapas de captura, análise, decisão e tempo total do ciclo.
+- **Modo de Observação (`python -m src.main --observe-only`)**: Executa a visão computacional, máquina de estados, logs e HUD Overlay com **bloqueio total de envios de teclado e mouse**.
+- **Salvamento de Frames Problemáticos (`logs/failed_frames/`)**: Capturas com falha ou congelamento salvas automaticamente em disco para auditoria pós-execução.
+- **Rotação de Arquivos de Log (`logs/app.log`)**: Suporte a `RotatingFileHandler` (máx 5MB) com identificador de sessão exclusivo (`session_id`).
+
+### 11. Trava de Foco & Segurança de Janela (`launcher.py` + `src/utils/window.py`)
 - Ocultação da janela do Tibia com opacidade 1 via Win32 API `SetLayeredWindowAttributes`.
 - Captura de tela ao vivo sem lag focando na janela do **Projetor do OBS Studio**.
 - **Trava de Foco Ativo (`is_window_active`)**: O bot só executa ações quando a janela do Tibia for a janela ativa no Windows.
 - **Trava de Minimizado (`is_window_minimized`)**: Pausa automática caso a janela seja minimizada.
 - Restauração automática da visibilidade nativa ao encerrar.
 
-### 11. Killswitch de Emergência (`src/main.py`)
+### 12. Killswitch de Emergência (`src/main.py`)
 - **Tecla de Pânico (`Pause`)**: Atalho global do Windows que intercala entre **Pausado** e **Em Execução** instantaneamente a qualquer momento.
 
-### 12. Auto-Healer Inteligente (`src/bot/healer.py`)
+### 13. Auto-Healer Inteligente (`src/bot/healer.py`)
 - **Magia de Cura**: Limite de HP, hotkey e cooldown configuráveis (propondo `BotAction`).
 - **Poção de Mana**: Limite de MP, hotkey e cooldown configuráveis (propondo `BotAction`).
 - **Poção de Emergência**: Limite de HP crítico, hotkey e cooldown configuráveis (registrado no log de emergência).
 - **Pausa Automática em PZ**: Interrompe magias e poções em Protection Zone.
 
-### 13. Auto-Attacker & Targeting (`src/bot/combat.py`)
+### 14. Auto-Attacker & Targeting (`src/bot/combat.py`)
 - **Ataque Automático**: Seleção de alvos presentes na Battle List com atalho e cooldown configuráveis (propondo `BotAction`).
 - **Reconhecimento de Alvo Ativo**: Identificação de moldura vermelha via densidade de cor + Template Matching configurável (`target_template_path`).
 - **Zero Repetição de Atalhos**: Mantém o combate travado sem spam indevido de teclas.
 
-### 14. Logger Centralizado & HUD Overlay (`src/utils/logger.py` + `src/utils/overlay.py`)
-- **Logger Central**: Formatação padronizada por categorias (`HEALER`, `COMBAT`, `PZ`, `STATE`, `ACTION`, `SYSTEM`).
+### 15. Logger Centralizado & HUD Overlay (`src/utils/logger.py` + `src/utils/overlay.py`)
+- **Logger Central**: Formatação padronizada por categorias (`HEALER`, `COMBAT`, `PZ`, `STATE`, `ACTION`, `SIMULATION`, `SYSTEM`).
 - **Sincronização para OBS**: Exportação contínua para `logs_hud.txt` (Fonte de texto GDI+ no OBS).
-- **HUD Transparente On-Screen**: Renderização em tempo real do estado central e modo ativo (`HP`, `MP`, `PZ`, `MODE`) + Click-Through (`WS_EX_TRANSPARENT`).
+- **HUD Transparente On-Screen**: Renderização em tempo real do estado central e modo ativo (`HP`, `MP`, `PZ`, `MODE`, `[OBSERVE ONLY]`) + Click-Through (`WS_EX_TRANSPARENT`).
 - **Módulo de Humanização (`src/utils/humanizer.py`)**: Delays com Curva de Gauss, retenção de teclas entre 30ms-75ms e Curvas de Bézier.
 
 ---
@@ -98,18 +104,18 @@ python tools/calibrate_roi.py
 python tools/calibrate_roi.py --save-profile 1920x1080
 ```
 
-### 🎮 Executando o Bot com Perfis
+### 🎮 Executando o Bot com Perfis & Modo de Observação
 O sistema carrega a configuração base de `config/default.yaml` e pode mesclar parâmetros de um perfil de sobreposição:
 
 ```bash
 # Execução padrão (utiliza config/default.yaml)
 python -m src.main
 
+# Execução em Modo de Observação (sem disparos de teclado/mouse)
+python -m src.main --observe-only
+
 # Execução utilizando um perfil específico em config/profiles/
 python -m src.main --profile character-example
-
-# Execução informando arquivo de configuração customizado
-python -m src.main --config config/default.yaml --profile 1920x1080
 ```
 
 ---
@@ -151,13 +157,16 @@ tibia-bot/
 │   │   └── character-example.yaml
 │   └── schemas/                   # JSON Schema para validação
 │       └── config.schema.json
+├── logs/                          # Logs rotacionados e auditoria de erros
+│   ├── app.log                    # Arquivo de log principal com session_id
+│   └── failed_frames/             # Frames com falha/congelamento salvos em PNG
 ├── src/
 │   ├── application/
-│   │   ├── bot_engine.py          # Motor principal BotEngine (run, run_cycle, stop)
+│   │   ├── bot_engine.py          # Motor principal BotEngine (run, run_cycle, stop, CycleMetrics)
 │   │   ├── scheduler.py           # LoopScheduler (frequência de loop e métricas)
 │   │   ├── state_machine.py       # Controlador StateMachine (hierarquia de prioridades de BotMode)
 │   │   ├── decision_controller.py # DecisionController (resolvedor de prioridades e conflitos)
-│   │   └── action_executor.py     # ActionExecutor (executor central de atalhos)
+│   │   └── action_executor.py     # ActionExecutor (executor central de atalhos e observe_only)
 │   ├── bot/
 │   │   ├── healer.py              # Módulo AutoHealer (propõe BotAction)
 │   │   └── combat.py              # Módulo AutoAttacker (propõe BotAction)
@@ -167,9 +176,10 @@ tibia-bot/
 │   ├── domain/
 │   │   ├── roi.py                 # RelativeROI, AbsoluteROI e ROIResolver
 │   │   ├── actions.py             # ActionType e BotAction imutáveis
+│   │   ├── metrics.py             # Telemetria imutável CycleMetrics
 │   │   ├── bot_state.py           # BotMode, StateTransition e BotState
 │   │   ├── game_state.py          # PlayerState, TargetState, WindowState, CaptureState, GameState
-│   │   └── analyzer.py           # GameAnalyzer (percepção -> GameState)
+│   │   └── analyzer.py           # GameAnalyzer (percepção -> GameState, salva failed frames)
 │   ├── infrastructure/
 │   │   ├── capture/               # CapturedFrame, FrameStatus, ProjectorFrameCapturer, RecordedFrameCapturer
 │   │   │   ├── base.py
@@ -189,9 +199,9 @@ tibia-bot/
 │   │   ├── screen.py              # Análise de amostragem e visão computacional
 │   │   ├── input.py               # Simulação DirectX (pydirectinput)
 │   │   ├── humanizer.py           # Delays gaussianos, key holds e curvas de Bézier
-│   │   ├── logger.py              # Logger centralizado e sincronização de logs_hud.txt
-│   │   └── overlay.py             # HUD Transparente On-Screen (renderiza GameState e BotState)
-│   └── main.py                    # Composition Root (CLI args, config loader, DI, engine.run)
+│   │   ├── logger.py              # Logger centralizado com RotatingFileHandler e session_id
+│   │   └── overlay.py             # HUD Transparente On-Screen (renderiza GameState, BotState, Observe-Only)
+│   └── main.py                    # Composition Root (CLI args --observe-only, config loader, DI)
 ├── tools/
 │   └── calibrate_roi.py           # Ferramenta interativa de calibração de ROIs
 ├── templates/                     # Imagens base para Template Matching (pz.png, target_red.png)
@@ -206,7 +216,8 @@ tibia-bot/
 │   │   ├── test_engine.py        # Testes unitários do motor BotEngine e LoopScheduler
 │   │   ├── test_platform_abstractions.py # Testes de abstrações de plataforma (MockInput/WindowManager)
 │   │   ├── test_actions.py        # Testes do sistema central de ações (BotAction, DecisionController)
-│   │   └── test_vision_fixtures.py # Testes de detectores OpenCV contra fixtures PNG
+│   │   ├── test_vision_fixtures.py # Testes de detectores OpenCV contra fixtures PNG
+│   │   └── test_diagnostics.py    # Testes de observabilidade, --observe-only e salvamento de frames
 │   ├── integration/
 │   │   └── test_full_pipeline.py  # Testes de integração de ponta a ponta sem SO
 │   ├── utils/

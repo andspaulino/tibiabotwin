@@ -15,6 +15,7 @@ from src.infrastructure.factory import create_window_manager, create_input_contr
 from src.domain.game_state import GameState
 from src.domain.bot_state import BotState, BotMode
 from src.domain.actions import BotAction
+from src.domain.metrics import CycleMetrics
 from src.domain.analyzer import GameAnalyzer
 from src.application.state_machine import StateMachine
 from src.application.scheduler import LoopScheduler
@@ -29,7 +30,7 @@ from src.utils.logger import logger
 class BotEngine:
     """
     Motor principal do Tibia Bot.
-    Orquestra o ciclo de execução, injeção de dependências e gerenciamento de recursos.
+    Orquestra o ciclo de execução, injeção de dependências, medições de telemetria e diagnóstico.
     """
 
     def __init__(
@@ -47,7 +48,8 @@ class BotEngine:
         window_manager: Optional[WindowManager] = None,
         input_controller: Optional[InputController] = None,
         decision_controller: Optional[DecisionController] = None,
-        action_executor: Optional[ActionExecutor] = None
+        action_executor: Optional[ActionExecutor] = None,
+        observe_only: bool = False
     ):
         self.config = config
         self.capturer = capturer
@@ -63,10 +65,12 @@ class BotEngine:
         self.input_controller = input_controller or create_input_controller()
         self.decision_controller = decision_controller or DecisionController()
         self.action_executor = action_executor or ActionExecutor()
+        self.observe_only = observe_only
 
         self.running = False
         self.killswitch_paused = False
         self.last_pz_state: Optional[bool] = None
+        self.last_metrics: Optional[CycleMetrics] = None
 
     def toggle_killswitch(self, e=None):
         """Alterna a flag de emergência do Killswitch."""
@@ -76,14 +80,18 @@ class BotEngine:
         else:
             logger.log("SYSTEM", "▶️ KILLSWITCH DESATIVADO: Bot RETOMADO.", level="INFO")
 
-    def run_cycle(self) -> Tuple[GameState, BotState]:
+    def run_cycle(self) -> Tuple[GameState, BotState, CycleMetrics]:
+        t0 = time.perf_counter()
+
         # 1. Captura única de frame por ciclo
         frame = self.capturer.capture(self.hwnd_obs)
+        t1 = time.perf_counter()
 
         # 2. Converte percepção em snapshot imutável de GameState
         game_state: GameState = self.analyzer.analyze(
             frame, self.hwnd_tibia, self.hwnd_obs, self.config
         )
+        t2 = time.perf_counter()
 
         # 3. Atualiza a Máquina de Estados Finitos
         bot_state: BotState = self.state_machine.update(game_state, self.killswitch_paused)
@@ -99,7 +107,7 @@ class BotEngine:
             self.last_pz_state = in_pz
 
         # 5. Renderização do HUD Overlay
-        self.overlay.update(game_state, bot_state)
+        self.overlay.update(game_state, bot_state, observe_only=self.observe_only)
 
         # 6. Coleta intenções de ações dos módulos
         proposed_actions: List[BotAction] = []
@@ -108,15 +116,30 @@ class BotEngine:
 
         # 7. Resolução de conflitos e prioridades pelo DecisionController
         resolved_actions = self.decision_controller.resolve(proposed_actions, game_state, bot_state)
+        t3 = time.perf_counter()
 
-        # 8. Execução segura das ações autorizadas pelo ActionExecutor
-        self.action_executor.execute(resolved_actions, game_state, self.input_controller)
+        # 8. Execução de ações pelo ActionExecutor (com suporte a --observe-only)
+        self.action_executor.execute(
+            resolved_actions, game_state, self.input_controller, observe_only=self.observe_only
+        )
+        t4 = time.perf_counter()
 
-        return game_state, bot_state
+        metrics = CycleMetrics(
+            capture_time_ms=(t1 - t0) * 1000.0,
+            analyze_time_ms=(t2 - t1) * 1000.0,
+            decision_time_ms=(t3 - t2) * 1000.0,
+            total_cycle_time_ms=(t4 - t0) * 1000.0
+        )
+        self.last_metrics = metrics
+
+        return game_state, bot_state, metrics
 
     def run(self):
         """Inicia o loop contínuo do motor principal."""
         self.running = True
+
+        if self.observe_only:
+            logger.log("SYSTEM", "🔍 MODO DE OBSERVAÇÃO ATIVO (--observe-only). Teclado e mouse FÍSICOS DESABILITADOS.")
 
         # Registra o Killswitch na tecla Pause
         if keyboard is not None:

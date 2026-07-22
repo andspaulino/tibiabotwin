@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
+from pathlib import Path
+import cv2
 
 from src.config.models import AppConfig
 from src.infrastructure.capture.frame import CapturedFrame, FrameStatus
@@ -28,6 +30,16 @@ class GameAnalyzer:
 
     def __init__(self, config: Optional[AppConfig] = None):
         self.config = config
+
+    def _save_failed_frame(self, frame: CapturedFrame):
+        """Salva um frame com falha/congelado na pasta logs/failed_frames para diagnóstico."""
+        try:
+            save_dir = Path(__file__).resolve().parent.parent.parent / "logs" / "failed_frames"
+            save_dir.mkdir(parents=True, exist_ok=True)
+            filename = f"frame_{frame.captured_at.strftime('%Y%m%d_%H%M%S_%f')}_{frame.status.value}.png"
+            cv2.imwrite(str(save_dir / filename), frame.image)
+        except Exception:
+            pass
 
     def analyze(
         self,
@@ -58,6 +70,9 @@ class GameAnalyzer:
 
         # 2. Se a captura for inválida ou o ambiente inseguro, retorna estado nulo (sem dados presumidos)
         if not frame.is_valid or not tibia_focused or tibia_minimized or not projector_available:
+            if frame.status in (FrameStatus.FAILED, FrameStatus.FROZEN) and frame.image is not None and frame.image.size > 0:
+                self._save_failed_frame(frame)
+
             return GameState(
                 timestamp=now,
                 capture=cap_state,
