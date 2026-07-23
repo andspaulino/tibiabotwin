@@ -248,6 +248,16 @@ dentro do detector.
 
 ---
 
+## 2.6. Desenvolver sempre em novas branches
+
+Todo novo desenvolvimento, refatoração, correção ou implementação de fase/feature deve:
+
+* ser iniciado a partir de uma branch Git dedicada (ex: `feature/auto-loot`, `feature/movement`, `fix/bug-name`);
+* nunca ser realizado diretamente na branch `main`;
+* passar por testes automatizados e validação de sintaxe antes do merge ou conclusão da tarefa.
+
+---
+
 ## 3.2. Captura única por ciclo
 
 Cada ciclo principal deve produzir um único frame compartilhado entre os detectores.
