@@ -22,3 +22,6 @@ class WindowManager(Protocol):
 
     def reset_opacity(self, hwnd: int) -> bool:
         ...
+
+    def get_client_position(self, hwnd: int) -> Tuple[int, int]:
+        ...

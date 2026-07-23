@@ -28,8 +28,9 @@ class TestChatChecker(unittest.TestCase):
         self.config = ChatConfig(
             enabled=True,
             button_roi=RelativeROI(x=0.4, y=0.9, width=0.1, height=0.05),
+            on_template_path="templates/test_chat_on_dummy.png",
             off_template_path="templates/test_chat_off_dummy.png",
-            match_threshold=0.8,
+            match_threshold=0.55,
             max_attempts=2,
             retry_delay_ms=10
         )

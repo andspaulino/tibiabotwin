@@ -123,3 +123,13 @@ class WindowsWindowManager(WindowManager):
         SetWindowPos(hwnd, 0, 0, 0, 0, 0, SWP_FLAGS)
         RedrawWindow(hwnd, None, None, RDW_FLAGS)
         return True
+
+    def get_client_position(self, hwnd: int) -> Tuple[int, int]:
+        if sys.platform != "win32" or hwnd <= 0:
+            return (0, 0)
+        pt = wintypes.POINT(0, 0)
+        try:
+            ctypes.windll.user32.ClientToScreen(hwnd, ctypes.byref(pt))
+            return (pt.x, pt.y)
+        except Exception:
+            return (0, 0)

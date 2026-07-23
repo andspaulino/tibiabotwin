@@ -82,9 +82,10 @@ class LootConfig:
 @dataclass(frozen=True)
 class ChatConfig:
     enabled: bool = True
-    button_roi: RelativeROI = field(default_factory=lambda: RelativeROI(x=0.443, y=0.970, width=0.050, height=0.025))
+    button_roi: RelativeROI = field(default_factory=lambda: RelativeROI(x=0.780729, y=0.979187, width=0.033333, height=0.016848))
+    on_template_path: str = "templates/chat_on.png"
     off_template_path: str = "templates/chat_off.png"
-    match_threshold: float = 0.80
+    match_threshold: float = 0.55
     max_attempts: int = 3
     retry_delay_ms: int = 300
 

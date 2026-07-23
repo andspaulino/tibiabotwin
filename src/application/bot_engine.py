@@ -131,7 +131,11 @@ class BotEngine:
             and game_state.window.tibia_focused is True
         ):
             self.chat_initializer.ensure_chat_off(
-                self.capturer, self.hwnd_obs, self.input_controller, observe_only=self.observe_only
+                self.capturer,
+                self.hwnd_obs,
+                self.input_controller,
+                window_manager=self.window_manager,
+                observe_only=self.observe_only
             )
 
         self.last_checked_mode = bot_state.current_mode

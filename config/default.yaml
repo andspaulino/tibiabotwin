@@ -79,12 +79,13 @@ loot:
 chat:
   enabled: true
   button_roi:
-    x: 0.78125
-    y: 0.980178
-    width: 0.033854
-    height: 0.015857
+    x: 0.775521
+    y: 0.971259
+    width: 0.043229
+    height: 0.026759
+  on_template_path: "templates/chat_on.png"
   off_template_path: "templates/chat_off.png"
-  match_threshold: 0.80
+  match_threshold: 0.55
   max_attempts: 3
   retry_delay_ms: 300
 
