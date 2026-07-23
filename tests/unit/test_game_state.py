@@ -10,7 +10,7 @@ from src.domain.game_state import (
     PlayerState,
     TargetState,
 )
-from src.infrastructure.vision import GameAnalyzer
+from src.infrastructure.vision.game_analyzer import GameAnalyzer
 from src.infrastructure.capture.frame import CapturedFrame, FrameStatus
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker

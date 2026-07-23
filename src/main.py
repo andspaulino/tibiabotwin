@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.config import load_config, ConfigValidationError, AppConfig, WindowConfig
 from src.infrastructure.capture import ProjectorFrameCapturer
 from src.infrastructure.factory import create_window_manager, create_input_controller
-from src.infrastructure.vision import GameAnalyzer
+from src.infrastructure.vision.game_analyzer import GameAnalyzer
 from src.domain.bot_state import BotMode
 from src.application import StateMachine, LoopScheduler, BotEngine
 from src.utils.logger import logger

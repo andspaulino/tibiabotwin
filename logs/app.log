@@ -105,3 +105,28 @@
 2026-07-21 23:25:42 [INFO] [SESSION:cbe5530b] [SYSTEM  ] Encerrando bot por solicitacao do usuario...
 2026-07-21 23:25:42 [INFO] [SESSION:cbe5530b] [SYSTEM  ] Restaurando visibilidade normal da janela do Tibia...
 2026-07-21 23:25:43 [INFO] [SESSION:cbe5530b] [SYSTEM  ] Visibilidade restaurada. Engine encerrado com sucesso.
+2026-07-22 21:07:40 [INFO] [SESSION:0ac7727a] [SYSTEM  ] Configuracao carregada e validada com sucesso.
+2026-07-22 21:07:40 [INFO] [SESSION:0ac7727a] [SYSTEM  ] Verificando janelas abertas...
+2026-07-22 21:07:40 [INFO] [SESSION:0ac7727a] [SYSTEM  ] Tibia encontrado: 'Tibia - Zunuxamano Acrum' (HWND: 263412)
+2026-07-22 21:07:40 [INFO] [SESSION:0ac7727a] [SYSTEM  ] OBS encontrado: 'Projector - Source: Game Capture' (HWND: 328822)
+2026-07-22 21:07:40 [INFO] [SESSION:0ac7727a] [SYSTEM  ] Killswitch registrado na tecla PAUSE.
+2026-07-22 21:07:40 [INFO] [SESSION:0ac7727a] [SYSTEM  ] Aplicando opacidade para ocultar a janela do Tibia...
+2026-07-22 21:07:40 [INFO] [SESSION:0ac7727a] [SYSTEM  ] Janela do Tibia configurada como INVISIVEL.
+2026-07-22 21:07:40 [INFO] [SESSION:0ac7727a] [SYSTEM  ] Iniciando modulos do bot e Overlay de tela...
+2026-07-22 21:07:40 [INFO] [SESSION:0ac7727a] [HEALER  ] Modulo de cura ativado.
+2026-07-22 21:07:40 [INFO] [SESSION:0ac7727a] [COMBAT  ] Modulo de ataque ativado.
+2026-07-22 21:07:40 [INFO] [SESSION:0ac7727a] [SYSTEM  ] Engine em execucao. Pressione Ctrl+C ou PAUSE para parar.
+2026-07-22 21:07:40 [INFO] [SESSION:0ac7727a] [STATE   ] Modo alterado: IDLE -> UNSAFE | Motivo: Janela do Tibia sem foco ativo
+2026-07-22 21:07:44 [INFO] [SESSION:0ac7727a] [STATE   ] Modo alterado: UNSAFE -> IN_PROTECTION_ZONE | Motivo: Personagem dentro de Protection Zone
+2026-07-22 21:07:46 [INFO] [SESSION:0ac7727a] [STATE   ] Modo alterado: IN_PROTECTION_ZONE -> IDLE | Motivo: Nenhum combate ativo ou evento pendente
+2026-07-22 21:07:46 [INFO] [SESSION:0ac7727a] [PZ      ] Saiu de PZ
+2026-07-22 21:07:59 [INFO] [SESSION:0ac7727a] [STATE   ] Modo alterado: IDLE -> COMBAT | Motivo: Criaturas detectadas na Battle List / Alvo travado
+2026-07-22 21:07:59 [INFO] [SESSION:0ac7727a] [COMBAT  ] Alvo travado
+2026-07-22 21:08:00 [INFO] [SESSION:0ac7727a] [ACTION  ] Executado ATTACK: Selecao de alvo na Battle List
+2026-07-22 21:08:00 [INFO] [SESSION:0ac7727a] [COMBAT  ] Alvo travado
+2026-07-22 21:08:09 [INFO] [SESSION:0ac7727a] [STATE   ] Modo alterado: COMBAT -> IDLE | Motivo: Nenhum combate ativo ou evento pendente
+2026-07-22 21:08:09 [INFO] [SESSION:0ac7727a] [COMBAT  ] Batalha encerrada
+2026-07-22 21:08:35 [INFO] [SESSION:0ac7727a] [STATE   ] Modo alterado: IDLE -> UNSAFE | Motivo: Janela do Tibia sem foco ativo
+2026-07-22 21:08:36 [INFO] [SESSION:0ac7727a] [SYSTEM  ] Encerrando bot por solicitacao do usuario...
+2026-07-22 21:08:36 [INFO] [SESSION:0ac7727a] [SYSTEM  ] Restaurando visibilidade normal da janela do Tibia...
+2026-07-22 21:08:36 [INFO] [SESSION:0ac7727a] [SYSTEM  ] Visibilidade restaurada. Engine encerrado com sucesso.
