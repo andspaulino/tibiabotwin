@@ -50,6 +50,7 @@ class TestAutoLootController(unittest.TestCase):
         )
         self.assertEqual(len(actions), 0)
         self.assertTrue(self.loot_controller.loot_pending)
+        self.assertTrue(self.loot_controller.blocks_movement)
 
         # Aguarda o tempo de delay (50ms)
         time.sleep(0.06)
@@ -63,6 +64,7 @@ class TestAutoLootController(unittest.TestCase):
         self.assertEqual(actions[0].action_type, ActionType.LOOT_NEARBY)
         self.assertEqual(actions[0].payload, KeyPayload("x"))
         self.assertFalse(self.loot_controller.loot_pending)
+        self.assertFalse(self.loot_controller.blocks_movement)
 
     def test_prevents_duplicate_loot_for_same_target(self):
         """Verifica que o AutoLoot não gera ações duplicadas para o mesmo alvo derrotado."""

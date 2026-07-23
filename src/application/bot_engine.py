@@ -374,11 +374,18 @@ class BotEngine:
         proposed_actions: List[BotAction] = []
         proposed_actions.extend(self.healer.get_proposed_actions(game_state))
         proposed_actions.extend(self.combat.get_proposed_actions(game_state))
+        loot_actions: List[BotAction] = []
         if self.loot:
-            proposed_actions.extend(self.loot.get_proposed_actions(game_state, self.previous_state))
+            loot_actions = self.loot.get_proposed_actions(game_state, self.previous_state)
+            proposed_actions.extend(loot_actions)
+        loot_blocks_movement = bool(loot_actions) or bool(self.loot and self.loot.blocks_movement)
         mapped_cavebot_action: BotAction | None = None
         mapped_client_area: WindowClientArea | None = None
-        if bot_state.current_mode == BotMode.MOVING and final_cavebot_intent.action is not None:
+        if (
+            not loot_blocks_movement
+            and bot_state.current_mode == BotMode.MOVING
+            and final_cavebot_intent.action is not None
+        ):
             if self.observe_only:
                 proposed_actions.append(final_cavebot_intent.action)
                 self.cavebot.record_request()

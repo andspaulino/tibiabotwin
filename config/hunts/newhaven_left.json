@@ -15,8 +15,25 @@
       "id": "000",
       "type": "marker_click",
       "marker": "starter",
-      "expected_region": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0},
-      "description": "Start marker"
+      "expected_region": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0}
+    },
+    {
+      "id": "001",
+      "type": "marker_click",
+      "marker": "flag8",
+      "expected_region": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0}
+    },
+    {
+      "id": "002",
+      "type": "marker_click",
+      "marker": "flag7",
+      "expected_region": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0}
+    },
+    {
+      "id": "003",
+      "type": "marker_click",
+      "marker": "flag6",
+      "expected_region": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0}
     }
   ]
 }

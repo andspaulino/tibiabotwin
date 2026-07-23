@@ -49,6 +49,11 @@ class AutoLootController:
         if was_enabled:
             logger.log("LOOT", "Módulo de Auto-Loot desativado no encerramento.")
 
+    @property
+    def blocks_movement(self) -> bool:
+        """Mantém movimento suspenso entre a perda do alvo e a proposta de loot."""
+        return self.enabled and self.config.enabled and self.loot_pending
+
     def get_proposed_actions(
         self,
         current_state: GameState,
