@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime, timezone
 
 from src.config.models import LootConfig
-from src.domain.actions import ActionType, BotAction
+from src.domain.actions import ActionPriority, ActionType, BotAction, KeyPayload
 from src.domain.game_state import GameState, CaptureState, WindowState, PlayerState, TargetState
 from src.domain.bot_state import BotMode, BotState
 from src.bot.loot import AutoLootController
@@ -38,6 +38,8 @@ class TestAutoLootController(unittest.TestCase):
         self.config = LootConfig(enabled=True, nearby_corpses_key="x", delay_ms=50, cooldown_ms=500)
         self.loot_controller = AutoLootController(self.config)
         self.loot_controller.start()
+        self.assertFalse(self.loot_controller.enabled)
+        self.assertTrue(self.loot_controller.toggle())
 
     def test_loot_triggered_on_target_loss(self):
         """Verifica se o AutoLoot propõe a ação LOOT_NEARBY após transição de alvo ativo para inativo mantendo o estado pendente."""
@@ -48,6 +50,7 @@ class TestAutoLootController(unittest.TestCase):
         )
         self.assertEqual(len(actions), 0)
         self.assertTrue(self.loot_controller.loot_pending)
+        self.assertTrue(self.loot_controller.blocks_movement)
 
         # Aguarda o tempo de delay (50ms)
         time.sleep(0.06)
@@ -59,8 +62,9 @@ class TestAutoLootController(unittest.TestCase):
         )
         self.assertEqual(len(actions), 1)
         self.assertEqual(actions[0].action_type, ActionType.LOOT_NEARBY)
-        self.assertEqual(actions[0].key, "x")
+        self.assertEqual(actions[0].payload, KeyPayload("x"))
         self.assertFalse(self.loot_controller.loot_pending)
+        self.assertFalse(self.loot_controller.blocks_movement)
 
     def test_prevents_duplicate_loot_for_same_target(self):
         """Verifica que o AutoLoot não gera ações duplicadas para o mesmo alvo derrotado."""
@@ -125,7 +129,12 @@ class TestAutoLootController(unittest.TestCase):
     def test_decision_controller_resolves_loot_nearby(self):
         """Verifica se o DecisionController resolve a ação LOOT_NEARBY respeitando a regra de PZ."""
         decision_controller = DecisionController()
-        loot_action = BotAction(action_type=ActionType.LOOT_NEARBY, priority=40, key="f12", reason="Quick Loot")
+        loot_action = BotAction(
+            action_type=ActionType.LOOT_NEARBY,
+            priority=ActionPriority.LOOT,
+            payload=KeyPayload("f12"),
+            reason="Quick Loot",
+        )
 
         # 1. Em área segura
         resolved = decision_controller.resolve([loot_action], self.state_no_target, self.idle_bot_state)

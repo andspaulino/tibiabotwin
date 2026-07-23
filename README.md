@@ -30,6 +30,12 @@ Diferente de bots que leem ou injetam dados na memória do jogo, este bot age pu
 - **`GameAnalyzer`**: Converte frames e estado das janelas em `GameState`. Valores indeterminados são explicitamente `None` (sem assunções inseguras de 100% HP).
 - **Consumo Exclusivo por Estado**: `AutoHealer`, `AutoAttacker` e `OnScreenOverlay` consomem apenas o `GameState`, sem capturar a tela ou executar Win32 diretamente.
 
+### Percepção de minimapa em calibração (`src/domain/minimap.py`)
+- `GameState.minimap` recebe um snapshot imutável com ROI absoluta, centro local e todos os marcadores encontrados no mesmo frame do ciclo.
+- A análise utiliza templates configurados, pode auditar o layout com `cross.png` e falha de forma segura quando a ROI, o frame ou a validação são inválidos.
+- O bloco `minimap` de `config/default.yaml` deve ser calibrado para o Projetor do OBS antes de habilitar navegação.
+- A rota vem de `cavebot.selected_hunt`. Em `--observe-only`, movimentos são sempre simulados. Fora dele, cliques do Cavebot só podem chegar ao executor depois do toggle manual e quando a revalidação final confirmar modo `MOVING`, killswitch, foco, minimização, frame recente, Projetor, geometria e limites do ponto.
+
 ### 5. Máquina de Estados Finitos do Bot (`src/application/state_machine.py` + `BotMode`)
 - **`BotMode` Finito**: Apenas um modo principal ativo por ciclo (`PAUSED`, `UNSAFE`, `IN_PROTECTION_ZONE`, `COMBAT`, `IDLE`).
 - **Hierarquia Estrita de Prioridades**: Killswitch > Foco/Minimização > Validade da Captura > Protection Zone > Combate > Ocioso.
@@ -47,9 +53,9 @@ Diferente de bots que leem ou injetam dados na memória do jogo, este bot age pu
 - **Fábrica de Infraestrutura (`src/infrastructure/factory.py`)**: Instanciação dinâmica com base no `sys.platform`.
 
 ### 8. Sistema Central de Ações (`src/domain/actions.py` + `decision_controller.py` + `action_executor.py`)
-- **Proposta de Intenções (`BotAction`)**: Módulos não disparam inputs; eles apenas sugerem intenções de ação com prioridades (`ActionType`).
-- **`DecisionController`**: Resolvedor de conflitos que ordena por prioridade (Emergência > Cura > Mana > Ataque) e filtra ações em PZ.
-- **`ActionExecutor`**: Componente único e centralizado que revalida a segurança antes de enviar atalhos ao `InputController`.
+- **Proposta de Intenções (`BotAction`)**: Módulos não disparam inputs; eles apenas sugerem ações com `KeyPayload` ou `MouseClickPayload`, prioridade explícita e motivo rastreável.
+- **`DecisionController`**: Resolvedor de conflitos que ordena por prioridade (Emergência > Cura > Mana > Ataque > Loot > Movimento), filtra ações em PZ e não consome cooldown ao descartar intenções.
+- **`ActionExecutor`**: Componente único e centralizado que revalida a segurança, executa teclas ou cliques pelo `InputController` e registra cooldown somente após input físico bem-sucedido. Em `--observe-only`, apenas simula a ação.
 
 ### 9. Testes Automatizados com Frames Gravados (`src/infrastructure/capture/recorded.py` + `tests/`)
 - **Dataset de Fixtures (`tests/fixtures/`)**: Imagens de referência de HP, Mana, PZ e Battle List para testes automatizados determinísticos.
@@ -116,6 +122,14 @@ python -m src.main --observe-only
 
 # Execução utilizando um perfil específico em config/profiles/
 python -m src.main --profile character-example
+
+# Cavebot: a rota vem de cavebot.selected_hunt em config/default.yaml.
+# Pressione PageDown para ativar a observação da rota.
+python -m src.main --observe-only
+
+# Fora de --observe-only, PageDown ativa o Cavebot com cliques físicos.
+# Use somente após validar os logs de mapeamento para suas janelas.
+python -m src.main
 ```
 
 ---
@@ -142,7 +156,17 @@ Devido ao bloqueio de renderização direta do cliente do Tibia (tela preta), o 
    python launcher.py
    ```
 
-3. **Para pausar/retomar a qualquer momento**: Pressione a tecla **`Pause`** no teclado.
+3. **Controles globais**: todos os módulos iniciam desativados; os atalhos apenas alternam o estado do módulo e são configuráveis no bloco `module_hotkeys` de `config/default.yaml`.
+
+   | Tecla padrão | Ação |
+   | --- | --- |
+   | `Pause` | Pausar/retomar o bot (killswitch) |
+   | `Home` | Ativar/desativar o healer |
+   | `End` | Ativar/desativar o ataque |
+   | `PageUp` | Ativar/desativar o Auto-Loot |
+   | `PageDown` | Ativar/desativar o Cavebot |
+
+   Cada mudança é registrada no log. Todos os módulos continuam desativados na inicialização. Fora de `--observe-only`, o Cavebot só envia cliques após o toggle `PageDown` e quando todas as validações finais passarem.
 
 ---
 

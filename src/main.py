@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+from pathlib import Path
 
 # Garante importações a partir do diretório raiz
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -16,11 +17,18 @@ from src.utils.overlay import OnScreenOverlay
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
 from src.bot.loot import AutoLootController
+from src.bot.cavebot.cavebot_controller import CavebotController
+from src.bot.cavebot.module import CavebotModule
+from src.config.route_loader import RouteValidationError, load_route
 
 if sys.platform == "win32":
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
+        stdout_reconfigure = getattr(sys.stdout, "reconfigure", None)
+        stderr_reconfigure = getattr(sys.stderr, "reconfigure", None)
+        if callable(stdout_reconfigure):
+            stdout_reconfigure(encoding="utf-8")
+        if callable(stderr_reconfigure):
+            stderr_reconfigure(encoding="utf-8")
     except Exception:
         pass
 
@@ -66,6 +74,12 @@ def parse_args():
         action="store_true",
         help="Executa em modo de observação: analisa estado, logs e HUD, mas bloqueia envio de teclado/mouse."
     )
+    parser.add_argument(
+        "--hunt",
+        type=str,
+        default=None,
+        help="Arquivo JSON de rota em config/hunts/. Exige --observe-only nesta fase."
+    )
     return parser.parse_args()
 
 
@@ -85,6 +99,39 @@ def run():
         print(f"\n[ERRO CRITICO DE CONFIGURACAO]: {err}\n")
         sys.exit(1)
 
+    if args.hunt and not args.observe_only:
+        logger.log("SYSTEM", "--hunt exige --observe-only nesta fase.", level="ERROR")
+        return
+
+    route = None
+    selected_hunt = args.hunt or config.cavebot.selected_hunt
+    if selected_hunt is None:
+        logger.log(
+            "CAVEBOT",
+            "Nenhuma hunt selecionada em cavebot.selected_hunt; Cavebot permanecerá indisponível.",
+            level="WARNING",
+        )
+    else:
+        hunt_path = Path(selected_hunt)
+        if not hunt_path.is_absolute():
+            hunt_path = Path(__file__).resolve().parent.parent / "config" / "hunts" / hunt_path
+            if not hunt_path.suffix:
+                hunt_path = hunt_path.with_suffix(".json")
+        try:
+            route = load_route(
+                hunt_path,
+                dict(config.minimap.marker_templates),
+                config.cavebot.reserved_marker_ids,
+            )
+            source = "argumento --hunt" if args.hunt else "cavebot.selected_hunt"
+            logger.log(
+                "CAVEBOT",
+                f"Rota carregada de {source}: {route.hunt_name} ({len(route.waypoints)} waypoints)",
+            )
+        except RouteValidationError as err:
+            logger.log("CAVEBOT", f"ERRO DE ROTA: {err}", level="ERROR")
+            return
+
     # Instancia Gerenciadores de Infraestrutura por Plataforma
     window_manager = create_window_manager()
     input_controller = create_input_controller()
@@ -97,7 +144,19 @@ def run():
 
     # Composição de Dependências
     capturer = ProjectorFrameCapturer()
-    analyzer = GameAnalyzer(config)
+    route_marker_ids = None
+    route_marker_thresholds = None
+    if route is not None:
+        route_marker_ids = {waypoint.marker for waypoint in route.waypoints if waypoint.marker}
+        route_marker_thresholds = {
+            marker_id: route.settings.threshold_for(marker_id)
+            for marker_id in route_marker_ids
+        }
+    analyzer = GameAnalyzer(
+        config,
+        marker_template_ids=route_marker_ids,
+        marker_match_thresholds=route_marker_thresholds,
+    )
     state_machine = StateMachine(initial_mode=BotMode.IDLE)
     healer = AutoHealer(config.healer)
     combat = AutoAttacker(config.combat)
@@ -107,6 +166,8 @@ def run():
     cooldown_manager = CooldownManager()
     decision_controller = DecisionController(cooldown_manager=cooldown_manager)
     action_executor = ActionExecutor(input_controller=input_controller, cooldown_manager=cooldown_manager)
+    cavebot_controller = CavebotController(config.cavebot, config.minimap, route=route)
+    cavebot = CavebotModule(cavebot_controller)
 
     # Injeção e Execução do BotEngine
     engine = BotEngine(
@@ -125,6 +186,7 @@ def run():
         input_controller=input_controller,
         decision_controller=decision_controller,
         action_executor=action_executor,
+        cavebot=cavebot,
         observe_only=args.observe_only
     )
     engine.run()

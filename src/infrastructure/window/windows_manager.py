@@ -1,12 +1,11 @@
+import ctypes
 import sys
+from ctypes import wintypes
 from typing import Optional, Tuple, List
 from src.config.models import WindowConfig
-from src.infrastructure.window.base import WindowManager
+from src.infrastructure.window.base import WindowClientArea, WindowManager
 
 if sys.platform == "win32":
-    import ctypes
-    from ctypes import wintypes
-
     GWL_EXSTYLE = -20
     WS_EX_LAYERED = 0x00080000
     LWA_ALPHA = 0x00000002
@@ -35,6 +34,8 @@ if sys.platform == "win32":
     SetLayeredWindowAttributes = ctypes.windll.user32.SetLayeredWindowAttributes
     SetWindowPos = ctypes.windll.user32.SetWindowPos
     RedrawWindow = ctypes.windll.user32.RedrawWindow
+    GetClientRect = ctypes.windll.user32.GetClientRect
+    ClientToScreen = ctypes.windll.user32.ClientToScreen
 
 
 class WindowsWindowManager(WindowManager):
@@ -96,6 +97,23 @@ class WindowsWindowManager(WindowManager):
         if sys.platform != "win32" or hwnd <= 0:
             return True
         return bool(IsIconic(hwnd))
+
+    def get_client_area(self, hwnd: int) -> Optional[WindowClientArea]:
+        if sys.platform != "win32" or hwnd <= 0:
+            return None
+
+        rect = wintypes.RECT()
+        origin = wintypes.POINT(0, 0)
+        if not GetClientRect(hwnd, ctypes.byref(rect)):
+            return None
+        if not ClientToScreen(hwnd, ctypes.byref(origin)):
+            return None
+
+        width = rect.right - rect.left
+        height = rect.bottom - rect.top
+        if width <= 0 or height <= 0:
+            return None
+        return WindowClientArea(origin.x, origin.y, width, height)
 
     def set_opacity(self, hwnd: int, opacity: int) -> bool:
         if sys.platform != "win32" or hwnd <= 0:

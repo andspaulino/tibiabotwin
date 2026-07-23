@@ -1,4 +1,4 @@
-import os
+
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 import yaml
@@ -15,6 +15,9 @@ from src.config.models import (
     CombatConfig,
     PZConfig,
     LootConfig,
+    MinimapConfig,
+    CavebotConfig,
+    ModuleHotkeysConfig,
 )
 
 
@@ -156,14 +159,128 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
     sb_roi = _validate_relative_roi(regions_data.get("status_bar"), "regions.status_bar", def_regions.status_bar)
     bl_roi = _validate_relative_roi(regions_data.get("battle_list"), "regions.battle_list", def_regions.battle_list)
 
+    minimap_roi = _validate_relative_roi(regions_data.get("minimap"), "regions.minimap", def_regions.minimap)
+
     regions_cfg = RegionsConfig(
         hp=hp_roi,
         mana=mp_roi,
         status_bar=sb_roi,
-        battle_list=bl_roi
+        battle_list=bl_roi,
+        minimap=minimap_roi,
     )
 
-    # 3. Healer Config
+    # 3. Minimap Config
+    minimap_data = data.get("minimap", {})
+    minimap_enabled = bool(minimap_data.get("enabled", False))
+    match_threshold = float(minimap_data.get("match_threshold", 0.88))
+    if not 0.0 <= match_threshold <= 1.0:
+        raise ConfigValidationError("Campo 'minimap.match_threshold' deve estar entre 0.0 e 1.0.")
+
+    raw_marker_templates = minimap_data.get("marker_templates", {})
+    if not isinstance(raw_marker_templates, dict):
+        raise ConfigValidationError("Campo 'minimap.marker_templates' deve ser um objeto com id e caminho de template.")
+    marker_templates: list[tuple[str, str]] = []
+    for template_id, template_path in raw_marker_templates.items():
+        if not isinstance(template_id, str) or not template_id.strip():
+            raise ConfigValidationError("Cada id em 'minimap.marker_templates' deve ser uma string não vazia.")
+        if not isinstance(template_path, str) or not template_path.strip():
+            raise ConfigValidationError(f"Template do marcador '{template_id}' não pode ser vazio.")
+        marker_templates.append((
+            template_id.strip(),
+            _validate_template_file(template_path.strip(), f"minimap.marker_templates.{template_id}", minimap_enabled),
+        ))
+    if minimap_enabled and not marker_templates:
+        raise ConfigValidationError("Campo 'minimap.marker_templates' deve conter ao menos um template quando o minimapa estiver ativado.")
+
+    validate_cross = bool(minimap_data.get("validate_cross", False))
+    cross_template_path = minimap_data.get("cross_template_path")
+    if validate_cross:
+        if not isinstance(cross_template_path, str) or not cross_template_path.strip():
+            raise ConfigValidationError("Campo 'minimap.cross_template_path' é obrigatório quando validate_cross estiver ativado.")
+        cross_template_path = _validate_template_file(
+            cross_template_path.strip(), "minimap.cross_template_path", minimap_enabled
+        )
+    elif cross_template_path is not None and not isinstance(cross_template_path, str):
+        raise ConfigValidationError("Campo 'minimap.cross_template_path' deve ser uma string ou nulo.")
+
+    cross_match_threshold = float(minimap_data.get("cross_match_threshold", 0.88))
+    if not 0.0 <= cross_match_threshold <= 1.0:
+        raise ConfigValidationError("Campo 'minimap.cross_match_threshold' deve estar entre 0.0 e 1.0.")
+
+    minimap_cfg = MinimapConfig(
+        enabled=minimap_enabled,
+        marker_templates=tuple(marker_templates),
+        match_threshold=match_threshold,
+        validate_cross=validate_cross,
+        cross_template_path=cross_template_path,
+        cross_match_threshold=cross_match_threshold,
+    )
+
+    # 4. Cavebot observation Config
+    cavebot_data = data.get("cavebot", {})
+    cavebot_enabled = bool(cavebot_data.get("enabled", False))
+    cavebot_marker = str(cavebot_data.get("marker", "")).strip()
+    raw_reserved_marker_ids = cavebot_data.get("reserved_marker_ids", [])
+    if not isinstance(raw_reserved_marker_ids, list) or not all(
+        isinstance(marker_id, str) and marker_id.strip() for marker_id in raw_reserved_marker_ids
+    ):
+        raise ConfigValidationError("Campo 'cavebot.reserved_marker_ids' deve ser uma lista de IDs não vazios.")
+    reserved_marker_ids = tuple(marker_id.strip() for marker_id in raw_reserved_marker_ids)
+    if len(set(reserved_marker_ids)) != len(reserved_marker_ids):
+        raise ConfigValidationError("Campo 'cavebot.reserved_marker_ids' não pode conter IDs duplicados.")
+    known_marker_ids = set(dict(marker_templates))
+    unknown_reserved = set(reserved_marker_ids) - known_marker_ids
+    if unknown_reserved:
+        raise ConfigValidationError(
+            f"IDs reservados sem template configurado: {', '.join(sorted(unknown_reserved))}."
+        )
+
+    if cavebot_enabled:
+        if not minimap_enabled:
+            raise ConfigValidationError("'cavebot.enabled' exige 'minimap.enabled=true'.")
+        if not cavebot_marker:
+            raise ConfigValidationError("Campo 'cavebot.marker' é obrigatório quando o Cavebot estiver ativado.")
+        if cavebot_marker not in known_marker_ids:
+            raise ConfigValidationError("Campo 'cavebot.marker' deve referenciar um template configurado em minimap.marker_templates.")
+        if cavebot_marker in reserved_marker_ids:
+            raise ConfigValidationError("Campo 'cavebot.marker' não pode usar um marcador reservado.")
+
+    selected_hunt = cavebot_data.get("selected_hunt")
+    if selected_hunt is not None:
+        if not isinstance(selected_hunt, str) or not selected_hunt.strip():
+            raise ConfigValidationError("Campo 'cavebot.selected_hunt' deve ser uma string não vazia ou nulo.")
+        selected_hunt_path = Path(selected_hunt.strip())
+        if selected_hunt_path.name != selected_hunt_path.as_posix() or selected_hunt_path.suffix.lower() != ".json":
+            raise ConfigValidationError(
+                "Campo 'cavebot.selected_hunt' deve ser somente o nome de um arquivo .json em config/hunts/."
+            )
+        selected_hunt = selected_hunt_path.name
+
+    expected_region = _validate_relative_roi(
+        cavebot_data.get("expected_region"), "cavebot.expected_region", RelativeROI(0.0, 0.0, 1.0, 1.0)
+    )
+    try:
+        arrival_radius = float(cavebot_data.get("arrival_radius_pixels", 4.0))
+        progress_epsilon = float(cavebot_data.get("progress_epsilon_pixels", 1.5))
+        max_retries = int(cavebot_data.get("max_retries", 2))
+        if arrival_radius <= 0 or progress_epsilon < 0 or max_retries < 0:
+            raise ValueError()
+    except (TypeError, ValueError):
+        raise ConfigValidationError("Parâmetros de raio, progresso ou retentativas do Cavebot são inválidos.")
+    cavebot_cfg = CavebotConfig(
+        enabled=cavebot_enabled,
+        marker=cavebot_marker,
+        reserved_marker_ids=reserved_marker_ids,
+        expected_region=expected_region,
+        arrival_radius_pixels=arrival_radius,
+        progress_epsilon_pixels=progress_epsilon,
+        stuck_timeout_ms=_validate_cooldown(cavebot_data.get("stuck_timeout_ms", 15_000), "cavebot.stuck_timeout_ms"),
+        click_cooldown_ms=_validate_cooldown(cavebot_data.get("click_cooldown_ms", 1_500), "cavebot.click_cooldown_ms"),
+        max_retries=max_retries,
+        selected_hunt=selected_hunt,
+    )
+
+    # 5. Healer Config
     healer_data = data.get("healer", {})
     healer_enabled = bool(healer_data.get("enabled", True))
 
@@ -213,7 +330,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         emergency_potion=emerg_cfg
     )
 
-    # 4. Combat Config
+    # 6. Combat Config
     combat_data = data.get("combat", {})
     combat_enabled = bool(combat_data.get("enabled", True))
     attack_key = _validate_hotkey(combat_data.get("attack_key", "space"), "combat.attack_key", combat_enabled)
@@ -240,7 +357,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         target_match_threshold=thresh
     )
 
-    # 5. Protection Zone Config
+    # 7. Protection Zone Config
     pz_data = data.get("pz", {})
     pz_enabled = bool(pz_data.get("enabled", True))
     pz_tmpl = _validate_template_file(str(pz_data.get("template_path", "templates/pz.png")), "pz.template_path", pz_enabled)
@@ -254,7 +371,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         match_threshold=pz_thresh
     )
 
-    # 6. Loot Config
+    # 8. Loot Config
     loot_data = data.get("loot", {})
     loot_enabled = bool(loot_data.get("enabled", True))
     nearby_key = _validate_hotkey(loot_data.get("nearby_corpses_key", "f12"), "loot.nearby_corpses_key", loot_enabled)
@@ -274,7 +391,35 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         emergency_hp_threshold=emergency_hp,
     )
 
-    # 7. Global loop interval
+    # 9. Module toggle hotkeys
+    hotkeys_data = data.get("module_hotkeys", {})
+    if not isinstance(hotkeys_data, dict):
+        raise ConfigValidationError("Campo 'module_hotkeys' deve ser um objeto.")
+    default_hotkeys = ModuleHotkeysConfig()
+    module_hotkeys_cfg = ModuleHotkeysConfig(
+        healer_toggle=_validate_hotkey(
+            hotkeys_data.get("healer_toggle", default_hotkeys.healer_toggle),
+            "module_hotkeys.healer_toggle",
+            True,
+        ),
+        combat_toggle=_validate_hotkey(
+            hotkeys_data.get("combat_toggle", default_hotkeys.combat_toggle),
+            "module_hotkeys.combat_toggle",
+            True,
+        ),
+        loot_toggle=_validate_hotkey(
+            hotkeys_data.get("loot_toggle", default_hotkeys.loot_toggle),
+            "module_hotkeys.loot_toggle",
+            True,
+        ),
+        cavebot_toggle=_validate_hotkey(
+            hotkeys_data.get("cavebot_toggle", default_hotkeys.cavebot_toggle),
+            "module_hotkeys.cavebot_toggle",
+            True,
+        ),
+    )
+
+    # 10. Global loop interval
     loop_ms = data.get("loop_interval_ms", 50)
     try:
         loop_ms = int(loop_ms)
@@ -290,6 +435,9 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         combat=combat_cfg,
         pz=pz_cfg,
         loot=loot_cfg,
+        minimap=minimap_cfg,
+        cavebot=cavebot_cfg,
+        module_hotkeys=module_hotkeys_cfg,
         loop_interval_ms=loop_ms
     )
 

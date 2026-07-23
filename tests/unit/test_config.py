@@ -1,7 +1,5 @@
 import unittest
-import tempfile
-import os
-from pathlib import Path
+
 
 from src.config.loader import load_config, ConfigValidationError, validate_and_parse
 from src.config.models import AppConfig
@@ -26,6 +24,22 @@ class TestConfigLoader(unittest.TestCase):
         self.assertEqual(cfg.healer.spell.hp_below, 85.0)
         self.assertEqual(cfg.healer.mana_potion.key, "F2")
         self.assertEqual(cfg.healer.emergency_potion.key, "F3")
+
+
+
+    def test_selected_hunt_is_loaded_from_cavebot_config(self):
+        cfg = validate_and_parse({"cavebot": {"selected_hunt": "depot_loop.json"}})
+
+        self.assertEqual(cfg.cavebot.selected_hunt, "depot_loop.json")
+
+    def test_default_config_selects_newhaven_route(self):
+        cfg = load_config()
+
+        self.assertEqual(cfg.cavebot.selected_hunt, "newhaven_left.json")
+
+    def test_selected_hunt_rejects_paths_outside_hunts_directory(self):
+        with self.assertRaises(ConfigValidationError):
+            validate_and_parse({"cavebot": {"selected_hunt": "../depot_loop.json"}})
 
     def test_invalid_percentage(self):
         """Verifica erro quando um percentual está fora do intervalo 0–100%."""

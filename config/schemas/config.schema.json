@@ -64,7 +64,44 @@
           },
           "required": ["x", "y", "width", "height"],
           "additionalProperties": false
+        },
+        "minimap": {
+          "type": "object",
+          "properties": {
+            "x": { "type": "number", "minimum": 0, "maximum": 1 },
+            "y": { "type": "number", "minimum": 0, "maximum": 1 },
+            "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+            "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+          },
+          "required": ["x", "y", "width", "height"],
+          "additionalProperties": false
         }
+      },
+      "additionalProperties": false
+    },
+    "minimap": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "marker_templates": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "minLength": 1 },
+          "default": {}
+        },
+        "match_threshold": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.88 },
+        "validate_cross": { "type": "boolean", "default": false },
+        "cross_template_path": { "type": ["string", "null"], "default": null },
+        "cross_match_threshold": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.88 }
+      },
+      "additionalProperties": false
+    },
+    "module_hotkeys": {
+      "type": "object",
+      "properties": {
+        "healer_toggle": { "type": "string", "minLength": 1, "default": "home" },
+        "combat_toggle": { "type": "string", "minLength": 1, "default": "end" },
+        "loot_toggle": { "type": "string", "minLength": 1, "default": "page up" },
+        "cavebot_toggle": { "type": "string", "minLength": 1, "default": "page down" }
       },
       "additionalProperties": false
     },
@@ -123,6 +160,54 @@
         "enabled": { "type": "boolean", "default": true },
         "template_path": { "type": "string", "default": "templates/pz.png" },
         "match_threshold": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.82 }
+      },
+      "additionalProperties": false
+    },
+    "cavebot": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "marker": { "type": "string", "default": "" },
+        "reserved_marker_ids": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true,
+          "default": []
+        },
+        "expected_region": {
+          "type": "object",
+          "properties": {
+            "x": { "type": "number", "minimum": 0, "maximum": 1 },
+            "y": { "type": "number", "minimum": 0, "maximum": 1 },
+            "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+            "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+          },
+          "additionalProperties": false
+        },
+        "arrival_radius_pixels": { "type": "number", "exclusiveMinimum": 0, "default": 4.0 },
+        "progress_epsilon_pixels": { "type": "number", "minimum": 0, "default": 1.5 },
+        "stuck_timeout_ms": { "type": "integer", "minimum": 0, "default": 15000 },
+        "click_cooldown_ms": { "type": "integer", "minimum": 0, "default": 1500 },
+        "max_retries": { "type": "integer", "minimum": 0, "default": 2 },
+        "selected_hunt": {
+          "type": ["string", "null"],
+          "pattern": "^[^/\\\\]+\\.json$",
+          "default": null,
+          "description": "Nome do arquivo de rota em config/hunts/."
+        }
+      },
+      "additionalProperties": false
+    },
+    "loot": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "nearby_corpses_key": { "type": "string", "minLength": 1, "default": "x" },
+        "delay_ms": { "type": "integer", "minimum": 0, "default": 200 },
+        "cooldown_ms": { "type": "integer", "minimum": 0, "default": 500 },
+        "require_empty_battle_list": { "type": "boolean", "default": false },
+        "priority": { "type": "integer", "default": 3 },
+        "emergency_hp_threshold": { "type": "number", "minimum": 0, "maximum": 100, "default": 30 }
       },
       "additionalProperties": false
     }

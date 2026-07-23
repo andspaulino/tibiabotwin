@@ -65,13 +65,19 @@ def move_mouse_human(target_x: int, target_y: int):
     trajectory = generate_bezier_points(curr_x, curr_y, target_x, target_y, num_points=12)
 
     for px, py in trajectory:
-        pydirectinput.moveTo(px, py)
+        pydirectinput.moveTo(px, py, _pause=False)
         time.sleep(random.uniform(0.003, 0.008))
 
-def click_at(x: int, y: int, button: str = 'left', delay: float = 0.1):
-    """
-    Move o cursor em trajetória curva e clica na posição informada.
-    """
+def click_at(
+    x: int,
+    y: int,
+    button: str = "left",
+    delay: float = 0.1,
+    return_position: tuple[int, int] | None = None,
+):
+    """Move, clica e estaciona o cursor fora do waypoint atual."""
+    fallback_position = pydirectinput.position() if pydirectinput is not None else None
+    restore_position = return_position or fallback_position
     move_mouse_human(x, y)
     
     pre_click_delay = gaussian_delay(mean=0.04, std_dev=0.01, min_val=0.015, max_val=0.08)
@@ -82,6 +88,9 @@ def click_at(x: int, y: int, button: str = 'left', delay: float = 0.1):
         time.sleep(delay)
         return
 
-    pydirectinput.click(button=button)
+    pydirectinput.click(button=button, _pause=False)
     post_delay = gaussian_delay(mean=delay, std_dev=delay * 0.2, min_val=0.02, max_val=delay * 2.0)
     time.sleep(post_delay)
+
+    if restore_position is not None:
+        move_mouse_human(*restore_position)

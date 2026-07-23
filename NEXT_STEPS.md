@@ -12,6 +12,27 @@ Captura → Percepção → Estado → Decisão → Execução
 
 ## Estado atual do projeto
 
+### Fase 12 — Cavebot por minimapa
+
+**Estado atual:** Fases 12A–12D concluídas em `--observe-only`; o ciclo completo `starter → flag8 → flag7 → flag6 → flag12 → flag2 → starter`, incluindo suspensão e retomada, foi validado em tempo real.
+
+* [x] Adicionar `MinimapState` imutável ao `GameState` e analisar a ROI em um único frame por ciclo.
+* [x] Calibrar `regions.minimap` na configuração padrão (`112×112` pixels no layout validado).
+* [x] Detectar os marcadores reais `flag0` e `flag1` com confiança configurada de `0.75`.
+* [x] Criar payloads tipados e manter cliques simulados em `--observe-only`.
+* [x] Selecionar marcadores por template, confiança e região; confirmar chegada pelo raio de `4px`.
+* [x] Detectar falta de progresso e entrar em `STUCK` sem avançar waypoint.
+* [x] Carregar rotas JSON por `cavebot.selected_hunt` (ou override temporário `--hunt`), validar settings, IDs, regiões e templates, filtrar a percepção somente aos marcadores referenciados pela rota ativa e aplicar thresholds específicos por marcador.
+* [x] Validar rotas sequenciais no Projetor em `--observe-only`: conclusão sem loop (`flag0 → flag1`) e ciclo completo `starter → flag8 → flag7 → flag6 → flag12 → flag2 → starter` com `loop: true`.
+* [x] Bloquear `--hunt` fora de `--observe-only` nesta etapa.
+* [ ] Versionar frames reais de minimapa em `tests/fixtures/minimap/`.
+* [x] Validar manualmente rota com `loop: true`.
+* [x] Validar manualmente suspensão em PZ e combate: nenhum `MOVE` foi simulado durante a prioridade e a rota retomou o mesmo waypoint `000` após cada interrupção.
+* [x] Expor o Cavebot como módulo com ciclo de vida e contrato em duas fases: `inspect(GameState)` antes da máquina de estados e `propose(GameState, BotState, intent)` depois dela.
+* [ ] Adicionar teste de integração dedicado ao engine para rota, suspensão e retomada.
+* [ ] Converter coordenadas do frame do Projetor em coordenadas de tela e validar todos os portões de segurança antes de considerar clique físico.
+
+
 ### Inicialização e gerenciamento de janelas
 
 * [x] Verificar a existência da janela do Tibia.
@@ -32,6 +53,7 @@ Captura → Percepção → Estado → Decisão → Execução
 * [x] Bloquear todas as ações quando o estado da captura for inválido.
 * [x] Bloquear ações quando uma ROI obrigatória não puder ser analisada.
 * [x] Garantir que nenhuma ação automática seja executada na inicialização.
+* [x] Iniciar healer, ataque, Auto-Loot e Cavebot desativados; ativá-los somente por toggles globais configuráveis (`Home`, `End`, `PageUp` e `PageDown` por padrão), com registro no log.
 
 ### Captura e visão computacional
 
@@ -936,65 +958,18 @@ Não iniciar Auto-Loot ou movimento antes de concluir pelo menos as fases 1 a 9.
 
 # Próxima tarefa recomendada
 
-## Criar configuração externa e modelo central de ROI
+## Consolidar a Fase 12D em observação
 
-### Etapa 1
+1. Criar uma rota de teste com `loop: true` e validar que, após o último waypoint, o `RouteRunner` retorna ao primeiro sem pular marcadores.
+2. Interromper uma rota ativa com combate e com PZ, confirmando que nenhuma ação de movimento é simulada e que o mesmo waypoint é readquirido após a interrupção.
+3. Salvar frames reais representativos em `tests/fixtures/minimap/`: marcador ausente, `flag0`, `flag1`, múltiplos marcadores, redraw e chegada ao centro.
+4. Adicionar um teste de integração do `BotEngine` cobrindo a sequência `MOVING → COMBAT/PZ → MOVING` e a preservação do índice da rota.
 
-Criar:
+### Bloqueio para clique físico
 
-```text
-config/
-├── default.yaml
-└── profiles/
-    └── 1920x1080.yaml
-```
+A transformação proporcional e fail-safe entre o frame do Projetor e a área cliente do Tibia existe em `FrameToWindowMapper`, com geometria Win32 exposta por `WindowManager.get_client_area()` e testes para escala, limites e incompatibilidade de aspecto. O mapeamento 1:1 foi validado manualmente para o ambiente atual (`1920x1009`, diferença de aspecto `0.0000`).
 
-### Etapa 2
-
-Mover para a configuração:
-
-* títulos das janelas;
-* hotkeys;
-* thresholds;
-* cooldowns;
-* caminhos dos templates;
-* ROIs;
-* recursos habilitados.
-
-### Etapa 3
-
-Criar:
-
-```text
-src/
-├── config/
-│   ├── loader.py
-│   └── models.py
-└── domain/
-    └── roi.py
-```
-
-### Etapa 4
-
-Adicionar validações:
-
-* arquivo inexistente;
-* campo obrigatório ausente;
-* percentual fora de `0–100`;
-* cooldown negativo;
-* ROI fora de `0.0–1.0`;
-* hotkey vazia;
-* template inexistente.
-
-### Definição de pronto
-
-* [ ] O projeto inicia carregando `config/default.yaml`.
-* [ ] O perfil pode sobrescrever os valores padrão.
-* [ ] Healer e combat recebem configurações pelo construtor.
-* [ ] Nenhuma ROI fica declarada dentro de `main.py`.
-* [ ] Nenhum threshold de gameplay fica declarado dentro dos módulos.
-* [ ] Configuração inválida impede a inicialização com mensagem clara.
-* [ ] O modo de inicialização não envia qualquer comando ao jogo.
+Fora de `--observe-only`, o clique físico é autorizado somente após o toggle manual do Cavebot e nova verificação de modo `MOVING`, killswitch, foco, minimização, validade e idade do frame, disponibilidade das janelas, estabilidade da área cliente e limites da coordenada. O fluxo completo de clique, cooldown, progresso e chegada foi validado manualmente no ambiente atual; ainda são necessários testes de integração adicionais para outros ambientes/DPI.
 
 ---
 

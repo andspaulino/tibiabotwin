@@ -24,6 +24,26 @@ Também devem ser preservados os seguintes princípios:
 
 ---
 
+## Status de implementação — 2026-07-23
+
+| Fase | Estado | Evidência e escopo atual |
+| --- | --- | --- |
+| 12A — Percepção | Concluída em observação | `GameState.minimap`, ROI relativa calibrada, `flag0` e `flag1` detectados no frame único do Projetor. Frames reais ainda não foram versionados como fixtures. |
+| 12B — Ações | Concluída | `KeyPayload` e `MouseClickPayload` centralizados; `--observe-only` nunca envia input e não consome cooldown físico. |
+| 12C — Waypoint único | Concluída em observação | Seleção, chegada, cooldown de simulação e `STUCK` foram validados sem clique físico. |
+| 12D — Rota sequencial | Concluída em observação | `--hunt`, JSON validado, `RouteRunner`, conclusão sem loop (`flag0 → flag1`) e loop real (`starter → flag8 → flag7 → flag6 → flag12 → flag2 → starter`) foram validados em `--observe-only`, inclusive com suspensão e retomada por PZ e combate. |
+| 12E — Fluxos avançados | Não iniciada | `STAND`, `ACTION`, `LABEL`, `GOTO` e transições permanecem fora do escopo atual. |
+
+### Limites obrigatórios do estado atual
+
+* O Cavebot só encaminha ações ao executor quando `--observe-only` está ativo; as ações são logs simulados.
+* Existe uma transformação proporcional testada entre o frame do Projetor e a área cliente do Tibia, com leitura Win32 e revalidação imediatamente anterior ao input. Fora de `--observe-only`, cliques físicos só são autorizados após o toggle manual do Cavebot e ainda exigem calibração válida para cada ambiente/DPI.
+* A suspensão por PZ e combate foi validada manualmente: nenhum `MOVE` é simulado durante a prioridade e o mesmo waypoint é readquirido após o retorno a `MOVING`.
+* `CavebotModule` possui ciclo de vida próprio, como healer, combat e loot. Ele usa duas fases: `inspect(GameState)` produz a solicitação de movimento antes da máquina de estados e `propose(GameState, BotState, intent)` a suspende ou mantém após a decisão global.
+* O loop de uma rota possui validação unitária e manual no Projetor. A cobertura de integração específica do engine para suspensão e retomada ainda é pendente.
+
+---
+
 # 1. Objetivo
 
 Implementar um Cavebot capaz de navegar pelo minimapa utilizando marcadores visuais configurados previamente no jogo.
@@ -89,7 +109,7 @@ MinimapAnalyzer
     ↓
 GameState.minimap
     ↓
-CavebotController
+CavebotModule.inspect → StateMachine → CavebotModule.propose
     ↓
 DecisionController
     ↓
@@ -1373,6 +1393,8 @@ O sistema não deverá tentar corrigir silenciosamente arquivos inválidos.
 ---
 
 # 17. Roteiro Incremental
+
+> **Atualização de estado:** as Fases 12A–12D foram validadas em modo de observação: carregamento JSON, avanço sequencial, conclusão sem loop, loop `starter → flag8 → flag7 → flag6 → flag12 → flag2 → starter` e suspensão/retomada por combate ou PZ. Permanecem bloqueados cliques físicos até existir conversão e validação de coordenadas de tela.
 
 ## Fase 12A — Percepção do minimapa
 

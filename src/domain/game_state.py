@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from src.domain.capture_status import FrameStatus
+from src.domain.minimap import MinimapState
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,9 @@ class GameState:
     window: WindowState
     player: PlayerState
     target: TargetState
+    minimap: MinimapState = field(
+        default_factory=lambda: MinimapState.unavailable("percepção do minimapa não configurada")
+    )
 
     @property
     def is_safe_to_act(self) -> bool:

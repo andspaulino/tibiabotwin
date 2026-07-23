@@ -16,7 +16,14 @@ class MockInputController(InputController):
     def press_key(self, key: str) -> None:
         self.key_history.append(key)
 
-    def click(self, x: int, y: int, button: str = "left") -> None:
+    def click(
+        self,
+        x: int,
+        y: int,
+        button: str = "left",
+        return_position: tuple[int, int] | None = None,
+    ) -> None:
+        del return_position
         self.click_history.append((x, y, button))
 
     def release_all(self) -> None:

@@ -1,11 +1,13 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Collection, Optional
 from pathlib import Path
 import cv2
 
 from src.config.models import AppConfig
 from src.infrastructure.capture.frame import CapturedFrame
 from src.domain.capture_status import FrameStatus
+from src.domain.minimap import MinimapState
+from src.infrastructure.vision.minimap_analyzer import MinimapAnalyzer
 from src.domain.game_state import (
     GameState,
     CaptureState,
@@ -19,6 +21,8 @@ from src.utils.screen import (
     is_in_pz,
     has_monsters_in_battle,
     has_active_target,
+    STATUS_BAR_ROI,
+    BATTLE_LIST_ROI,
 )
 
 
@@ -28,11 +32,22 @@ class GameAnalyzer:
     Converte um CapturedFrame e um WindowState em um snapshot imutável de GameState.
     """
 
-    def __init__(self, config: Optional[AppConfig] = None):
+    def __init__(
+        self,
+        config: Optional[AppConfig] = None,
+        minimap_analyzer: Optional[MinimapAnalyzer] = None,
+        marker_template_ids: Collection[str] | None = None,
+        marker_match_thresholds: dict[str, float] | None = None,
+    ):
         self.config = config
+        self.minimap_analyzer = minimap_analyzer or MinimapAnalyzer()
+        self.marker_template_ids = frozenset(marker_template_ids) if marker_template_ids is not None else None
+        self.marker_match_thresholds = dict(marker_match_thresholds) if marker_match_thresholds is not None else None
 
     def _save_failed_frame(self, frame: CapturedFrame):
         """Salva um frame com falha/congelado na pasta logs/failed_frames para diagnóstico."""
+        if frame.image is None:
+            return
         try:
             save_dir = Path(__file__).resolve().parent.parent.parent.parent / "logs" / "failed_frames"
             save_dir.mkdir(parents=True, exist_ok=True)
@@ -66,14 +81,27 @@ class GameAnalyzer:
                 capture=cap_state,
                 window=window_state,
                 player=PlayerState(hp_percent=None, mana_percent=None, in_protection_zone=None),
-                target=TargetState(has_monsters_in_battle=None, has_active_target=None)
+                target=TargetState(has_monsters_in_battle=None, has_active_target=None),
+                minimap=MinimapState.unavailable("frame ou janela indisponível")
             )
 
         # 2. Analisa pixels e padrões visuais do frame BGR único
         img_bgr = frame.image
+        if img_bgr is None:
+            return GameState(
+                timestamp=now,
+                capture=cap_state,
+                window=window_state,
+                player=PlayerState(hp_percent=None, mana_percent=None, in_protection_zone=None),
+                target=TargetState(has_monsters_in_battle=None, has_active_target=None),
+                minimap=MinimapState.unavailable("frame sem imagem"),
+            )
 
         hp_pct = get_hp_percentage(img_bgr, roi=cfg.regions.hp) if cfg else get_hp_percentage(img_bgr)
         mp_pct = get_mp_percentage(img_bgr, roi=cfg.regions.mana) if cfg else get_mp_percentage(img_bgr)
+
+        status_bar_roi = cfg.regions.status_bar if cfg else STATUS_BAR_ROI
+        battle_list_roi = cfg.regions.battle_list if cfg else BATTLE_LIST_ROI
 
         # Respeita a flag pz.enabled
         if cfg and not cfg.pz.enabled:
@@ -81,23 +109,44 @@ class GameAnalyzer:
         else:
             in_pz = is_in_pz(
                 img_bgr,
-                roi=cfg.regions.status_bar if cfg else None,
+                roi=status_bar_roi,
                 pz_template_path=cfg.pz.template_path if cfg else "templates/pz.png",
                 threshold=cfg.pz.match_threshold if cfg else 0.82
             )
 
         has_monsters = has_monsters_in_battle(
             img_bgr,
-            roi=cfg.regions.battle_list if cfg else None,
+            roi=battle_list_roi,
             min_pixels=cfg.combat.min_battle_pixels if cfg else 10
         )
 
         has_target = has_active_target(
             img_bgr,
-            roi=cfg.regions.battle_list if cfg else None,
+            roi=battle_list_roi,
             target_template_path=cfg.combat.target_template_path if cfg else "templates/target_red.png",
             threshold=cfg.combat.target_match_threshold if cfg else 0.75
         )
+
+        marker_templates = dict(cfg.minimap.marker_templates) if cfg else {}
+        if self.marker_template_ids is not None:
+            marker_templates = {
+                marker_id: template_path
+                for marker_id, template_path in marker_templates.items()
+                if marker_id in self.marker_template_ids
+            }
+
+        if cfg and cfg.minimap.enabled:
+            minimap_state = self.minimap_analyzer.analyze(
+                frame=img_bgr,
+                minimap_roi=cfg.regions.minimap,
+                marker_templates=marker_templates,
+                match_threshold=self.marker_match_thresholds or cfg.minimap.match_threshold,
+                validate_cross=cfg.minimap.validate_cross,
+                cross_template_path=cfg.minimap.cross_template_path,
+                cross_match_threshold=cfg.minimap.cross_match_threshold,
+            )
+        else:
+            minimap_state = MinimapState.unavailable("percepção do minimapa desativada")
 
         player_state = PlayerState(
             hp_percent=hp_pct,
@@ -115,5 +164,6 @@ class GameAnalyzer:
             capture=cap_state,
             window=window_state,
             player=player_state,
-            target=target_state
+            target=target_state,
+            minimap=minimap_state
         )

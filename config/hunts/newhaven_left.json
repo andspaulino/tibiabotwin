@@ -1,0 +1,39 @@
+{
+  "hunt_name": "Starter to Flag2 Observation Route",
+  "version": 1,
+  "loop": false,
+  "settings": {
+    "match_threshold": 0.64,
+    "arrival_radius_pixels": 4.0,
+    "progress_epsilon_pixels": 1.5,
+    "stuck_timeout_ms": 15000,
+    "click_cooldown_ms": 1500,
+    "max_retries": 2
+  },
+  "waypoints": [
+    {
+      "id": "000",
+      "type": "marker_click",
+      "marker": "starter",
+      "expected_region": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0}
+    },
+    {
+      "id": "001",
+      "type": "marker_click",
+      "marker": "flag8",
+      "expected_region": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0}
+    },
+    {
+      "id": "002",
+      "type": "marker_click",
+      "marker": "flag7",
+      "expected_region": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0}
+    },
+    {
+      "id": "003",
+      "type": "marker_click",
+      "marker": "flag6",
+      "expected_region": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0}
+    }
+  ]
+}
