@@ -16,3 +16,18 @@ minimap:
   # O template flag0 tem score ~0.76 no layout calibrado atual.
   match_threshold: 0.75
   validate_cross: false
+
+# Waypoint único para validação exclusiva em --observe-only.
+cavebot:
+  enabled: true
+  marker: flag0
+  expected_region:
+    x: 0.0
+    y: 0.0
+    width: 1.0
+    height: 1.0
+  arrival_radius_pixels: 4.0
+  progress_epsilon_pixels: 1.5
+  stuck_timeout_ms: 15000
+  click_cooldown_ms: 1500
+  max_retries: 2

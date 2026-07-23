@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional
+
 
 from src.domain.roi import RelativeROI
 
@@ -30,6 +30,20 @@ class MinimapConfig:
     validate_cross: bool = False
     cross_template_path: str | None = None
     cross_match_threshold: float = 0.88
+
+
+@dataclass(frozen=True)
+class CavebotConfig:
+    """Configuração do waypoint único usado exclusivamente em observação na Fase 12C."""
+
+    enabled: bool = False
+    marker: str = ""
+    expected_region: RelativeROI = field(default_factory=lambda: RelativeROI(0.0, 0.0, 1.0, 1.0))
+    arrival_radius_pixels: float = 4.0
+    progress_epsilon_pixels: float = 1.5
+    stuck_timeout_ms: int = 15_000
+    click_cooldown_ms: int = 1_500
+    max_retries: int = 2
 
 
 @dataclass(frozen=True)
@@ -101,4 +115,5 @@ class AppConfig:
     pz: PZConfig = field(default_factory=PZConfig)
     loot: LootConfig = field(default_factory=LootConfig)
     minimap: MinimapConfig = field(default_factory=MinimapConfig)
+    cavebot: CavebotConfig = field(default_factory=CavebotConfig)
     loop_interval_ms: int = 50

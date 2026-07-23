@@ -17,7 +17,7 @@ from src.infrastructure.input.base import InputController
 from src.infrastructure.factory import create_window_manager, create_input_controller
 from src.infrastructure.vision.game_analyzer import GameAnalyzer
 from src.domain.game_state import GameState, WindowState
-from src.domain.bot_state import BotState
+from src.domain.bot_state import BotMode, BotState
 from src.domain.actions import BotAction
 from src.domain.metrics import CycleMetrics
 from src.application.state_machine import StateMachine
@@ -28,6 +28,7 @@ from src.application.cooldown_manager import CooldownManager
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
 from src.bot.loot import AutoLootController
+from src.bot.cavebot.cavebot_controller import CavebotController
 from src.utils.overlay import OnScreenOverlay
 from src.utils.logger import logger
 
@@ -56,6 +57,7 @@ class BotEngine:
         decision_controller: Optional[DecisionController] = None,
         action_executor: Optional[ActionExecutor] = None,
         cooldown_manager: Optional[CooldownManager] = None,
+        cavebot: Optional[CavebotController] = None,
         observe_only: bool = False
     ):
         self.config = config
@@ -78,6 +80,8 @@ class BotEngine:
             cooldown_manager=self.cooldown_manager
         )
         self.observe_only = observe_only
+        self.cavebot = cavebot or CavebotController(config.cavebot, config.minimap)
+        self.last_cavebot_signature: Optional[tuple[str, str]] = None
 
         self.running = False
         self.killswitch_paused = False
@@ -146,6 +150,13 @@ class BotEngine:
         )
         logger.log("MINIMAP", f"Marcadores detectados: {details}", level="INFO")
 
+    def _log_cavebot_intent(self, status: str, reason: str) -> None:
+        signature = (status, reason)
+        if signature == self.last_cavebot_signature:
+            return
+        self.last_cavebot_signature = signature
+        logger.log("CAVEBOT", f"{status}: {reason}", level="INFO")
+
     def run_cycle(self) -> Tuple[GameState, BotState, CycleMetrics]:
         t0 = time.perf_counter()
 
@@ -169,10 +180,18 @@ class BotEngine:
         self._log_minimap_state(game_state, frame.image)
         t2 = time.perf_counter()
 
-        # 4. Atualiza a Máquina de Estados Finitos
-        bot_state: BotState = self.state_machine.update(game_state, self.killswitch_paused)
+        # 4. Avalia a intenção do Cavebot antes do modo global, sem executar input.
+        cavebot_intent = self.cavebot.evaluate(game_state)
+        self._log_cavebot_intent(cavebot_intent.status.value, cavebot_intent.reason)
 
-        # 5. Log de transição ao entrar/sair de PZ
+        # 5. Atualiza a Máquina de Estados Finitos
+        bot_state: BotState = self.state_machine.update(
+            game_state,
+            self.killswitch_paused,
+            movement_requested=cavebot_intent.movement_requested,
+        )
+
+        # 6. Log de transição ao entrar/sair de PZ
         in_pz = game_state.player.in_protection_zone
         if self.last_pz_state is not None and in_pz is not None and in_pz != self.last_pz_state:
             if in_pz:
@@ -182,26 +201,30 @@ class BotEngine:
         if in_pz is not None:
             self.last_pz_state = in_pz
 
-        # 6. Renderização do HUD Overlay
+        # 7. Renderização do HUD Overlay
         self.overlay.update(game_state, bot_state, observe_only=self.observe_only)
 
-        # 7. Coleta intenções de ações dos módulos
+        # 8. Coleta intenções de ações dos módulos
         proposed_actions: List[BotAction] = []
         proposed_actions.extend(self.healer.get_proposed_actions(game_state))
         proposed_actions.extend(self.combat.get_proposed_actions(game_state))
         if self.loot:
             proposed_actions.extend(self.loot.get_proposed_actions(game_state, self.previous_state))
+        # Nesta fase, o Cavebot só entra no executor em --observe-only.
+        if self.observe_only and bot_state.current_mode == BotMode.MOVING and cavebot_intent.action is not None:
+            proposed_actions.append(cavebot_intent.action)
+            self.cavebot.record_simulated_request()
 
         # Atualiza o estado do ciclo anterior
         self.previous_state = game_state
 
-        # 8. Resolução de conflitos e prioridades pelo DecisionController
+        # 9. Resolução de conflitos e prioridades pelo DecisionController
         resolved_actions = self.decision_controller.resolve(
             proposed_actions, game_state, bot_state, config=self.config
         )
         t3 = time.perf_counter()
 
-        # 9. Execução de ações pelo ActionExecutor
+        # 10. Execução de ações pelo ActionExecutor
         self.action_executor.execute(
             resolved_actions, game_state, observe_only=self.observe_only
         )

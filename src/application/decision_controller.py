@@ -50,6 +50,8 @@ class DecisionController:
 
         now = time.time()
         for action in sorted(proposed_actions, key=lambda act: act.priority, reverse=True):
+            if action.action_type == ActionType.MOVE and bot_state.current_mode != BotMode.MOVING:
+                continue
             if bot_state.current_mode == BotMode.IN_PROTECTION_ZONE and action.action_type in {
                 ActionType.ATTACK,
                 ActionType.LOOT,

@@ -16,6 +16,7 @@ from src.config.models import (
     PZConfig,
     LootConfig,
     MinimapConfig,
+    CavebotConfig,
 )
 
 
@@ -214,7 +215,41 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         cross_match_threshold=cross_match_threshold,
     )
 
-    # 4. Healer Config
+    # 4. Cavebot observation Config
+    cavebot_data = data.get("cavebot", {})
+    cavebot_enabled = bool(cavebot_data.get("enabled", False))
+    cavebot_marker = str(cavebot_data.get("marker", "")).strip()
+    if cavebot_enabled:
+        if not minimap_enabled:
+            raise ConfigValidationError("'cavebot.enabled' exige 'minimap.enabled=true'.")
+        if not cavebot_marker:
+            raise ConfigValidationError("Campo 'cavebot.marker' é obrigatório quando o Cavebot estiver ativado.")
+        if cavebot_marker not in dict(marker_templates):
+            raise ConfigValidationError("Campo 'cavebot.marker' deve referenciar um template configurado em minimap.marker_templates.")
+
+    expected_region = _validate_relative_roi(
+        cavebot_data.get("expected_region"), "cavebot.expected_region", RelativeROI(0.0, 0.0, 1.0, 1.0)
+    )
+    try:
+        arrival_radius = float(cavebot_data.get("arrival_radius_pixels", 4.0))
+        progress_epsilon = float(cavebot_data.get("progress_epsilon_pixels", 1.5))
+        max_retries = int(cavebot_data.get("max_retries", 2))
+        if arrival_radius <= 0 or progress_epsilon < 0 or max_retries < 0:
+            raise ValueError()
+    except (TypeError, ValueError):
+        raise ConfigValidationError("Parâmetros de raio, progresso ou retentativas do Cavebot são inválidos.")
+    cavebot_cfg = CavebotConfig(
+        enabled=cavebot_enabled,
+        marker=cavebot_marker,
+        expected_region=expected_region,
+        arrival_radius_pixels=arrival_radius,
+        progress_epsilon_pixels=progress_epsilon,
+        stuck_timeout_ms=_validate_cooldown(cavebot_data.get("stuck_timeout_ms", 15_000), "cavebot.stuck_timeout_ms"),
+        click_cooldown_ms=_validate_cooldown(cavebot_data.get("click_cooldown_ms", 1_500), "cavebot.click_cooldown_ms"),
+        max_retries=max_retries,
+    )
+
+    # 5. Healer Config
     healer_data = data.get("healer", {})
     healer_enabled = bool(healer_data.get("enabled", True))
 
@@ -264,7 +299,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         emergency_potion=emerg_cfg
     )
 
-    # 5. Combat Config
+    # 6. Combat Config
     combat_data = data.get("combat", {})
     combat_enabled = bool(combat_data.get("enabled", True))
     attack_key = _validate_hotkey(combat_data.get("attack_key", "space"), "combat.attack_key", combat_enabled)
@@ -291,7 +326,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         target_match_threshold=thresh
     )
 
-    # 6. Protection Zone Config
+    # 7. Protection Zone Config
     pz_data = data.get("pz", {})
     pz_enabled = bool(pz_data.get("enabled", True))
     pz_tmpl = _validate_template_file(str(pz_data.get("template_path", "templates/pz.png")), "pz.template_path", pz_enabled)
@@ -305,7 +340,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         match_threshold=pz_thresh
     )
 
-    # 7. Loot Config
+    # 8. Loot Config
     loot_data = data.get("loot", {})
     loot_enabled = bool(loot_data.get("enabled", True))
     nearby_key = _validate_hotkey(loot_data.get("nearby_corpses_key", "f12"), "loot.nearby_corpses_key", loot_enabled)
@@ -325,7 +360,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         emergency_hp_threshold=emergency_hp,
     )
 
-    # 8. Global loop interval
+    # 9. Global loop interval
     loop_ms = data.get("loop_interval_ms", 50)
     try:
         loop_ms = int(loop_ms)
@@ -342,6 +377,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         pz=pz_cfg,
         loot=loot_cfg,
         minimap=minimap_cfg,
+        cavebot=cavebot_cfg,
         loop_interval_ms=loop_ms
     )
 

@@ -50,6 +50,21 @@ minimap:
   cross_template_path: null
   cross_match_threshold: 0.88
 
+# Cavebot permanece desativado por padrão e só propõe cliques em --observe-only.
+cavebot:
+  enabled: false
+  marker: ""
+  expected_region:
+    x: 0.0
+    y: 0.0
+    width: 1.0
+    height: 1.0
+  arrival_radius_pixels: 4.0
+  progress_epsilon_pixels: 1.5
+  stuck_timeout_ms: 15000
+  click_cooldown_ms: 1500
+  max_retries: 2
+
 healer:
   enabled: true
 

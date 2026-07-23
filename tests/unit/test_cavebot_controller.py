@@ -1,0 +1,63 @@
+import unittest
+from datetime import datetime, timezone
+
+from src.bot.cavebot.cavebot_controller import CavebotController
+from src.config.models import CavebotConfig, MinimapConfig
+from src.domain.capture_status import FrameStatus
+from src.domain.game_state import CaptureState, GameState, PlayerState, TargetState, WindowState
+from src.domain.minimap import MarkerDetection, MinimapBounds, MinimapState
+
+
+class TestCavebotController(unittest.TestCase):
+    def setUp(self) -> None:
+        now = datetime.now(timezone.utc)
+        self.state = GameState(
+            timestamp=now,
+            capture=CaptureState(FrameStatus.VALID, now, 0.1),
+            window=WindowState(True, False, True),
+            player=PlayerState(0.9, 0.9, False),
+            target=TargetState(False, False),
+            minimap=MinimapState(
+                True,
+                MinimapBounds(1750, 3, 112, 112),
+                (56, 56),
+                (MarkerDetection("flag0", (16, 55), 0.76),),
+            ),
+        )
+        self.controller = CavebotController(
+            CavebotConfig(enabled=True, marker="flag0"),
+            MinimapConfig(enabled=True, marker_templates=(("flag0", "ignored-in-unit-test"),), match_threshold=0.75),
+        )
+
+    def test_requests_movement_for_distant_marker(self) -> None:
+        intent = self.controller.evaluate(self.state)
+        self.assertTrue(intent.movement_requested)
+        self.assertEqual(intent.status.value, "navigating")
+        self.assertIsNotNone(intent.action)
+        # Apenas o engine, após autorizar a simulação, inicia o intervalo.
+        self.assertIsNotNone(self.controller.evaluate(self.state).action)
+        self.controller.record_simulated_request()
+        self.assertIsNone(self.controller.evaluate(self.state).action)
+
+    def test_arrival_does_not_request_action(self) -> None:
+        arrived_state = GameState(
+            timestamp=self.state.timestamp,
+            capture=self.state.capture,
+            window=self.state.window,
+            player=self.state.player,
+            target=self.state.target,
+            minimap=MinimapState(
+                True,
+                self.state.minimap.bounds,
+                self.state.minimap.center,
+                (MarkerDetection("flag0", (56, 59), 0.76),),
+            ),
+        )
+        intent = self.controller.evaluate(arrived_state)
+        self.assertEqual(intent.status.value, "arrived")
+        self.assertFalse(intent.movement_requested)
+        self.assertIsNone(intent.action)
+
+
+if __name__ == "__main__":
+    unittest.main()

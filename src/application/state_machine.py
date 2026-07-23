@@ -22,7 +22,12 @@ class StateMachine:
         )
         self.history: List[StateTransition] = []
 
-    def update(self, game_state: GameState, killswitch_paused: bool = False) -> BotState:
+    def update(
+        self,
+        game_state: GameState,
+        killswitch_paused: bool = False,
+        movement_requested: bool = False,
+    ) -> BotState:
         """
         Avalia o GameState e flags globais, aplicando a hierarquia de prioridades:
         1. Killswitch de emergência
@@ -70,7 +75,12 @@ class StateMachine:
             target_mode = BotMode.COMBAT
             reason = "Criaturas detectadas na Battle List / Alvo travado"
 
-        # 6. Modo Ocioso padrão
+        # 6. Movimento solicitado pelo Cavebot após todas as prioridades de segurança
+        elif movement_requested:
+            target_mode = BotMode.MOVING
+            reason = "Cavebot solicitou navegação por marcador"
+
+        # 7. Modo Ocioso padrão
         else:
             target_mode = BotMode.IDLE
             reason = "Nenhum combate ativo ou evento pendente"

@@ -82,6 +82,17 @@ class TestStateMachine(unittest.TestCase):
         bs = sm.update(gs)
         self.assertEqual(bs.current_mode, BotMode.COMBAT)
 
+    def test_moving_requires_request_after_higher_priorities(self):
+        sm = StateMachine()
+        game_state = GameState(
+            timestamp=self.now,
+            capture=self.valid_capture,
+            window=self.valid_window,
+            player=PlayerState(hp_percent=0.9, mana_percent=0.9, in_protection_zone=False),
+            target=TargetState(has_monsters_in_battle=False, has_active_target=False),
+        )
+        self.assertEqual(sm.update(game_state, movement_requested=True).current_mode, BotMode.MOVING)
+
     def test_no_duplicate_transition_spam(self):
         """Verifica se estados repetidos consecutivos não geram spam de histórico de transições."""
         sm = StateMachine()
