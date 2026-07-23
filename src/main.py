@@ -110,7 +110,11 @@ def run():
             if not hunt_path.suffix:
                 hunt_path = hunt_path.with_suffix(".json")
         try:
-            route = load_route(hunt_path, dict(config.minimap.marker_templates))
+            route = load_route(
+                hunt_path,
+                dict(config.minimap.marker_templates),
+                config.cavebot.reserved_marker_ids,
+            )
             logger.log("CAVEBOT", f"Rota carregada: {route.hunt_name} ({len(route.waypoints)} waypoints)")
         except RouteValidationError as err:
             logger.log("CAVEBOT", f"ERRO DE ROTA: {err}", level="ERROR")

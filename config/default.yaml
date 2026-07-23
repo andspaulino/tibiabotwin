@@ -54,6 +54,7 @@ minimap:
 cavebot:
   enabled: false
   marker: ""
+  reserved_marker_ids: []
   expected_region:
     x: 0.0
     y: 0.0

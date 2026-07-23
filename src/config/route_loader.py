@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Mapping
+from typing import Collection, Mapping
 
 from src.bot.cavebot.models import HuntRoute, RelativeRegion, RouteSettings, Waypoint, WaypointType
 
@@ -9,7 +9,11 @@ class RouteValidationError(ValueError):
     """Indica que um arquivo de rota não pode ser usado com segurança."""
 
 
-def load_route(path: str | Path, known_markers: Mapping[str, str]) -> HuntRoute:
+def load_route(
+    path: str | Path,
+    known_markers: Mapping[str, str],
+    reserved_marker_ids: Collection[str] = (),
+) -> HuntRoute:
     route_path = Path(path)
     if not route_path.is_file():
         raise RouteValidationError(f"Arquivo de rota não encontrado: {route_path}")
@@ -30,7 +34,8 @@ def load_route(path: str | Path, known_markers: Mapping[str, str]) -> HuntRoute:
         raw_waypoints = data.get("waypoints")
         if not isinstance(raw_waypoints, list) or not raw_waypoints:
             raise RouteValidationError("A rota deve conter ao menos um waypoint")
-        waypoints = tuple(_parse_waypoint(item, known_markers) for item in raw_waypoints)
+        reserved_marker_set = frozenset(reserved_marker_ids)
+        waypoints = tuple(_parse_waypoint(item, known_markers, reserved_marker_set) for item in raw_waypoints)
     except (TypeError, ValueError) as error:
         if isinstance(error, RouteValidationError):
             raise
@@ -61,7 +66,11 @@ def _parse_settings(raw: object) -> RouteSettings:
         raise RouteValidationError(f"Campo obrigatório ausente em settings: {error.args[0]}") from error
 
 
-def _parse_waypoint(raw: object, known_markers: Mapping[str, str]) -> Waypoint:
+def _parse_waypoint(
+    raw: object,
+    known_markers: Mapping[str, str],
+    reserved_marker_ids: Collection[str],
+) -> Waypoint:
     if not isinstance(raw, dict):
         raise RouteValidationError("Cada waypoint deve ser um objeto")
     waypoint_id = _required_string(raw, "id")
@@ -76,6 +85,8 @@ def _parse_waypoint(raw: object, known_markers: Mapping[str, str]) -> Waypoint:
     marker = _required_string(raw, "marker")
     if marker not in known_markers:
         raise RouteValidationError(f"Marcador '{marker}' não está configurado no perfil")
+    if marker in reserved_marker_ids:
+        raise RouteValidationError(f"Marcador '{marker}' é reservado e não pode ser usado como waypoint")
     marker_path = Path(known_markers[marker])
     if not marker_path.is_file():
         raise RouteValidationError(f"Template do marcador '{marker}' não existe: {marker_path}")

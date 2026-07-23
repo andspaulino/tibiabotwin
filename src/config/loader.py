@@ -219,13 +219,30 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
     cavebot_data = data.get("cavebot", {})
     cavebot_enabled = bool(cavebot_data.get("enabled", False))
     cavebot_marker = str(cavebot_data.get("marker", "")).strip()
+    raw_reserved_marker_ids = cavebot_data.get("reserved_marker_ids", [])
+    if not isinstance(raw_reserved_marker_ids, list) or not all(
+        isinstance(marker_id, str) and marker_id.strip() for marker_id in raw_reserved_marker_ids
+    ):
+        raise ConfigValidationError("Campo 'cavebot.reserved_marker_ids' deve ser uma lista de IDs não vazios.")
+    reserved_marker_ids = tuple(marker_id.strip() for marker_id in raw_reserved_marker_ids)
+    if len(set(reserved_marker_ids)) != len(reserved_marker_ids):
+        raise ConfigValidationError("Campo 'cavebot.reserved_marker_ids' não pode conter IDs duplicados.")
+    known_marker_ids = set(dict(marker_templates))
+    unknown_reserved = set(reserved_marker_ids) - known_marker_ids
+    if unknown_reserved:
+        raise ConfigValidationError(
+            f"IDs reservados sem template configurado: {', '.join(sorted(unknown_reserved))}."
+        )
+
     if cavebot_enabled:
         if not minimap_enabled:
             raise ConfigValidationError("'cavebot.enabled' exige 'minimap.enabled=true'.")
         if not cavebot_marker:
             raise ConfigValidationError("Campo 'cavebot.marker' é obrigatório quando o Cavebot estiver ativado.")
-        if cavebot_marker not in dict(marker_templates):
+        if cavebot_marker not in known_marker_ids:
             raise ConfigValidationError("Campo 'cavebot.marker' deve referenciar um template configurado em minimap.marker_templates.")
+        if cavebot_marker in reserved_marker_ids:
+            raise ConfigValidationError("Campo 'cavebot.marker' não pode usar um marcador reservado.")
 
     expected_region = _validate_relative_roi(
         cavebot_data.get("expected_region"), "cavebot.expected_region", RelativeROI(0.0, 0.0, 1.0, 1.0)
@@ -241,6 +258,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
     cavebot_cfg = CavebotConfig(
         enabled=cavebot_enabled,
         marker=cavebot_marker,
+        reserved_marker_ids=reserved_marker_ids,
         expected_region=expected_region,
         arrival_radius_pixels=arrival_radius,
         progress_epsilon_pixels=progress_epsilon,

@@ -38,6 +38,7 @@ class CavebotConfig:
 
     enabled: bool = False
     marker: str = ""
+    reserved_marker_ids: tuple[str, ...] = ()
     expected_region: RelativeROI = field(default_factory=lambda: RelativeROI(0.0, 0.0, 1.0, 1.0))
     arrival_radius_pixels: float = 4.0
     progress_epsilon_pixels: float = 1.5

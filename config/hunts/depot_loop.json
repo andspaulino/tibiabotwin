@@ -20,44 +20,40 @@
         "y": 0.0,
         "width": 1.0,
         "height": 1.0
-      },
-      "next_id": "001"
+      }
     },
     {
       "id": "001",
       "type": "marker_click",
-      "marker": "flag8",
+      "marker": "flag1",
       "expected_region": {
         "x": 0.0,
         "y": 0.0,
         "width": 1.0,
         "height": 1.0
-      },
-      "next_id": "002"
+      }
     },
     {
       "id": "002",
       "type": "marker_click",
-      "marker": "flag7",
+      "marker": "flag2",
       "expected_region": {
         "x": 0.0,
         "y": 0.0,
         "width": 1.0,
         "height": 1.0
-      },
-      "next_id": "003"
+      }
     },
     {
       "id": "003",
       "type": "marker_click",
-      "marker": "flag8",
+      "marker": "flag3",
       "expected_region": {
         "x": 0.0,
         "y": 0.0,
         "width": 1.0,
         "height": 1.0
-      },
-      "next_id": "004"
+      }
     },
     {
       "id": "004",
@@ -68,8 +64,7 @@
         "y": 0.0,
         "width": 1.0,
         "height": 1.0
-      },
-      "next_id": "005"
+      }
     },
     {
       "id": "005",
@@ -80,8 +75,7 @@
         "y": 0.0,
         "width": 1.0,
         "height": 1.0
-      },
-      "next_id": "000"
+      }
     }
   ]
 }

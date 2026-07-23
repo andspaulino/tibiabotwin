@@ -38,6 +38,13 @@ class TestRouteLoader(unittest.TestCase):
         self.assertEqual(route.hunt_name, "Test route")
         self.assertEqual(route.waypoints[0].id, "wp-01")
 
+    def test_rejects_reserved_marker(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "route.json"
+            path.write_text(json.dumps(self.data), encoding="utf-8")
+            with self.assertRaisesRegex(RouteValidationError, "reservado"):
+                load_route(path, self.markers, reserved_marker_ids={"flag0"})
+
     def test_rejects_unknown_marker_and_duplicate_ids(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "route.json"

@@ -1,5 +1,5 @@
 {
-  "hunt_name": "Flag0 to Flag1 Observation Route",
+  "hunt_name": "Starter to Flag2 Observation Route",
   "version": 1,
   "loop": false,
   "settings": {
@@ -12,28 +12,28 @@
   },
   "waypoints": [
     {
-      "id": "flag0-first",
+      "id": "starter-first",
       "type": "marker_click",
-      "marker": "flag0",
+      "marker": "starter",
       "expected_region": {
         "x": 0.0,
         "y": 0.0,
         "width": 1.0,
         "height": 1.0
       },
-      "description": "First green check marker"
+      "description": "Start marker"
     },
     {
-      "id": "flag1-second",
+      "id": "flag2-second",
       "type": "marker_click",
-      "marker": "flag1",
+      "marker": "flag2",
       "expected_region": {
         "x": 0.0,
         "y": 0.0,
         "width": 1.0,
         "height": 1.0
       },
-      "description": "Second blue marker"
+      "description": "Second generic marker"
     }
   ]
 }
