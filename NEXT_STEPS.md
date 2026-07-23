@@ -967,7 +967,9 @@ Não iniciar Auto-Loot ou movimento antes de concluir pelo menos as fases 1 a 9.
 
 ### Bloqueio para clique físico
 
-Não habilitar Cavebot fora de `--observe-only` até que exista uma conversão testada entre as coordenadas do frame do Projetor e a tela, além de revalidação de foco, minimização, frame, killswitch e cooldown imediatamente antes do clique.
+A transformação proporcional e fail-safe entre o frame do Projetor e a área cliente do Tibia existe em `FrameToWindowMapper`, com geometria Win32 exposta por `WindowManager.get_client_area()` e testes para escala, limites e incompatibilidade de aspecto. O mapeamento 1:1 foi validado manualmente para o ambiente atual (`1920x1009`, diferença de aspecto `0.0000`).
+
+A execução física é opt-in por `cavebot.physical_clicks_enabled`, que permanece `false` por padrão. Quando habilitada, a ação só chega ao input após nova verificação de modo `MOVING`, killswitch, foco, minimização, validade e idade do frame, disponibilidade das janelas, estabilidade da área cliente e limites da coordenada. Ainda são necessários testes manuais controlados e testes de integração adicionais antes de considerar o clique físico consolidado para outros ambientes/DPI.
 
 ---
 

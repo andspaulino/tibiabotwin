@@ -58,6 +58,29 @@ class TestCentralActions(unittest.TestCase):
         executor.execute([action], self.safe_game_state)
         self.assertEqual(mock_input.click_history, [(120, 240, "left")])
 
+    def test_final_validator_blocks_click_without_consuming_cooldown(self) -> None:
+        mock_input = MockInputController()
+        cooldowns = CooldownManager()
+        executor = ActionExecutor(input_controller=mock_input, cooldown_manager=cooldowns)
+        action = BotAction(
+            action_type=ActionType.MOVE,
+            priority=ActionPriority.MOVEMENT,
+            payload=MouseClickPayload(x=120, y=240),
+            reason="Clique bloqueado na revalidação",
+            cooldown_ms=1_000,
+            cooldown_key="test:blocked-move",
+        )
+
+        executed = executor.execute(
+            [action],
+            self.safe_game_state,
+            final_validator=lambda candidate: False,
+        )
+
+        self.assertEqual(executed, [])
+        self.assertEqual(mock_input.click_history, [])
+        self.assertTrue(cooldowns.can_execute("test:blocked-move", 1_000, time.time()))
+
     def test_observe_only_simulates_click_without_cooldown_or_input(self) -> None:
         mock_input = MockInputController()
         cooldowns = CooldownManager()

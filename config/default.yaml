@@ -81,6 +81,8 @@ module_hotkeys:
 # até o toggle. Ele só encaminha movimentos simulados em --observe-only.
 cavebot:
   enabled: true
+  # Requer conversão e revalidação final; permanece desativado por segurança.
+  physical_clicks_enabled: true
   marker: starter
   reserved_marker_ids:
     - protected_zone

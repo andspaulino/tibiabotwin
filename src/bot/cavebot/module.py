@@ -62,5 +62,8 @@ class CavebotModule:
             return self.controller.suspend(bot_state.current_mode)
         return inspected
 
+    def record_request(self) -> None:
+        self.controller.record_request()
+
     def record_simulated_request(self) -> None:
         self.controller.record_simulated_request()

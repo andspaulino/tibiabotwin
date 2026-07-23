@@ -106,6 +106,10 @@ class CavebotController:
             reason=f"Cavebot suspenso pelo modo global {mode.value}",
         )
 
-    def record_simulated_request(self) -> None:
-        """Registra o intervalo apenas após o engine encaminhar uma simulação autorizada."""
+    def record_request(self) -> None:
+        """Registra o intervalo após simulação autorizada ou execução física confirmada."""
         self._last_request_at = time.monotonic()
+
+    def record_simulated_request(self) -> None:
+        """Compatibilidade para chamadas existentes de observação."""
+        self.record_request()

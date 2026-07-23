@@ -37,7 +37,7 @@ Também devem ser preservados os seguintes princípios:
 ### Limites obrigatórios do estado atual
 
 * O Cavebot só encaminha ações ao executor quando `--observe-only` está ativo; as ações são logs simulados.
-* Nenhuma conversão confiável de coordenadas do frame do Projetor para coordenadas de tela foi implementada. Portanto, **cliques físicos do Cavebot não estão autorizados**.
+* Existe uma transformação proporcional testada entre o frame do Projetor e a área cliente do Tibia, com leitura Win32 e revalidação imediatamente anterior ao input. Cliques físicos são opt-in por `cavebot.physical_clicks_enabled`, permanecem desativados por padrão e ainda exigem validação manual controlada para cada ambiente/DPI antes de uso.
 * A suspensão por PZ e combate foi validada manualmente: nenhum `MOVE` é simulado durante a prioridade e o mesmo waypoint é readquirido após o retorno a `MOVING`.
 * `CavebotModule` possui ciclo de vida próprio, como healer, combat e loot. Ele usa duas fases: `inspect(GameState)` produz a solicitação de movimento antes da máquina de estados e `propose(GameState, BotState, intent)` a suspende ou mantém após a decisão global.
 * O loop de uma rota possui validação unitária e manual no Projetor. A cobertura de integração específica do engine para suspensão e retomada ainda é pendente.

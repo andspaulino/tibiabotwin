@@ -1,5 +1,5 @@
 import time
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 from src.application.cooldown_manager import CooldownManager
 from src.domain.actions import BotAction, KeyPayload, MouseClickPayload
@@ -25,11 +25,13 @@ class ActionExecutor:
         game_state: GameState,
         observe_only: bool = False,
         cooldown_manager: Optional[CooldownManager] = None,
-    ) -> None:
+        final_validator: Callable[[BotAction], bool] | None = None,
+    ) -> List[BotAction]:
         """Executa payloads aprovados e registra cooldown somente após sucesso físico."""
         if not actions or not game_state.is_safe_to_act:
-            return
+            return []
 
+        executed_actions: List[BotAction] = []
         cd_mgr = cooldown_manager or self.cooldown_manager
         for action in actions:
             if observe_only:
@@ -38,6 +40,9 @@ class ActionExecutor:
                     f"[OBSERVE-ONLY] Acao simulada {action.action_type.value.upper()}: {action.reason}",
                     level="ACTION",
                 )
+                continue
+            if final_validator is not None and not final_validator(action):
+                logger.log("ACTION", f"Descartada na validação final: {action.reason}", level="WARNING")
                 continue
             if self.input_controller is None:
                 logger.log("ACTION", f"Descartada sem controlador de input: {action.reason}", level="WARNING")
@@ -58,4 +63,7 @@ class ActionExecutor:
 
             cooldown_key = action.cooldown_key or action.action_type.value
             cd_mgr.register_execution(cooldown_key, time.time())
+            executed_actions.append(action)
             logger.log("ACTION", f"Executado {action.action_type.value.upper()}: {action.reason}", level="ACTION")
+
+        return executed_actions

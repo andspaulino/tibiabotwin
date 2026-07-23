@@ -46,6 +46,7 @@ class CavebotConfig:
     click_cooldown_ms: int = 1_500
     max_retries: int = 2
     selected_hunt: str | None = None
+    physical_clicks_enabled: bool = False
 
 
 @dataclass(frozen=True)

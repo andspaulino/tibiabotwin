@@ -1,7 +1,5 @@
 import unittest
-import tempfile
-import os
-from pathlib import Path
+
 
 from src.config.loader import load_config, ConfigValidationError, validate_and_parse
 from src.config.models import AppConfig
@@ -26,6 +24,15 @@ class TestConfigLoader(unittest.TestCase):
         self.assertEqual(cfg.healer.spell.hp_below, 85.0)
         self.assertEqual(cfg.healer.mana_potion.key, "F2")
         self.assertEqual(cfg.healer.emergency_potion.key, "F3")
+
+    def test_physical_cavebot_clicks_are_disabled_by_default(self):
+        cfg = validate_and_parse({})
+
+        self.assertFalse(cfg.cavebot.physical_clicks_enabled)
+
+    def test_physical_cavebot_clicks_require_boolean(self):
+        with self.assertRaises(ConfigValidationError):
+            validate_and_parse({"cavebot": {"physical_clicks_enabled": "true"}})
 
     def test_selected_hunt_is_loaded_from_cavebot_config(self):
         cfg = validate_and_parse({"cavebot": {"selected_hunt": "depot_loop.json"}})

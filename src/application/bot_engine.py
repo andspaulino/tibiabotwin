@@ -1,5 +1,6 @@
 
 import time
+from dataclasses import replace
 from pathlib import Path
 from typing import Optional, Tuple, List
 
@@ -12,19 +13,20 @@ except ImportError:
 
 from src.config.models import AppConfig
 from src.infrastructure.capture.base import FrameCapturer
-from src.infrastructure.window.base import WindowManager
+from src.infrastructure.window.base import WindowClientArea, WindowManager
 from src.infrastructure.input.base import InputController
 from src.infrastructure.factory import create_window_manager, create_input_controller
 from src.infrastructure.vision.game_analyzer import GameAnalyzer
 from src.domain.game_state import GameState, WindowState
 from src.domain.bot_state import BotMode, BotState
-from src.domain.actions import BotAction
+from src.domain.actions import ActionType, BotAction, MouseClickPayload
 from src.domain.metrics import CycleMetrics
 from src.application.state_machine import StateMachine
 from src.application.scheduler import LoopScheduler
 from src.application.decision_controller import DecisionController
 from src.application.action_executor import ActionExecutor
 from src.application.cooldown_manager import CooldownManager
+from src.application.coordinate_mapper import CoordinateMappingError, FrameToWindowMapper
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
 from src.bot.loot import AutoLootController
@@ -85,6 +87,8 @@ class BotEngine:
             CavebotController(config.cavebot, config.minimap)
         )
         self.last_cavebot_signature: Optional[tuple[str, str]] = None
+        self.coordinate_mapper = FrameToWindowMapper()
+        self.last_coordinate_mapping_signature: Optional[tuple[int, ...]] = None
 
         self.running = False
         self.killswitch_paused = False
@@ -168,6 +172,125 @@ class BotEngine:
         self.last_cavebot_signature = signature
         logger.log("CAVEBOT", f"{status}: {reason}", level="INFO")
 
+    def _log_cavebot_coordinate_mapping(self, action: BotAction | None, frame) -> None:
+        """Diagnostica a conversão proposta sem autorizar ou executar o clique."""
+        if action is None or not isinstance(action.payload, MouseClickPayload):
+            return
+
+        try:
+            client_area = self.window_manager.get_client_area(self.hwnd_tibia)
+        except AttributeError:
+            client_area = None
+        if client_area is None:
+            logger.log("CAVEBOT", "Mapeamento indisponível: área cliente do Tibia não encontrada", level="WARNING")
+            return
+
+        signature = (
+            frame.width,
+            frame.height,
+            action.payload.x,
+            action.payload.y,
+            client_area.left,
+            client_area.top,
+            client_area.width,
+            client_area.height,
+        )
+        if signature == self.last_coordinate_mapping_signature:
+            return
+        self.last_coordinate_mapping_signature = signature
+
+        frame_aspect = frame.width / frame.height if frame.height > 0 else 0.0
+        client_aspect = client_area.width / client_area.height
+        aspect_difference = (
+            abs(frame_aspect - client_aspect) / frame_aspect if frame_aspect > 0 else float("inf")
+        )
+        try:
+            screen_point = self.coordinate_mapper.map_point(
+                action.payload.x,
+                action.payload.y,
+                frame.width,
+                frame.height,
+                client_area,
+            )
+        except CoordinateMappingError as error:
+            logger.log(
+                "CAVEBOT",
+                f"Mapeamento rejeitado: frame={frame.width}x{frame.height}, "
+                f"tibia_client=({client_area.left},{client_area.top},"
+                f"{client_area.width}x{client_area.height}), "
+                f"frame_point=({action.payload.x},{action.payload.y}), "
+                f"diferença_aspecto={aspect_difference:.4f}; {error}",
+                level="WARNING",
+            )
+            return
+
+        logger.log(
+            "CAVEBOT",
+            f"Mapeamento validado sem clique: frame={frame.width}x{frame.height}, "
+            f"tibia_client=({client_area.left},{client_area.top},"
+            f"{client_area.width}x{client_area.height}), "
+            f"frame_point=({action.payload.x},{action.payload.y}) -> "
+            f"screen_point=({screen_point.x},{screen_point.y}), "
+            f"diferença_aspecto={aspect_difference:.4f}",
+            level="INFO",
+        )
+
+    def _map_cavebot_action(
+        self,
+        action: BotAction,
+        frame,
+    ) -> tuple[BotAction | None, WindowClientArea | None]:
+        if not isinstance(action.payload, MouseClickPayload):
+            return None, None
+        client_area = self.window_manager.get_client_area(self.hwnd_tibia)
+        if client_area is None:
+            logger.log("CAVEBOT", "MOVE descartado: área cliente do Tibia indisponível", level="WARNING")
+            return None, None
+        try:
+            point = self.coordinate_mapper.map_point(
+                action.payload.x,
+                action.payload.y,
+                frame.width,
+                frame.height,
+                client_area,
+            )
+        except CoordinateMappingError as error:
+            logger.log("CAVEBOT", f"MOVE descartado: {error}", level="WARNING")
+            return None, None
+        return replace(action, payload=MouseClickPayload(point.x, point.y, action.payload.button)), client_area
+
+    def _movement_action_is_safe(
+        self,
+        action: BotAction,
+        frame,
+        bot_state: BotState,
+        expected_client_area: WindowClientArea | None,
+    ) -> bool:
+        if not isinstance(action.payload, MouseClickPayload):
+            return True
+        if action.action_type != ActionType.MOVE or expected_client_area is None:
+            return False
+        if self.killswitch_paused or bot_state.current_mode != BotMode.MOVING:
+            return False
+        if not frame.is_valid or frame.age_seconds() > 1.0:
+            return False
+        if self.hwnd_tibia <= 0 or self.hwnd_obs <= 0:
+            return False
+        if not self.window_manager.is_focused(self.hwnd_tibia):
+            return False
+        if self.window_manager.is_minimized(self.hwnd_tibia):
+            return False
+        current_client_area = self.window_manager.get_client_area(self.hwnd_tibia)
+        projector_area = self.window_manager.get_client_area(self.hwnd_obs)
+        if current_client_area is None or projector_area is None:
+            return False
+        if current_client_area != expected_client_area:
+            return False
+        return (
+            current_client_area.left <= action.payload.x < current_client_area.left + current_client_area.width
+            and current_client_area.top <= action.payload.y < current_client_area.top + current_client_area.height
+        )
+
     def run_cycle(self) -> Tuple[GameState, BotState, CycleMetrics]:
         t0 = time.perf_counter()
 
@@ -208,6 +331,7 @@ class BotEngine:
             inspected_cavebot_intent,
         )
         self._log_cavebot_intent(final_cavebot_intent.status.value, final_cavebot_intent.reason)
+        self._log_cavebot_coordinate_mapping(final_cavebot_intent.action, frame)
 
         # 7. Log de transição ao entrar/sair de PZ
         in_pz = game_state.player.in_protection_zone
@@ -228,10 +352,19 @@ class BotEngine:
         proposed_actions.extend(self.combat.get_proposed_actions(game_state))
         if self.loot:
             proposed_actions.extend(self.loot.get_proposed_actions(game_state, self.previous_state))
-        # Nesta fase, o Cavebot só entra no executor em --observe-only.
-        if self.observe_only and bot_state.current_mode == BotMode.MOVING and final_cavebot_intent.action is not None:
-            proposed_actions.append(final_cavebot_intent.action)
-            self.cavebot.record_simulated_request()
+        mapped_cavebot_action: BotAction | None = None
+        mapped_client_area: WindowClientArea | None = None
+        if bot_state.current_mode == BotMode.MOVING and final_cavebot_intent.action is not None:
+            if self.observe_only:
+                proposed_actions.append(final_cavebot_intent.action)
+                self.cavebot.record_request()
+            elif self.config.cavebot.physical_clicks_enabled:
+                mapped_cavebot_action, mapped_client_area = self._map_cavebot_action(
+                    final_cavebot_intent.action,
+                    frame,
+                )
+                if mapped_cavebot_action is not None:
+                    proposed_actions.append(mapped_cavebot_action)
 
         # Atualiza o estado do ciclo anterior
         self.previous_state = game_state
@@ -243,9 +376,19 @@ class BotEngine:
         t3 = time.perf_counter()
 
         # 11. Execução de ações pelo ActionExecutor
-        self.action_executor.execute(
-            resolved_actions, game_state, observe_only=self.observe_only
+        executed_actions = self.action_executor.execute(
+            resolved_actions,
+            game_state,
+            observe_only=self.observe_only,
+            final_validator=lambda action: self._movement_action_is_safe(
+                action,
+                frame,
+                bot_state,
+                mapped_client_area,
+            ),
         )
+        if mapped_cavebot_action is not None and mapped_cavebot_action in executed_actions:
+            self.cavebot.record_request()
         t4 = time.perf_counter()
 
         metrics = CycleMetrics(
@@ -280,6 +423,12 @@ class BotEngine:
 
         if self.observe_only:
             logger.log("SYSTEM", "🔍 MODO DE OBSERVAÇÃO ATIVO (--observe-only). Teclado e mouse FÍSICOS DESABILITADOS.")
+        elif self.config.cavebot.physical_clicks_enabled:
+            logger.log(
+                "SYSTEM",
+                "[!] CLIQUES FÍSICOS DO CAVEBOT HABILITADOS; continuam condicionados ao toggle e às validações finais.",
+                level="WARNING",
+            )
 
         # Registra o Killswitch e os toggles globais dos módulos.
         if keyboard is not None:
