@@ -81,8 +81,6 @@ module_hotkeys:
 # até o toggle. Ele só encaminha movimentos simulados em --observe-only.
 cavebot:
   enabled: true
-  # Requer conversão e revalidação final; permanece desativado por segurança.
-  physical_clicks_enabled: true
   marker: starter
   reserved_marker_ids:
     - protected_zone
@@ -101,7 +99,7 @@ cavebot:
   click_cooldown_ms: 1500
   max_retries: 2
   # Nome do arquivo em config/hunts/ carregado automaticamente pelo Cavebot.
-  selected_hunt: newhaven_left.json
+  selected_hunt: depot_loop.json
 
 healer:
   enabled: true

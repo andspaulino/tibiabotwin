@@ -34,7 +34,7 @@ Diferente de bots que leem ou injetam dados na memória do jogo, este bot age pu
 - `GameState.minimap` recebe um snapshot imutável com ROI absoluta, centro local e todos os marcadores encontrados no mesmo frame do ciclo.
 - A análise utiliza templates configurados, pode auditar o layout com `cross.png` e falha de forma segura quando a ROI, o frame ou a validação são inválidos.
 - O bloco `minimap` de `config/default.yaml` deve ser calibrado para o Projetor do OBS antes de habilitar navegação.
-- A rota vem de `cavebot.selected_hunt`. Em `--observe-only`, movimentos são sempre simulados. Fora dele, cliques do Cavebot só podem chegar ao executor quando `cavebot.physical_clicks_enabled: true`, o módulo tiver sido ativado manualmente e a revalidação final confirmar modo `MOVING`, killswitch, foco, minimização, frame recente, Projetor, geometria e limites do ponto. A opção permanece `false` por padrão.
+- A rota vem de `cavebot.selected_hunt`. Em `--observe-only`, movimentos são sempre simulados. Fora dele, cliques do Cavebot só podem chegar ao executor depois do toggle manual e quando a revalidação final confirmar modo `MOVING`, killswitch, foco, minimização, frame recente, Projetor, geometria e limites do ponto.
 
 ### 5. Máquina de Estados Finitos do Bot (`src/application/state_machine.py` + `BotMode`)
 - **`BotMode` Finito**: Apenas um modo principal ativo por ciclo (`PAUSED`, `UNSAFE`, `IN_PROTECTION_ZONE`, `COMBAT`, `IDLE`).
@@ -127,7 +127,7 @@ python -m src.main --profile character-example
 # Pressione PageDown para ativar a observação da rota.
 python -m src.main --observe-only
 
-# Cliques físicos exigem cavebot.physical_clicks_enabled: true.
+# Fora de --observe-only, PageDown ativa o Cavebot com cliques físicos.
 # Use somente após validar os logs de mapeamento para suas janelas.
 python -m src.main
 ```
@@ -166,7 +166,7 @@ Devido ao bloqueio de renderização direta do cliente do Tibia (tela preta), o 
    | `PageUp` | Ativar/desativar o Auto-Loot |
    | `PageDown` | Ativar/desativar o Cavebot |
 
-   Cada mudança é registrada no log. Todos os módulos continuam desativados na inicialização. O Cavebot só envia cliques fora de `--observe-only` quando `cavebot.physical_clicks_enabled` estiver explicitamente habilitado e todas as validações finais passarem.
+   Cada mudança é registrada no log. Todos os módulos continuam desativados na inicialização. Fora de `--observe-only`, o Cavebot só envia cliques após o toggle `PageDown` e quando todas as validações finais passarem.
 
 ---
 

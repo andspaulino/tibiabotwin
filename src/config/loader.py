@@ -219,9 +219,6 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
     # 4. Cavebot observation Config
     cavebot_data = data.get("cavebot", {})
     cavebot_enabled = bool(cavebot_data.get("enabled", False))
-    physical_clicks_enabled = cavebot_data.get("physical_clicks_enabled", False)
-    if not isinstance(physical_clicks_enabled, bool):
-        raise ConfigValidationError("Campo 'cavebot.physical_clicks_enabled' deve ser booleano.")
     cavebot_marker = str(cavebot_data.get("marker", "")).strip()
     raw_reserved_marker_ids = cavebot_data.get("reserved_marker_ids", [])
     if not isinstance(raw_reserved_marker_ids, list) or not all(
@@ -281,7 +278,6 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         click_cooldown_ms=_validate_cooldown(cavebot_data.get("click_cooldown_ms", 1_500), "cavebot.click_cooldown_ms"),
         max_retries=max_retries,
         selected_hunt=selected_hunt,
-        physical_clicks_enabled=physical_clicks_enabled,
     )
 
     # 5. Healer Config

@@ -25,24 +25,17 @@ class TestConfigLoader(unittest.TestCase):
         self.assertEqual(cfg.healer.mana_potion.key, "F2")
         self.assertEqual(cfg.healer.emergency_potion.key, "F3")
 
-    def test_physical_cavebot_clicks_are_disabled_by_default(self):
-        cfg = validate_and_parse({})
 
-        self.assertFalse(cfg.cavebot.physical_clicks_enabled)
-
-    def test_physical_cavebot_clicks_require_boolean(self):
-        with self.assertRaises(ConfigValidationError):
-            validate_and_parse({"cavebot": {"physical_clicks_enabled": "true"}})
 
     def test_selected_hunt_is_loaded_from_cavebot_config(self):
         cfg = validate_and_parse({"cavebot": {"selected_hunt": "depot_loop.json"}})
 
         self.assertEqual(cfg.cavebot.selected_hunt, "depot_loop.json")
 
-    def test_default_config_selects_depot_loop(self):
+    def test_default_config_selects_newhaven_route(self):
         cfg = load_config()
 
-        self.assertEqual(cfg.cavebot.selected_hunt, "depot_loop.json")
+        self.assertEqual(cfg.cavebot.selected_hunt, "newhaven_left.json")
 
     def test_selected_hunt_rejects_paths_outside_hunts_directory(self):
         with self.assertRaises(ConfigValidationError):

@@ -358,7 +358,7 @@ class BotEngine:
             if self.observe_only:
                 proposed_actions.append(final_cavebot_intent.action)
                 self.cavebot.record_request()
-            elif self.config.cavebot.physical_clicks_enabled:
+            else:
                 mapped_cavebot_action, mapped_client_area = self._map_cavebot_action(
                     final_cavebot_intent.action,
                     frame,
@@ -423,12 +423,6 @@ class BotEngine:
 
         if self.observe_only:
             logger.log("SYSTEM", "🔍 MODO DE OBSERVAÇÃO ATIVO (--observe-only). Teclado e mouse FÍSICOS DESABILITADOS.")
-        elif self.config.cavebot.physical_clicks_enabled:
-            logger.log(
-                "SYSTEM",
-                "[!] CLIQUES FÍSICOS DO CAVEBOT HABILITADOS; continuam condicionados ao toggle e às validações finais.",
-                level="WARNING",
-            )
 
         # Registra o Killswitch e os toggles globais dos módulos.
         if keyboard is not None:
