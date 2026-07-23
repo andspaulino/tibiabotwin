@@ -64,7 +64,34 @@
           },
           "required": ["x", "y", "width", "height"],
           "additionalProperties": false
+        },
+        "minimap": {
+          "type": "object",
+          "properties": {
+            "x": { "type": "number", "minimum": 0, "maximum": 1 },
+            "y": { "type": "number", "minimum": 0, "maximum": 1 },
+            "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+            "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+          },
+          "required": ["x", "y", "width", "height"],
+          "additionalProperties": false
         }
+      },
+      "additionalProperties": false
+    },
+    "minimap": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "marker_templates": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "minLength": 1 },
+          "default": {}
+        },
+        "match_threshold": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.88 },
+        "validate_cross": { "type": "boolean", "default": false },
+        "cross_template_path": { "type": ["string", "null"], "default": null },
+        "cross_match_threshold": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.88 }
       },
       "additionalProperties": false
     },

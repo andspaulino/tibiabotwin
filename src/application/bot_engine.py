@@ -1,6 +1,9 @@
-import sys
+
 import time
+from pathlib import Path
 from typing import Optional, Tuple, List
+
+import cv2
 
 try:
     import keyboard
@@ -14,7 +17,7 @@ from src.infrastructure.input.base import InputController
 from src.infrastructure.factory import create_window_manager, create_input_controller
 from src.infrastructure.vision.game_analyzer import GameAnalyzer
 from src.domain.game_state import GameState, WindowState
-from src.domain.bot_state import BotState, BotMode
+from src.domain.bot_state import BotState
 from src.domain.actions import BotAction
 from src.domain.metrics import CycleMetrics
 from src.application.state_machine import StateMachine
@@ -79,6 +82,7 @@ class BotEngine:
         self.running = False
         self.killswitch_paused = False
         self.last_pz_state: Optional[bool] = None
+        self.last_minimap_signature: Optional[tuple[bool, Optional[str], tuple[str, ...]]] = None
         self.last_metrics: Optional[CycleMetrics] = None
         self.previous_state: Optional[GameState] = None
 
@@ -94,6 +98,53 @@ class BotEngine:
             logger.log("SYSTEM", "🛑 KILLSWITCH ACIONADO: Bot PAUSADO. Teclas liberadas imediatamente.", level="WARNING")
         else:
             logger.log("SYSTEM", "▶️ KILLSWITCH DESATIVADO: Bot RETOMADO.", level="INFO")
+
+    def _save_minimap_diagnostic(self, frame_image, game_state: GameState) -> None:
+        """Salva o último recorte analisado para calibrar a ROI sem nova captura."""
+        minimap = game_state.minimap
+        if not minimap.available or minimap.bounds is None or frame_image is None:
+            return
+
+        bounds = minimap.bounds
+        cropped = frame_image[bounds.y:bounds.y + bounds.height, bounds.x:bounds.x + bounds.width]
+        if getattr(cropped, "size", 0) == 0:
+            return
+
+        output_dir = Path(__file__).resolve().parent.parent.parent / "logs" / "minimap"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / "latest.png"
+        if cv2.imwrite(str(output_path), cropped):
+            logger.log("MINIMAP", f"Recorte de diagnóstico salvo em {output_path}", level="INFO")
+
+    def _log_minimap_state(self, game_state: GameState, frame_image) -> None:
+        """Registra alterações relevantes da percepção do minimapa sem poluir o log por frame."""
+        minimap = game_state.minimap
+        marker_ids = tuple(sorted(marker.template_id for marker in minimap.markers))
+        signature = (minimap.available, minimap.reason, marker_ids)
+        if signature == self.last_minimap_signature:
+            return
+
+        self.last_minimap_signature = signature
+        self._save_minimap_diagnostic(frame_image, game_state)
+        if not minimap.available:
+            logger.log("MINIMAP", f"Indisponível: {minimap.reason or 'motivo desconhecido'}", level="WARNING")
+            return
+
+        assert minimap.bounds is not None
+        if not minimap.markers:
+            logger.log(
+                "MINIMAP",
+                f"ROI ativa em x={minimap.bounds.x}, y={minimap.bounds.y}, "
+                f"w={minimap.bounds.width}, h={minimap.bounds.height}; nenhum marcador encontrado.",
+                level="INFO",
+            )
+            return
+
+        details = ", ".join(
+            f"{marker.template_id}@{marker.center} ({marker.confidence:.2f})"
+            for marker in minimap.markers
+        )
+        logger.log("MINIMAP", f"Marcadores detectados: {details}", level="INFO")
 
     def run_cycle(self) -> Tuple[GameState, BotState, CycleMetrics]:
         t0 = time.perf_counter()
@@ -115,6 +166,7 @@ class BotEngine:
 
         # 3. Converte percepção em snapshot imutável de GameState
         game_state: GameState = self.analyzer.analyze(frame, window_state, self.config)
+        self._log_minimap_state(game_state, frame.image)
         t2 = time.perf_counter()
 
         # 4. Atualiza a Máquina de Estados Finitos

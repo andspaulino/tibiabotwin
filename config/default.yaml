@@ -33,6 +33,23 @@ regions:
     width: 0.058
     height: 0.091
 
+  # Calibre esta ROI no perfil antes de ativar a percepção do minimapa.
+  minimap:
+    x: 0.800
+    y: 0.020
+    width: 0.180
+    height: 0.220
+
+# A percepção do minimapa não gera inputs. Mantenha desativada até calibrar a ROI
+# e configurar templates de marcadores no perfil.
+minimap:
+  enabled: false
+  marker_templates: {}
+  match_threshold: 0.88
+  validate_cross: false
+  cross_template_path: null
+  cross_match_threshold: 0.88
+
 healer:
   enabled: true
 

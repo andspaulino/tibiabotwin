@@ -12,6 +12,18 @@ Captura → Percepção → Estado → Decisão → Execução
 
 ## Estado atual do projeto
 
+### Fase 12A — Percepção do minimapa (em calibração)
+
+* [x] Adicionar `MinimapState` imutável ao `GameState`.
+* [x] Analisar a ROI configurável de minimapa no frame único do ciclo.
+* [x] Detectar todos os templates de marcador com confiança e coordenadas locais.
+* [x] Permitir auditoria opcional do layout por `cross.png`.
+* [x] Retornar estado indisponível para frame, ROI ou validação inválidos.
+* [x] Cobrir a análise com testes unitários sintéticos.
+* [ ] Calibrar `regions.minimap` e validar com frames reais versionados.
+* [ ] Implementar a Fase 12B (payload tipado de mouse e executor); nenhum clique foi adicionado nesta fase.
+
+
 ### Inicialização e gerenciamento de janelas
 
 * [x] Verificar a existência da janela do Tibia.

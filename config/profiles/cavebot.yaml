@@ -1,0 +1,18 @@
+# Perfil de calibração do Cavebot por minimapa.
+# ROI relativa ao frame capturado do Projetor em Janela do OBS.
+regions:
+  minimap:
+    x: 0.911458
+    y: 0.002973
+    width: 0.058333
+    height: 0.111001
+
+# Percepção do marcador de check verde no minimapa.
+# Esta fase ainda não propõe cliques ou movimentos.
+minimap:
+  enabled: true
+  marker_templates:
+    flag0: templates/markers/flag0.png
+  # O template flag0 tem score ~0.76 no layout calibrado atual.
+  match_threshold: 0.75
+  validate_cross: false

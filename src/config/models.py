@@ -17,6 +17,19 @@ class RegionsConfig:
     mana: RelativeROI = field(default_factory=lambda: RelativeROI(x=0.533, y=0.001, width=0.280, height=0.018))
     status_bar: RelativeROI = field(default_factory=lambda: RelativeROI(x=0.477, y=0.001, width=0.057, height=0.017))
     battle_list: RelativeROI = field(default_factory=lambda: RelativeROI(x=0.908, y=0.361, width=0.058, height=0.091))
+    minimap: RelativeROI = field(default_factory=lambda: RelativeROI(x=0.800, y=0.020, width=0.180, height=0.220))
+
+
+@dataclass(frozen=True)
+class MinimapConfig:
+    """Configuração da percepção visual do minimapa; não habilita movimento."""
+
+    enabled: bool = False
+    marker_templates: tuple[tuple[str, str], ...] = ()
+    match_threshold: float = 0.88
+    validate_cross: bool = False
+    cross_template_path: str | None = None
+    cross_match_threshold: float = 0.88
 
 
 @dataclass(frozen=True)
@@ -87,4 +100,5 @@ class AppConfig:
     combat: CombatConfig = field(default_factory=CombatConfig)
     pz: PZConfig = field(default_factory=PZConfig)
     loot: LootConfig = field(default_factory=LootConfig)
+    minimap: MinimapConfig = field(default_factory=MinimapConfig)
     loop_interval_ms: int = 50

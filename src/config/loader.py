@@ -1,4 +1,4 @@
-import os
+
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 import yaml
@@ -15,6 +15,7 @@ from src.config.models import (
     CombatConfig,
     PZConfig,
     LootConfig,
+    MinimapConfig,
 )
 
 
@@ -156,14 +157,64 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
     sb_roi = _validate_relative_roi(regions_data.get("status_bar"), "regions.status_bar", def_regions.status_bar)
     bl_roi = _validate_relative_roi(regions_data.get("battle_list"), "regions.battle_list", def_regions.battle_list)
 
+    minimap_roi = _validate_relative_roi(regions_data.get("minimap"), "regions.minimap", def_regions.minimap)
+
     regions_cfg = RegionsConfig(
         hp=hp_roi,
         mana=mp_roi,
         status_bar=sb_roi,
-        battle_list=bl_roi
+        battle_list=bl_roi,
+        minimap=minimap_roi,
     )
 
-    # 3. Healer Config
+    # 3. Minimap Config
+    minimap_data = data.get("minimap", {})
+    minimap_enabled = bool(minimap_data.get("enabled", False))
+    match_threshold = float(minimap_data.get("match_threshold", 0.88))
+    if not 0.0 <= match_threshold <= 1.0:
+        raise ConfigValidationError("Campo 'minimap.match_threshold' deve estar entre 0.0 e 1.0.")
+
+    raw_marker_templates = minimap_data.get("marker_templates", {})
+    if not isinstance(raw_marker_templates, dict):
+        raise ConfigValidationError("Campo 'minimap.marker_templates' deve ser um objeto com id e caminho de template.")
+    marker_templates: list[tuple[str, str]] = []
+    for template_id, template_path in raw_marker_templates.items():
+        if not isinstance(template_id, str) or not template_id.strip():
+            raise ConfigValidationError("Cada id em 'minimap.marker_templates' deve ser uma string não vazia.")
+        if not isinstance(template_path, str) or not template_path.strip():
+            raise ConfigValidationError(f"Template do marcador '{template_id}' não pode ser vazio.")
+        marker_templates.append((
+            template_id.strip(),
+            _validate_template_file(template_path.strip(), f"minimap.marker_templates.{template_id}", minimap_enabled),
+        ))
+    if minimap_enabled and not marker_templates:
+        raise ConfigValidationError("Campo 'minimap.marker_templates' deve conter ao menos um template quando o minimapa estiver ativado.")
+
+    validate_cross = bool(minimap_data.get("validate_cross", False))
+    cross_template_path = minimap_data.get("cross_template_path")
+    if validate_cross:
+        if not isinstance(cross_template_path, str) or not cross_template_path.strip():
+            raise ConfigValidationError("Campo 'minimap.cross_template_path' é obrigatório quando validate_cross estiver ativado.")
+        cross_template_path = _validate_template_file(
+            cross_template_path.strip(), "minimap.cross_template_path", minimap_enabled
+        )
+    elif cross_template_path is not None and not isinstance(cross_template_path, str):
+        raise ConfigValidationError("Campo 'minimap.cross_template_path' deve ser uma string ou nulo.")
+
+    cross_match_threshold = float(minimap_data.get("cross_match_threshold", 0.88))
+    if not 0.0 <= cross_match_threshold <= 1.0:
+        raise ConfigValidationError("Campo 'minimap.cross_match_threshold' deve estar entre 0.0 e 1.0.")
+
+    minimap_cfg = MinimapConfig(
+        enabled=minimap_enabled,
+        marker_templates=tuple(marker_templates),
+        match_threshold=match_threshold,
+        validate_cross=validate_cross,
+        cross_template_path=cross_template_path,
+        cross_match_threshold=cross_match_threshold,
+    )
+
+    # 4. Healer Config
     healer_data = data.get("healer", {})
     healer_enabled = bool(healer_data.get("enabled", True))
 
@@ -213,7 +264,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         emergency_potion=emerg_cfg
     )
 
-    # 4. Combat Config
+    # 5. Combat Config
     combat_data = data.get("combat", {})
     combat_enabled = bool(combat_data.get("enabled", True))
     attack_key = _validate_hotkey(combat_data.get("attack_key", "space"), "combat.attack_key", combat_enabled)
@@ -240,7 +291,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         target_match_threshold=thresh
     )
 
-    # 5. Protection Zone Config
+    # 6. Protection Zone Config
     pz_data = data.get("pz", {})
     pz_enabled = bool(pz_data.get("enabled", True))
     pz_tmpl = _validate_template_file(str(pz_data.get("template_path", "templates/pz.png")), "pz.template_path", pz_enabled)
@@ -254,7 +305,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         match_threshold=pz_thresh
     )
 
-    # 6. Loot Config
+    # 7. Loot Config
     loot_data = data.get("loot", {})
     loot_enabled = bool(loot_data.get("enabled", True))
     nearby_key = _validate_hotkey(loot_data.get("nearby_corpses_key", "f12"), "loot.nearby_corpses_key", loot_enabled)
@@ -274,7 +325,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         emergency_hp_threshold=emergency_hp,
     )
 
-    # 7. Global loop interval
+    # 8. Global loop interval
     loop_ms = data.get("loop_interval_ms", 50)
     try:
         loop_ms = int(loop_ms)
@@ -290,6 +341,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         combat=combat_cfg,
         pz=pz_cfg,
         loot=loot_cfg,
+        minimap=minimap_cfg,
         loop_interval_ms=loop_ms
     )
 

@@ -30,6 +30,11 @@ Diferente de bots que leem ou injetam dados na memória do jogo, este bot age pu
 - **`GameAnalyzer`**: Converte frames e estado das janelas em `GameState`. Valores indeterminados são explicitamente `None` (sem assunções inseguras de 100% HP).
 - **Consumo Exclusivo por Estado**: `AutoHealer`, `AutoAttacker` e `OnScreenOverlay` consomem apenas o `GameState`, sem capturar a tela ou executar Win32 diretamente.
 
+### Percepção de minimapa em calibração (`src/domain/minimap.py`)
+- `GameState.minimap` recebe um snapshot imutável com ROI absoluta, centro local e todos os marcadores encontrados no mesmo frame do ciclo.
+- A análise utiliza templates configurados, pode auditar o layout com `cross.png` e falha de forma segura quando a ROI, o frame ou a validação são inválidos.
+- O bloco `minimap` de `config/default.yaml` começa desativado. Calibre `regions.minimap` e informe os templates no perfil antes de habilitá-lo. Esta fase **não gera cliques nem movimento**.
+
 ### 5. Máquina de Estados Finitos do Bot (`src/application/state_machine.py` + `BotMode`)
 - **`BotMode` Finito**: Apenas um modo principal ativo por ciclo (`PAUSED`, `UNSAFE`, `IN_PROTECTION_ZONE`, `COMBAT`, `IDLE`).
 - **Hierarquia Estrita de Prioridades**: Killswitch > Foco/Minimização > Validade da Captura > Protection Zone > Combate > Ocioso.
