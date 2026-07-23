@@ -24,6 +24,25 @@ Também devem ser preservados os seguintes princípios:
 
 ---
 
+## Status de implementação — 2026-07-23
+
+| Fase | Estado | Evidência e escopo atual |
+| --- | --- | --- |
+| 12A — Percepção | Concluída em observação | `GameState.minimap`, ROI relativa calibrada, `flag0` e `flag1` detectados no frame único do Projetor. Frames reais ainda não foram versionados como fixtures. |
+| 12B — Ações | Concluída | `KeyPayload` e `MouseClickPayload` centralizados; `--observe-only` nunca envia input e não consome cooldown físico. |
+| 12C — Waypoint único | Concluída em observação | Seleção, chegada, cooldown de simulação e `STUCK` foram validados sem clique físico. |
+| 12D — Rota sequencial | Parcialmente concluída | `--hunt`, JSON validado, `RouteRunner` e rota `flag0 → flag1` foram validados em tempo real em `--observe-only`, incluindo conclusão sem loop. |
+| 12E — Fluxos avançados | Não iniciada | `STAND`, `ACTION`, `LABEL`, `GOTO` e transições permanecem fora do escopo atual. |
+
+### Limites obrigatórios do estado atual
+
+* O Cavebot só encaminha ações ao executor quando `--observe-only` está ativo; as ações são logs simulados.
+* Nenhuma conversão confiável de coordenadas do frame do Projetor para coordenadas de tela foi implementada. Portanto, **cliques físicos do Cavebot não estão autorizados**.
+* A retomada do mesmo waypoint após combate/PZ é preservada pelo `RouteRunner`, mas ainda requer teste de integração manual dedicado.
+* O loop de uma rota possui teste unitário; ainda requer validação manual no Projetor.
+
+---
+
 # 1. Objetivo
 
 Implementar um Cavebot capaz de navegar pelo minimapa utilizando marcadores visuais configurados previamente no jogo.
@@ -1373,6 +1392,8 @@ O sistema não deverá tentar corrigir silenciosamente arquivos inválidos.
 ---
 
 # 17. Roteiro Incremental
+
+> **Atualização de estado:** as Fases 12A, 12B e 12C foram concluídas em modo de observação. A Fase 12D está em andamento: carregamento de rota JSON, avanço sequencial e conclusão sem loop foram validados com `flag0 → flag1`; ainda faltam validações manuais de loop e suspensão/retomada por combate ou PZ.
 
 ## Fase 12A — Percepção do minimapa
 

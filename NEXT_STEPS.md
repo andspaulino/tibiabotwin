@@ -12,20 +12,24 @@ Captura → Percepção → Estado → Decisão → Execução
 
 ## Estado atual do projeto
 
-### Fase 12A — Percepção do minimapa (em calibração)
+### Fase 12 — Cavebot por minimapa
 
-* [x] Adicionar `MinimapState` imutável ao `GameState`.
-* [x] Analisar a ROI configurável de minimapa no frame único do ciclo.
-* [x] Detectar todos os templates de marcador com confiança e coordenadas locais.
-* [x] Permitir auditoria opcional do layout por `cross.png`.
-* [x] Retornar estado indisponível para frame, ROI ou validação inválidos.
-* [x] Cobrir a análise com testes unitários sintéticos.
-* [ ] Calibrar `regions.minimap` e validar com frames reais versionados.
-* [x] Implementar a Fase 12B: payloads tipados de tecla e mouse, executor central e simulação em `--observe-only`.
-* [x] Fase 12C: `MarkerSelector`, cálculo de distância, confirmação de chegada e `StuckDetector` integrados ao waypoint de observação.
-* [x] Integrar o `CavebotController` ao `BotEngine` exclusivamente em `--observe-only`; o perfil `cavebot` simula um waypoint `flag0` sem clique físico.
-* [~] Fase 12D: formato JSON, validação, `RouteRunner` e `--hunt` em observação implementados; a rota de exemplo ainda precisa ser validada com marcadores reais sequenciais.
-* [ ] Antes de habilitar input real, converter coordenadas do frame do Projetor para coordenadas de tela e validar a rota completa com controles de segurança.
+**Estado atual:** Fases 12A–12C concluídas em `--observe-only`; Fase 12D parcialmente concluída e validada em tempo real com a rota sequencial `flag0 → flag1`.
+
+* [x] Adicionar `MinimapState` imutável ao `GameState` e analisar a ROI em um único frame por ciclo.
+* [x] Calibrar `regions.minimap` no perfil `cavebot` (`112×112` pixels no layout validado).
+* [x] Detectar os marcadores reais `flag0` e `flag1` com confiança configurada de `0.75`.
+* [x] Criar payloads tipados e manter cliques simulados em `--observe-only`.
+* [x] Selecionar marcadores por template, confiança e região; confirmar chegada pelo raio de `4px`.
+* [x] Detectar falta de progresso e entrar em `STUCK` sem avançar waypoint.
+* [x] Carregar rotas JSON com `--hunt` e validar settings, IDs, regiões e templates.
+* [x] Validar a rota sem loop `flag0 → flag1` no Projetor em `--observe-only`, incluindo a conclusão `COMPLETED`.
+* [x] Bloquear `--hunt` fora de `--observe-only` nesta etapa.
+* [ ] Versionar frames reais de minimapa em `tests/fixtures/minimap/`.
+* [ ] Validar manualmente rota com `loop: true`.
+* [ ] Validar manualmente suspensão em combate/PZ e retomada do mesmo waypoint.
+* [ ] Adicionar teste de integração dedicado ao engine para rota, suspensão e retomada.
+* [ ] Converter coordenadas do frame do Projetor em coordenadas de tela e validar todos os portões de segurança antes de considerar clique físico.
 
 
 ### Inicialização e gerenciamento de janelas
@@ -952,65 +956,16 @@ Não iniciar Auto-Loot ou movimento antes de concluir pelo menos as fases 1 a 9.
 
 # Próxima tarefa recomendada
 
-## Criar configuração externa e modelo central de ROI
+## Consolidar a Fase 12D em observação
 
-### Etapa 1
+1. Criar uma rota de teste com `loop: true` e validar que, após o último waypoint, o `RouteRunner` retorna ao primeiro sem pular marcadores.
+2. Interromper uma rota ativa com combate e com PZ, confirmando que nenhuma ação de movimento é simulada e que o mesmo waypoint é readquirido após a interrupção.
+3. Salvar frames reais representativos em `tests/fixtures/minimap/`: marcador ausente, `flag0`, `flag1`, múltiplos marcadores, redraw e chegada ao centro.
+4. Adicionar um teste de integração do `BotEngine` cobrindo a sequência `MOVING → COMBAT/PZ → MOVING` e a preservação do índice da rota.
 
-Criar:
+### Bloqueio para clique físico
 
-```text
-config/
-├── default.yaml
-└── profiles/
-    └── 1920x1080.yaml
-```
-
-### Etapa 2
-
-Mover para a configuração:
-
-* títulos das janelas;
-* hotkeys;
-* thresholds;
-* cooldowns;
-* caminhos dos templates;
-* ROIs;
-* recursos habilitados.
-
-### Etapa 3
-
-Criar:
-
-```text
-src/
-├── config/
-│   ├── loader.py
-│   └── models.py
-└── domain/
-    └── roi.py
-```
-
-### Etapa 4
-
-Adicionar validações:
-
-* arquivo inexistente;
-* campo obrigatório ausente;
-* percentual fora de `0–100`;
-* cooldown negativo;
-* ROI fora de `0.0–1.0`;
-* hotkey vazia;
-* template inexistente.
-
-### Definição de pronto
-
-* [ ] O projeto inicia carregando `config/default.yaml`.
-* [ ] O perfil pode sobrescrever os valores padrão.
-* [ ] Healer e combat recebem configurações pelo construtor.
-* [ ] Nenhuma ROI fica declarada dentro de `main.py`.
-* [ ] Nenhum threshold de gameplay fica declarado dentro dos módulos.
-* [ ] Configuração inválida impede a inicialização com mensagem clara.
-* [ ] O modo de inicialização não envia qualquer comando ao jogo.
+Não habilitar Cavebot fora de `--observe-only` até que exista uma conversão testada entre as coordenadas do frame do Projetor e a tela, além de revalidação de foco, minimização, frame, killswitch e cooldown imediatamente antes do clique.
 
 ---
 
