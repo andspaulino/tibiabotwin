@@ -16,6 +16,7 @@ from src.utils.overlay import OnScreenOverlay
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
 from src.bot.loot import AutoLootController
+from src.application.chat_initializer import ChatInitializer
 
 if sys.platform == "win32":
     try:
@@ -102,6 +103,7 @@ def run():
     healer = AutoHealer(config.healer)
     combat = AutoAttacker(config.combat)
     loot = AutoLootController(config.loot)
+    chat_initializer = ChatInitializer(config.chat)
     overlay = OnScreenOverlay()
     scheduler = LoopScheduler(target_interval_ms=config.loop_interval_ms)
     cooldown_manager = CooldownManager()
@@ -117,6 +119,7 @@ def run():
         healer=healer,
         combat=combat,
         loot=loot,
+        chat_initializer=chat_initializer,
         overlay=overlay,
         scheduler=scheduler,
         hwnd_tibia=hwnd_tibia,

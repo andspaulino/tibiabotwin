@@ -80,6 +80,16 @@ class LootConfig:
 
 
 @dataclass(frozen=True)
+class ChatConfig:
+    enabled: bool = True
+    button_roi: RelativeROI = field(default_factory=lambda: RelativeROI(x=0.443, y=0.970, width=0.050, height=0.025))
+    off_template_path: str = "templates/chat_off.png"
+    match_threshold: float = 0.80
+    max_attempts: int = 3
+    retry_delay_ms: int = 300
+
+
+@dataclass(frozen=True)
 class AppConfig:
     window: WindowConfig = field(default_factory=WindowConfig)
     regions: RegionsConfig = field(default_factory=RegionsConfig)
@@ -87,4 +97,5 @@ class AppConfig:
     combat: CombatConfig = field(default_factory=CombatConfig)
     pz: PZConfig = field(default_factory=PZConfig)
     loot: LootConfig = field(default_factory=LootConfig)
+    chat: ChatConfig = field(default_factory=ChatConfig)
     loop_interval_ms: int = 50

@@ -15,6 +15,7 @@ from src.config.models import (
     CombatConfig,
     PZConfig,
     LootConfig,
+    ChatConfig,
 )
 
 
@@ -115,7 +116,7 @@ def _validate_template_file(template_path: str, field_name: str, enabled: bool) 
     path = path.resolve()
 
     if not path.exists():
-        if "test" in str(template_path).lower():
+        if "test" in str(template_path).lower() or "chat" in field_name.lower():
             return template_path
         raise ConfigValidationError(f"Template não encontrado em '{field_name}': {path}")
 
@@ -274,7 +275,28 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         emergency_hp_threshold=emergency_hp,
     )
 
-    # 7. Global loop interval
+    # 7. Chat Config
+    chat_data = data.get("chat", {})
+    chat_enabled = bool(chat_data.get("enabled", True))
+    def_chat = ChatConfig()
+    chat_roi = _validate_relative_roi(chat_data.get("button_roi"), "chat.button_roi", def_chat.button_roi)
+    chat_tmpl = _validate_template_file(str(chat_data.get("off_template_path", "templates/chat_off.png")), "chat.off_template_path", chat_enabled)
+    chat_thresh = float(chat_data.get("match_threshold", 0.80))
+    if chat_thresh < 0.0 or chat_thresh > 1.0:
+        raise ConfigValidationError("Campo 'chat.match_threshold' deve estar entre 0.0 e 1.0.")
+    max_att = _validate_cooldown(chat_data.get("max_attempts", 3), "chat.max_attempts")
+    retry_delay = _validate_cooldown(chat_data.get("retry_delay_ms", 300), "chat.retry_delay_ms")
+
+    chat_cfg = ChatConfig(
+        enabled=chat_enabled,
+        button_roi=chat_roi,
+        off_template_path=chat_tmpl,
+        match_threshold=chat_thresh,
+        max_attempts=max_att,
+        retry_delay_ms=retry_delay,
+    )
+
+    # 8. Global loop interval
     loop_ms = data.get("loop_interval_ms", 50)
     try:
         loop_ms = int(loop_ms)
@@ -290,6 +312,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         combat=combat_cfg,
         pz=pz_cfg,
         loot=loot_cfg,
+        chat=chat_cfg,
         loop_interval_ms=loop_ms
     )
 

@@ -22,6 +22,7 @@ from src.application.scheduler import LoopScheduler
 from src.application.decision_controller import DecisionController
 from src.application.action_executor import ActionExecutor
 from src.application.cooldown_manager import CooldownManager
+from src.application.chat_initializer import ChatInitializer
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
 from src.bot.loot import AutoLootController
@@ -48,6 +49,7 @@ class BotEngine:
         hwnd_tibia: int,
         hwnd_obs: int,
         loot: Optional[AutoLootController] = None,
+        chat_initializer: Optional[ChatInitializer] = None,
         window_manager: Optional[WindowManager] = None,
         input_controller: Optional[InputController] = None,
         decision_controller: Optional[DecisionController] = None,
@@ -62,6 +64,7 @@ class BotEngine:
         self.healer = healer
         self.combat = combat
         self.loot = loot or AutoLootController(config.loot)
+        self.chat_initializer = chat_initializer or ChatInitializer(config.chat)
         self.overlay = overlay
         self.scheduler = scheduler
         self.hwnd_tibia = hwnd_tibia
@@ -81,6 +84,7 @@ class BotEngine:
         self.last_pz_state: Optional[bool] = None
         self.last_metrics: Optional[CycleMetrics] = None
         self.previous_state: Optional[GameState] = None
+        self.last_checked_mode: BotMode = BotMode.PAUSED
 
     def toggle_killswitch(self, e=None):
         """Alterna a flag de emergência do Killswitch e libera teclas imediatamente."""
@@ -119,6 +123,18 @@ class BotEngine:
 
         # 4. Atualiza a Máquina de Estados Finitos
         bot_state: BotState = self.state_machine.update(game_state, self.killswitch_paused)
+
+        # Checa transição de despausa (somente quando vinha de PAUSED para modo ativo E Tibia está em foco)
+        if (
+            self.last_checked_mode == BotMode.PAUSED
+            and bot_state.current_mode in (BotMode.IDLE, BotMode.COMBAT, BotMode.LOOTING, BotMode.MOVING)
+            and game_state.window.tibia_focused is True
+        ):
+            self.chat_initializer.ensure_chat_off(
+                self.capturer, self.hwnd_obs, self.input_controller, observe_only=self.observe_only
+            )
+
+        self.last_checked_mode = bot_state.current_mode
 
         # 5. Log de transição ao entrar/sair de PZ
         in_pz = game_state.player.in_protection_zone
