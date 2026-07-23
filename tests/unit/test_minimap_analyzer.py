@@ -89,6 +89,26 @@ class TestMinimapAnalyzer(unittest.TestCase):
         self.assertIsNotNone(invalid_cross.reason)
         self.assertIn("cross", invalid_cross.reason or "")
 
+    def test_game_analyzer_filters_templates_to_active_route(self) -> None:
+        frame_image = np.zeros((40, 40, 3), dtype=np.uint8)
+        frame_image[10:13, 15:18] = self.template
+        config = AppConfig(
+            regions=RegionsConfig(minimap=RelativeROI(x=0.0, y=0.0, width=1.0, height=1.0)),
+            minimap=MinimapConfig(
+                enabled=True,
+                marker_templates=(("flag0", str(self.template_path)), ("flag1", str(self.template_path))),
+                match_threshold=0.99,
+            ),
+        )
+        frame = CapturedFrame(frame_image, datetime.now(timezone.utc), 40, 40, status=FrameStatus.VALID)
+
+        state = GameAnalyzer(config, marker_template_ids={"flag1"}).analyze(
+            frame,
+            WindowState(tibia_focused=True, tibia_minimized=False, projector_available=True),
+        )
+
+        self.assertEqual([marker.template_id for marker in state.minimap.markers], ["flag1"])
+
     def test_game_analyzer_includes_minimap_from_shared_frame(self) -> None:
         frame_image = np.zeros((40, 40, 3), dtype=np.uint8)
         frame_image[10:13, 15:18] = self.template

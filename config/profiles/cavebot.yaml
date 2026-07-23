@@ -14,6 +14,25 @@ minimap:
   marker_templates:
     flag0: templates/markers/flag0.png
     flag1: templates/markers/flag1.png
+    flag2: templates/markers/flag2.png
+    flag3: templates/markers/flag3.png
+    flag4: templates/markers/flag4.png
+    flag5: templates/markers/flag5.png
+    flag6: templates/markers/flag6.png
+    flag7: templates/markers/flag7.png
+    flag8: templates/markers/flag8.png
+    flag9: templates/markers/flag9.png
+    flag10: templates/markers/flag10.png
+    flag11: templates/markers/flag11.png
+    flag12: templates/markers/flag12.png
+    flag13: templates/markers/flag13.png
+    flag14: templates/markers/flag14.png
+    flag15: templates/markers/flag15.png
+    flag16: templates/markers/flag16.png
+    flag17: templates/markers/flag17.png
+    flag18: templates/markers/flag18.png
+    flag19: templates/markers/flag19.png
+
   # O template flag0 tem score ~0.76 no layout calibrado atual.
   match_threshold: 0.75
   validate_cross: false

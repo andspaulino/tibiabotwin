@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Collection, Optional
 from pathlib import Path
 import cv2
 
@@ -32,9 +32,15 @@ class GameAnalyzer:
     Converte um CapturedFrame e um WindowState em um snapshot imutável de GameState.
     """
 
-    def __init__(self, config: Optional[AppConfig] = None, minimap_analyzer: Optional[MinimapAnalyzer] = None):
+    def __init__(
+        self,
+        config: Optional[AppConfig] = None,
+        minimap_analyzer: Optional[MinimapAnalyzer] = None,
+        marker_template_ids: Collection[str] | None = None,
+    ):
         self.config = config
         self.minimap_analyzer = minimap_analyzer or MinimapAnalyzer()
+        self.marker_template_ids = frozenset(marker_template_ids) if marker_template_ids is not None else None
 
     def _save_failed_frame(self, frame: CapturedFrame):
         """Salva um frame com falha/congelado na pasta logs/failed_frames para diagnóstico."""
@@ -119,11 +125,19 @@ class GameAnalyzer:
             threshold=cfg.combat.target_match_threshold if cfg else 0.75
         )
 
+        marker_templates = dict(cfg.minimap.marker_templates) if cfg else {}
+        if self.marker_template_ids is not None:
+            marker_templates = {
+                marker_id: template_path
+                for marker_id, template_path in marker_templates.items()
+                if marker_id in self.marker_template_ids
+            }
+
         minimap_state = (
             self.minimap_analyzer.analyze(
                 frame=img_bgr,
                 minimap_roi=cfg.regions.minimap,
-                marker_templates=dict(cfg.minimap.marker_templates),
+                marker_templates=marker_templates,
                 match_threshold=cfg.minimap.match_threshold,
                 validate_cross=cfg.minimap.validate_cross,
                 cross_template_path=cfg.minimap.cross_template_path,

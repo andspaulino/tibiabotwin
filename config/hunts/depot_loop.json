@@ -1,0 +1,87 @@
+{
+  "hunt_name": "Depot Loop Observation Route",
+  "version": 1,
+  "loop": true,
+  "settings": {
+    "match_threshold": 0.75,
+    "arrival_radius_pixels": 4.0,
+    "progress_epsilon_pixels": 1.5,
+    "stuck_timeout_ms": 15000,
+    "click_cooldown_ms": 1500,
+    "max_retries": 2
+  },
+  "waypoints": [
+    {
+      "id": "000",
+      "type": "marker_click",
+      "marker": "flag0",
+      "expected_region": {
+        "x": 0.0,
+        "y": 0.0,
+        "width": 1.0,
+        "height": 1.0
+      },
+      "next_id": "001"
+    },
+    {
+      "id": "001",
+      "type": "marker_click",
+      "marker": "flag8",
+      "expected_region": {
+        "x": 0.0,
+        "y": 0.0,
+        "width": 1.0,
+        "height": 1.0
+      },
+      "next_id": "002"
+    },
+    {
+      "id": "002",
+      "type": "marker_click",
+      "marker": "flag7",
+      "expected_region": {
+        "x": 0.0,
+        "y": 0.0,
+        "width": 1.0,
+        "height": 1.0
+      },
+      "next_id": "003"
+    },
+    {
+      "id": "003",
+      "type": "marker_click",
+      "marker": "flag8",
+      "expected_region": {
+        "x": 0.0,
+        "y": 0.0,
+        "width": 1.0,
+        "height": 1.0
+      },
+      "next_id": "004"
+    },
+    {
+      "id": "004",
+      "type": "marker_click",
+      "marker": "flag8",
+      "expected_region": {
+        "x": 0.0,
+        "y": 0.0,
+        "width": 1.0,
+        "height": 1.0
+      },
+      "next_id": "005"
+    },
+    {
+      "id": "005",
+      "type": "marker_click",
+      "marker": "flag7",
+      "expected_region": {
+        "x": 0.0,
+        "y": 0.0,
+        "width": 1.0,
+        "height": 1.0
+      },
+      "next_id": "000"
+    }
+  ]
+}

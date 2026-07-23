@@ -128,7 +128,8 @@ def run():
 
     # Composição de Dependências
     capturer = ProjectorFrameCapturer()
-    analyzer = GameAnalyzer(config)
+    route_marker_ids = {waypoint.marker for waypoint in route.waypoints if waypoint.marker} if route else None
+    analyzer = GameAnalyzer(config, marker_template_ids=route_marker_ids)
     state_machine = StateMachine(initial_mode=BotMode.IDLE)
     healer = AutoHealer(config.healer)
     combat = AutoAttacker(config.combat)
