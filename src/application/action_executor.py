@@ -15,14 +15,18 @@ class ActionExecutor:
     Atualiza os timestamps do CooldownManager APÓS a execução confirmada com sucesso.
     """
 
-    def __init__(self, cooldown_manager: Optional[CooldownManager] = None):
+    def __init__(
+        self,
+        input_controller: Optional[InputController] = None,
+        cooldown_manager: Optional[CooldownManager] = None
+    ):
+        self.input_controller = input_controller
         self.cooldown_manager = cooldown_manager or CooldownManager()
 
     def execute(
         self,
         actions: List[BotAction],
         game_state: GameState,
-        input_controller: InputController,
         observe_only: bool = False,
         cooldown_manager: Optional[CooldownManager] = None
     ) -> None:
@@ -40,8 +44,8 @@ class ActionExecutor:
             if action.key:
                 if observe_only:
                     logger.log("SIMULATION", f"[OBSERVE-ONLY] Acao simulada {action.action_type.value.upper()}: {action.reason}", level="ACTION")
-                else:
-                    input_controller.press_key(action.key)
+                elif self.input_controller:
+                    self.input_controller.press_key(action.key)
                     logger.log("ACTION", f"Executado {action.action_type.value.upper()}: {action.reason}", level="ACTION")
 
                 # Registra o cooldown EXCLUSIVAMENTE após o envio bem sucedido

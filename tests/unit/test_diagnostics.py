@@ -69,8 +69,8 @@ class TestDiagnosticsAndObservability(unittest.TestCase):
 
     def test_observe_only_mode_blocks_physical_input(self):
         """Verifica se no modo --observe-only o ActionExecutor não dispara teclas no MockInputController."""
-        executor = ActionExecutor()
         mock_input = MockInputController()
+        executor = ActionExecutor(input_controller=mock_input)
 
         now = datetime.now(timezone.utc)
         safe_game_state = GameState(
@@ -84,7 +84,7 @@ class TestDiagnosticsAndObservability(unittest.TestCase):
         emerg_action = BotAction(action_type=ActionType.EMERGENCY_HEAL, priority=1, key="3", reason="Vida Baixa")
 
         # Executa no modo de observação (observe_only=True)
-        executor.execute([emerg_action], safe_game_state, mock_input, observe_only=True)
+        executor.execute([emerg_action], safe_game_state, observe_only=True)
 
         # Tecla "3" NÃO deve estar no histórico do MockInputController
         self.assertEqual(len(mock_input.key_history), 0)

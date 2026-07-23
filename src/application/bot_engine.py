@@ -64,7 +64,7 @@ class BotEngine:
         self.window_manager = window_manager or create_window_manager()
         self.input_controller = input_controller or create_input_controller()
         self.decision_controller = decision_controller or DecisionController()
-        self.action_executor = action_executor or ActionExecutor()
+        self.action_executor = action_executor or ActionExecutor(input_controller=self.input_controller)
         self.observe_only = observe_only
 
         self.running = False
@@ -136,7 +136,7 @@ class BotEngine:
 
         # 9. Execução de ações pelo ActionExecutor
         self.action_executor.execute(
-            resolved_actions, game_state, self.input_controller, observe_only=self.observe_only
+            resolved_actions, game_state, observe_only=self.observe_only
         )
         t4 = time.perf_counter()
 

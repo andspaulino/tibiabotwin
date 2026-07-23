@@ -10,7 +10,7 @@ from src.infrastructure.capture import ProjectorFrameCapturer
 from src.infrastructure.factory import create_window_manager, create_input_controller
 from src.infrastructure.vision.game_analyzer import GameAnalyzer
 from src.domain.bot_state import BotMode
-from src.application import StateMachine, LoopScheduler, BotEngine
+from src.application import StateMachine, LoopScheduler, BotEngine, ActionExecutor
 from src.utils.logger import logger
 from src.utils.overlay import OnScreenOverlay
 from src.bot.healer import AutoHealer
@@ -102,6 +102,7 @@ def run():
     combat = AutoAttacker(config.combat)
     overlay = OnScreenOverlay()
     scheduler = LoopScheduler(target_interval_ms=config.loop_interval_ms)
+    action_executor = ActionExecutor(input_controller=input_controller)
 
     # Injeção e Execução do BotEngine
     engine = BotEngine(
@@ -117,6 +118,7 @@ def run():
         hwnd_obs=hwnd_obs,
         window_manager=window_manager,
         input_controller=input_controller,
+        action_executor=action_executor,
         observe_only=args.observe_only
     )
     engine.run()

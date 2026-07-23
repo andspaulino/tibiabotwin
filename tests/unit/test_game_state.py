@@ -106,12 +106,12 @@ class TestGameState(unittest.TestCase):
         healer = AutoHealer()
         healer.start()
         # Não deve disparar hotkey se a vida estiver cheia (95%)
-        healer.check_and_heal(safe_state)
+        healer.get_proposed_actions(safe_state)
 
         combat = AutoAttacker()
         combat.start()
         # Não deve disparar ataque se não há monstros
-        combat.update(safe_state)
+        combat.get_proposed_actions(safe_state)
 
 
 if __name__ == "__main__":

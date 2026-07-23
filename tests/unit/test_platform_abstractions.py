@@ -43,7 +43,7 @@ class TestPlatformAbstractions(unittest.TestCase):
             target=TargetState(has_monsters_in_battle=False, has_active_target=False)
         )
 
-        actions = healer.check_and_heal(low_hp_state)
+        actions = healer.get_proposed_actions(low_hp_state)
         self.assertEqual(len(actions), 1)
         self.assertEqual(actions[0].key, "F1")
 
@@ -62,7 +62,7 @@ class TestPlatformAbstractions(unittest.TestCase):
             target=TargetState(has_monsters_in_battle=True, has_active_target=False)
         )
 
-        actions = combat.update(combat_state)
+        actions = combat.get_proposed_actions(combat_state)
         self.assertEqual(len(actions), 1)
         self.assertEqual(actions[0].key, "space")
 

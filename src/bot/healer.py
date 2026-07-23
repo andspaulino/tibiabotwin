@@ -92,13 +92,4 @@ class AutoHealer:
 
         return actions
 
-    def check_and_heal(
-        self,
-        state_or_hp: Union[GameState, float],
-        current_mp_pct: Optional[float] = None,
-        in_pz: bool = False
-    ) -> List[BotAction]:
-        """Método legado para compatibilidade direta. Retorna intenções sem disparar inputs."""
-        if isinstance(state_or_hp, GameState):
-            return self.get_proposed_actions(state_or_hp)
-        return []
+

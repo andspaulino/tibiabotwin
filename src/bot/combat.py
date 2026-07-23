@@ -89,13 +89,4 @@ class AutoAttacker:
 
         return actions
 
-    def update(
-        self,
-        state_or_img: Union[GameState, Any],
-        in_pz: bool = False,
-        roi: Union[RelativeROI, AbsoluteROI, Dict[str, Any]] = BATTLE_LIST_ROI
-    ) -> List[BotAction]:
-        """Método legado para compatibilidade direta. Retorna intenções sem disparar inputs."""
-        if isinstance(state_or_img, GameState):
-            return self.get_proposed_actions(state_or_img)
-        return []
+
