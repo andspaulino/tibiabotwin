@@ -31,15 +31,15 @@ Também devem ser preservados os seguintes princípios:
 | 12A — Percepção | Concluída em observação | `GameState.minimap`, ROI relativa calibrada, `flag0` e `flag1` detectados no frame único do Projetor. Frames reais ainda não foram versionados como fixtures. |
 | 12B — Ações | Concluída | `KeyPayload` e `MouseClickPayload` centralizados; `--observe-only` nunca envia input e não consome cooldown físico. |
 | 12C — Waypoint único | Concluída em observação | Seleção, chegada, cooldown de simulação e `STUCK` foram validados sem clique físico. |
-| 12D — Rota sequencial | Parcialmente concluída | `--hunt`, JSON validado, `RouteRunner` e rota `flag0 → flag1` foram validados em tempo real em `--observe-only`, incluindo conclusão sem loop. |
+| 12D — Rota sequencial | Parcialmente concluída | `--hunt`, JSON validado, `RouteRunner`, conclusão sem loop (`flag0 → flag1`) e loop real (`starter → flag8 → flag7 → flag6 → flag12 → flag2 → starter`) foram validados em `--observe-only`. |
 | 12E — Fluxos avançados | Não iniciada | `STAND`, `ACTION`, `LABEL`, `GOTO` e transições permanecem fora do escopo atual. |
 
 ### Limites obrigatórios do estado atual
 
 * O Cavebot só encaminha ações ao executor quando `--observe-only` está ativo; as ações são logs simulados.
 * Nenhuma conversão confiável de coordenadas do frame do Projetor para coordenadas de tela foi implementada. Portanto, **cliques físicos do Cavebot não estão autorizados**.
-* A retomada do mesmo waypoint após combate/PZ é preservada pelo `RouteRunner`, mas ainda requer teste de integração manual dedicado.
-* O loop de uma rota possui teste unitário; ainda requer validação manual no Projetor.
+* A suspensão por PZ e combate foi validada manualmente: nenhum `MOVE` é simulado durante a prioridade e o mesmo waypoint é readquirido após o retorno a `MOVING`.
+* O loop de uma rota possui validação unitária e manual no Projetor; suspensão/retomada após combate ou PZ ainda requer validação dedicada.
 
 ---
 
@@ -1393,7 +1393,7 @@ O sistema não deverá tentar corrigir silenciosamente arquivos inválidos.
 
 # 17. Roteiro Incremental
 
-> **Atualização de estado:** as Fases 12A, 12B e 12C foram concluídas em modo de observação. A Fase 12D está em andamento: carregamento de rota JSON, avanço sequencial e conclusão sem loop foram validados com `flag0 → flag1`; ainda faltam validações manuais de loop e suspensão/retomada por combate ou PZ.
+> **Atualização de estado:** as Fases 12A–12D foram validadas em modo de observação: carregamento JSON, avanço sequencial, conclusão sem loop, loop `starter → flag8 → flag7 → flag6 → flag12 → flag2 → starter` e suspensão/retomada por combate ou PZ. Permanecem bloqueados cliques físicos até existir conversão e validação de coordenadas de tela.
 
 ## Fase 12A — Percepção do minimapa
 

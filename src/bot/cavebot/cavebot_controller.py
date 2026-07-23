@@ -6,6 +6,7 @@ from src.bot.cavebot.route_runner import RouteRunner
 from src.bot.cavebot.movement_controller import MovementController
 from src.bot.cavebot.stuck_detector import StuckDetector
 from src.config.models import CavebotConfig, MinimapConfig
+from src.domain.bot_state import BotMode
 from src.domain.game_state import GameState
 
 
@@ -93,6 +94,17 @@ class CavebotController:
         if self._last_request_at is not None and (now - self._last_request_at) * 1000.0 < settings.click_cooldown_ms:
             return CavebotIntent(True, True, None, CavebotStatus.NAVIGATING, "Aguardando cooldown de movimento")
         return intent
+
+    def suspend(self, mode: BotMode) -> CavebotIntent:
+        """Suspende sem avançar rota ou reutilizar uma detecção anterior."""
+        active = self.route_runner is not None or self.config.enabled
+        return CavebotIntent(
+            active=active,
+            movement_requested=False,
+            action=None,
+            status=CavebotStatus.SUSPENDED,
+            reason=f"Cavebot suspenso pelo modo global {mode.value}",
+        )
 
     def record_simulated_request(self) -> None:
         """Registra o intervalo apenas após o engine encaminhar uma simulação autorizada."""

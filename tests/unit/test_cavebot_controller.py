@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from src.bot.cavebot.cavebot_controller import CavebotController
 from src.config.models import CavebotConfig, MinimapConfig
+from src.domain.bot_state import BotMode
 from src.domain.capture_status import FrameStatus
 from src.domain.game_state import CaptureState, GameState, PlayerState, TargetState, WindowState
 from src.domain.minimap import MarkerDetection, MinimapBounds, MinimapState
@@ -52,6 +53,17 @@ class TestCavebotController(unittest.TestCase):
         self.assertEqual(stuck.status.value, "stuck")
         self.assertFalse(stuck.movement_requested)
         self.assertIsNone(stuck.action)
+
+    def test_suspension_preserves_waypoint_and_reacquires_marker(self) -> None:
+        initial = self.controller.evaluate(self.state)
+        suspended = self.controller.suspend(BotMode.COMBAT)
+        resumed = self.controller.evaluate(self.state)
+
+        self.assertIsNotNone(initial.action)
+        self.assertEqual(suspended.status.value, "suspended")
+        self.assertFalse(suspended.movement_requested)
+        self.assertIsNone(suspended.action)
+        self.assertIsNotNone(resumed.action)
 
     def test_arrival_does_not_request_action(self) -> None:
         arrived_state = GameState(

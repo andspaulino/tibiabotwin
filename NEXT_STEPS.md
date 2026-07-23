@@ -23,11 +23,11 @@ Captura → Percepção → Estado → Decisão → Execução
 * [x] Selecionar marcadores por template, confiança e região; confirmar chegada pelo raio de `4px`.
 * [x] Detectar falta de progresso e entrar em `STUCK` sem avançar waypoint.
 * [x] Carregar rotas JSON com `--hunt`, validar settings, IDs, regiões e templates, filtrar a percepção somente aos marcadores referenciados pela rota ativa e aplicar thresholds específicos por marcador.
-* [x] Validar a rota sem loop `flag0 → flag1` no Projetor em `--observe-only`, incluindo a conclusão `COMPLETED`.
+* [x] Validar rotas sequenciais no Projetor em `--observe-only`: conclusão sem loop (`flag0 → flag1`) e ciclo completo `starter → flag8 → flag7 → flag6 → flag12 → flag2 → starter` com `loop: true`.
 * [x] Bloquear `--hunt` fora de `--observe-only` nesta etapa.
 * [ ] Versionar frames reais de minimapa em `tests/fixtures/minimap/`.
-* [ ] Validar manualmente rota com `loop: true`.
-* [ ] Validar manualmente suspensão em combate/PZ e retomada do mesmo waypoint.
+* [x] Validar manualmente rota com `loop: true`.
+* [x] Validar manualmente suspensão em PZ e combate: nenhum `MOVE` foi simulado durante a prioridade e a rota retomou o mesmo waypoint `000` após cada interrupção.
 * [ ] Adicionar teste de integração dedicado ao engine para rota, suspensão e retomada.
 * [ ] Converter coordenadas do frame do Projetor em coordenadas de tela e validar todos os portões de segurança antes de considerar clique físico.
 

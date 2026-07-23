@@ -29,6 +29,7 @@ from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
 from src.bot.loot import AutoLootController
 from src.bot.cavebot.cavebot_controller import CavebotController
+from src.bot.cavebot.models import CavebotStatus
 from src.utils.overlay import OnScreenOverlay
 from src.utils.logger import logger
 
@@ -182,7 +183,6 @@ class BotEngine:
 
         # 4. Avalia a intenção do Cavebot antes do modo global, sem executar input.
         cavebot_intent = self.cavebot.evaluate(game_state)
-        self._log_cavebot_intent(cavebot_intent.status.value, cavebot_intent.reason)
 
         # 5. Atualiza a Máquina de Estados Finitos
         bot_state: BotState = self.state_machine.update(
@@ -191,7 +191,22 @@ class BotEngine:
             movement_requested=cavebot_intent.movement_requested,
         )
 
-        # 6. Log de transição ao entrar/sair de PZ
+        # 6. Após conhecer o modo final, suspende o Cavebot sem alterar sua rota.
+        final_cavebot_intent = cavebot_intent
+        if (
+            cavebot_intent.active
+            and bot_state.current_mode != BotMode.MOVING
+            and cavebot_intent.status not in {
+                CavebotStatus.ARRIVED,
+                CavebotStatus.COMPLETED,
+                CavebotStatus.STUCK,
+                CavebotStatus.INACTIVE,
+            }
+        ):
+            final_cavebot_intent = self.cavebot.suspend(bot_state.current_mode)
+        self._log_cavebot_intent(final_cavebot_intent.status.value, final_cavebot_intent.reason)
+
+        # 7. Log de transição ao entrar/sair de PZ
         in_pz = game_state.player.in_protection_zone
         if self.last_pz_state is not None and in_pz is not None and in_pz != self.last_pz_state:
             if in_pz:
@@ -201,30 +216,30 @@ class BotEngine:
         if in_pz is not None:
             self.last_pz_state = in_pz
 
-        # 7. Renderização do HUD Overlay
+        # 8. Renderização do HUD Overlay
         self.overlay.update(game_state, bot_state, observe_only=self.observe_only)
 
-        # 8. Coleta intenções de ações dos módulos
+        # 9. Coleta intenções de ações dos módulos
         proposed_actions: List[BotAction] = []
         proposed_actions.extend(self.healer.get_proposed_actions(game_state))
         proposed_actions.extend(self.combat.get_proposed_actions(game_state))
         if self.loot:
             proposed_actions.extend(self.loot.get_proposed_actions(game_state, self.previous_state))
         # Nesta fase, o Cavebot só entra no executor em --observe-only.
-        if self.observe_only and bot_state.current_mode == BotMode.MOVING and cavebot_intent.action is not None:
-            proposed_actions.append(cavebot_intent.action)
+        if self.observe_only and bot_state.current_mode == BotMode.MOVING and final_cavebot_intent.action is not None:
+            proposed_actions.append(final_cavebot_intent.action)
             self.cavebot.record_simulated_request()
 
         # Atualiza o estado do ciclo anterior
         self.previous_state = game_state
 
-        # 9. Resolução de conflitos e prioridades pelo DecisionController
+        # 10. Resolução de conflitos e prioridades pelo DecisionController
         resolved_actions = self.decision_controller.resolve(
             proposed_actions, game_state, bot_state, config=self.config
         )
         t3 = time.perf_counter()
 
-        # 10. Execução de ações pelo ActionExecutor
+        # 11. Execução de ações pelo ActionExecutor
         self.action_executor.execute(
             resolved_actions, game_state, observe_only=self.observe_only
         )
