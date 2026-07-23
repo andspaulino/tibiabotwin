@@ -1,5 +1,5 @@
 {
-  "hunt_name": "Example Flag Route",
+  "hunt_name": "Flag0 to Flag1 Observation Route",
   "version": 1,
   "loop": false,
   "settings": {
@@ -12,7 +12,7 @@
   },
   "waypoints": [
     {
-      "id": "flag0-example",
+      "id": "flag0-first",
       "type": "marker_click",
       "marker": "flag0",
       "expected_region": {
@@ -21,7 +21,19 @@
         "width": 1.0,
         "height": 1.0
       },
-      "description": "Example waypoint; calibrate this route before using it."
+      "description": "First green check marker"
+    },
+    {
+      "id": "flag1-second",
+      "type": "marker_click",
+      "marker": "flag1",
+      "expected_region": {
+        "x": 0.0,
+        "y": 0.0,
+        "width": 1.0,
+        "height": 1.0
+      },
+      "description": "Second blue marker"
     }
   ]
 }

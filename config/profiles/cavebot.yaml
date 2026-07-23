@@ -13,6 +13,7 @@ minimap:
   enabled: true
   marker_templates:
     flag0: templates/markers/flag0.png
+    flag1: templates/markers/flag1.png
   # O template flag0 tem score ~0.76 no layout calibrado atual.
   match_threshold: 0.75
   validate_cross: false
