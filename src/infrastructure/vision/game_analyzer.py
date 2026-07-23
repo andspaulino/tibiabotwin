@@ -4,7 +4,8 @@ from pathlib import Path
 import cv2
 
 from src.config.models import AppConfig
-from src.infrastructure.capture.frame import CapturedFrame, FrameStatus
+from src.infrastructure.capture.frame import CapturedFrame
+from src.domain.capture_status import FrameStatus
 from src.domain.game_state import (
     GameState,
     CaptureState,

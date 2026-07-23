@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
 
-from src.infrastructure.capture.frame import FrameStatus
+from src.domain.capture_status import FrameStatus
 
 
 @dataclass(frozen=True)

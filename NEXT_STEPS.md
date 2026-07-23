@@ -28,10 +28,10 @@ Captura → Percepção → Estado → Decisão → Execução
 * [x] Permitir pausar e retomar todos os módulos.
 * [x] Evitar envio de comandos quando o bot estiver pausado.
 * [x] Evitar envio de comandos quando a janela correta não estiver disponível.
-* [ ] Criar um estado global de segurança.
-* [ ] Bloquear todas as ações quando o estado da captura for inválido.
-* [ ] Bloquear ações quando uma ROI obrigatória não puder ser analisada.
-* [ ] Garantir que nenhuma ação automática seja executada na inicialização.
+* [x] Criar um estado global de segurança.
+* [x] Bloquear todas as ações quando o estado da captura for inválido.
+* [x] Bloquear ações quando uma ROI obrigatória não puder ser analisada.
+* [x] Garantir que nenhuma ação automática seja executada na inicialização.
 
 ### Captura e visão computacional
 

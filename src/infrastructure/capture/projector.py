@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional, Any
 import numpy as np
+import time
 
 from src.infrastructure.capture.frame import CapturedFrame, FrameStatus
 from src.infrastructure.capture.base import FrameCapturer
@@ -16,15 +17,15 @@ class ProjectorFrameCapturer(FrameCapturer):
     def __init__(
         self,
         frozen_threshold_diff: float = 0.05,
-        frozen_consecutive_limit: int = 30
+        frozen_timeout_seconds: float = 5.0
     ):
         from src.utils.screen import ScreenCapturer
         self.screen_capturer = ScreenCapturer()
         self.frozen_threshold_diff = frozen_threshold_diff
-        self.frozen_consecutive_limit = frozen_consecutive_limit
+        self.frozen_timeout_seconds = frozen_timeout_seconds
 
         self.previous_image: Optional[np.ndarray] = None
-        self.frozen_count: int = 0
+        self.last_visual_change_at: Optional[float] = None
         self.consecutive_failures: int = 0
 
     def capture(self, hwnd: int) -> CapturedFrame:
@@ -75,18 +76,22 @@ class ProjectorFrameCapturer(FrameCapturer):
 
         # Detecção de Frame Congelado (Frozen)
         status = FrameStatus.VALID
+        current_time = time.time()
         if self.previous_image is not None and self.previous_image.shape == img_bgr.shape:
             # Calcula diferença média absoluta de pixels
             diff = float(np.mean(np.abs(img_bgr.astype(float) - self.previous_image.astype(float))))
-            if diff <= self.frozen_threshold_diff:
-                self.frozen_count += 1
-            else:
-                self.frozen_count = 0
+            if diff > self.frozen_threshold_diff:
+                self.last_visual_change_at = current_time
+            
+            if self.last_visual_change_at is None:
+                self.last_visual_change_at = current_time
 
-            if self.frozen_count >= self.frozen_consecutive_limit:
+            elapsed = current_time - self.last_visual_change_at
+            if elapsed >= self.frozen_timeout_seconds:
                 status = FrameStatus.FROZEN
-                if self.frozen_count == self.frozen_consecutive_limit:
-                    logger.log("SYSTEM", f"Captura estática/congelada detectada há {self.frozen_count} ciclos.", level="WARNING")
+                logger.log("SYSTEM", f"Captura estática/congelada detectada há {elapsed:.1f} segundos.", level="WARNING")
+        else:
+            self.last_visual_change_at = current_time
 
         self.previous_image = img_bgr.copy()
 

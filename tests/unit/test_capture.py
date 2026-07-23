@@ -88,6 +88,35 @@ class TestFrameCapture(unittest.TestCase):
         finally:
             capturer.close()
 
+    def test_projector_capturer_frozen_detection(self):
+        """Verifica se o ProjectorFrameCapturer detecta congelamento baseado no tempo."""
+        from unittest.mock import MagicMock
+        from PIL import Image
+        import time
+
+        capturer = ProjectorFrameCapturer(frozen_timeout_seconds=0.1)
+        # Mock o screen_capturer
+        capturer.screen_capturer = MagicMock()
+        
+        # Cria duas imagens PIL idênticas
+        img = Image.new("RGB", (10, 10), color="blue")
+        capturer.screen_capturer.capture_window_client_area.return_value = img
+
+        # Primeiro frame (inicialização)
+        f1 = capturer.capture(123)
+        self.assertEqual(f1.status, FrameStatus.VALID)
+
+        # Segundo frame idêntico imediato -> Diferença é zero, tempo não atingido
+        f2 = capturer.capture(123)
+        self.assertEqual(f2.status, FrameStatus.VALID)
+
+        # Espera o timeout passar (0.1s)
+        time.sleep(0.11)
+
+        # Terceiro frame idêntico -> Deve marcar como FROZEN
+        f3 = capturer.capture(123)
+        self.assertEqual(f3.status, FrameStatus.FROZEN)
+
 
 if __name__ == "__main__":
     unittest.main()

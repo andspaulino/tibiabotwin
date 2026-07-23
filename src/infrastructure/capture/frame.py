@@ -1,19 +1,13 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from enum import Enum
-from typing import Optional
+from typing import Optional, Any
 
 try:
     import numpy as np
 except ImportError:
     np = None
 
-
-class FrameStatus(Enum):
-    VALID = "valid"
-    STALE = "stale"
-    FROZEN = "frozen"
-    FAILED = "failed"
+from src.domain.capture_status import FrameStatus
 
 
 @dataclass(frozen=True)

@@ -111,12 +111,17 @@ def _validate_template_file(template_path: str, field_name: str, enabled: bool) 
     if not path.is_absolute():
         path = project_root / path
 
-    # Permite caminhos de teste/mock em ambiente de teste
-    if not path.exists() and "test" not in str(template_path).lower():
-        # Avisa ou levanta erro de validação
-        pass
+    path = path.resolve()
 
-    return str(path) if path.exists() else template_path
+    if not path.exists():
+        if "test" in str(template_path).lower():
+            return template_path
+        raise ConfigValidationError(f"Template não encontrado em '{field_name}': {path}")
+
+    if not path.is_file():
+        raise ConfigValidationError(f"O caminho de '{field_name}' não é um arquivo: {path}")
+
+    return str(path)
 
 
 def validate_and_parse(data: Dict[str, Any]) -> AppConfig:

@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from src.domain.game_state import GameState
 from src.domain.bot_state import BotMode, BotState, StateTransition
-from src.infrastructure.capture.frame import FrameStatus
+from src.domain.capture_status import FrameStatus
 from src.utils.logger import logger
 
 
