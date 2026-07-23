@@ -2,7 +2,7 @@ import time
 from typing import List, Optional
 
 from src.config.models import LootConfig
-from src.domain.actions import ActionType, BotAction
+from src.domain.actions import ActionPriority, ActionType, BotAction, KeyPayload
 from src.domain.game_state import GameState
 from src.utils.logger import logger
 
@@ -149,13 +149,14 @@ class AutoLootController:
         return [
             BotAction(
                 action_type=ActionType.LOOT_NEARBY,
-                priority=self.config.priority,
-                key=self.config.nearby_corpses_key,
+                priority=ActionPriority.LOOT,
+                payload=KeyPayload(self.config.nearby_corpses_key),
                 reason=(
                     "Alvo anteriormente ativo deixou de existir; "
                     "executando Quick Loot Nearby Corpses."
                 ),
                 cooldown_ms=self.config.cooldown_ms,
+                cooldown_key="loot:nearby",
             )
         ]
 

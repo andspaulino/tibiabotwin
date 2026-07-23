@@ -5,7 +5,7 @@ from pathlib import Path
 
 from src.config.models import AppConfig, HealerConfig, EmergencyPotionConfig
 from src.domain.metrics import CycleMetrics
-from src.domain.actions import ActionType, BotAction
+from src.domain.actions import ActionPriority, ActionType, BotAction, KeyPayload
 from src.domain.game_state import GameState, CaptureState, WindowState, PlayerState, TargetState
 from src.domain.bot_state import BotMode, BotState
 from src.infrastructure.vision.game_analyzer import GameAnalyzer
@@ -81,7 +81,12 @@ class TestDiagnosticsAndObservability(unittest.TestCase):
             target=TargetState(has_monsters_in_battle=False, has_active_target=False)
         )
 
-        emerg_action = BotAction(action_type=ActionType.EMERGENCY_HEAL, priority=1, key="3", reason="Vida Baixa")
+        emerg_action = BotAction(
+            action_type=ActionType.EMERGENCY_HEAL,
+            priority=ActionPriority.EMERGENCY,
+            payload=KeyPayload("3"),
+            reason="Vida Baixa",
+        )
 
         # Executa no modo de observação (observe_only=True)
         executor.execute([emerg_action], safe_game_state, observe_only=True)

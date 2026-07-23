@@ -52,9 +52,9 @@ Diferente de bots que leem ou injetam dados na memória do jogo, este bot age pu
 - **Fábrica de Infraestrutura (`src/infrastructure/factory.py`)**: Instanciação dinâmica com base no `sys.platform`.
 
 ### 8. Sistema Central de Ações (`src/domain/actions.py` + `decision_controller.py` + `action_executor.py`)
-- **Proposta de Intenções (`BotAction`)**: Módulos não disparam inputs; eles apenas sugerem intenções de ação com prioridades (`ActionType`).
-- **`DecisionController`**: Resolvedor de conflitos que ordena por prioridade (Emergência > Cura > Mana > Ataque) e filtra ações em PZ.
-- **`ActionExecutor`**: Componente único e centralizado que revalida a segurança antes de enviar atalhos ao `InputController`.
+- **Proposta de Intenções (`BotAction`)**: Módulos não disparam inputs; eles apenas sugerem ações com `KeyPayload` ou `MouseClickPayload`, prioridade explícita e motivo rastreável.
+- **`DecisionController`**: Resolvedor de conflitos que ordena por prioridade (Emergência > Cura > Mana > Ataque > Loot > Movimento), filtra ações em PZ e não consome cooldown ao descartar intenções.
+- **`ActionExecutor`**: Componente único e centralizado que revalida a segurança, executa teclas ou cliques pelo `InputController` e registra cooldown somente após input físico bem-sucedido. Em `--observe-only`, apenas simula a ação.
 
 ### 9. Testes Automatizados com Frames Gravados (`src/infrastructure/capture/recorded.py` + `tests/`)
 - **Dataset de Fixtures (`tests/fixtures/`)**: Imagens de referência de HP, Mana, PZ e Battle List para testes automatizados determinísticos.

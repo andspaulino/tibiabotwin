@@ -8,6 +8,7 @@ from src.infrastructure.capture.frame import FrameStatus
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
 from src.config.models import HealerConfig, SpellActionConfig, CombatConfig
+from src.domain.actions import KeyPayload
 
 
 class TestPlatformAbstractions(unittest.TestCase):
@@ -45,7 +46,7 @@ class TestPlatformAbstractions(unittest.TestCase):
 
         actions = healer.get_proposed_actions(low_hp_state)
         self.assertEqual(len(actions), 1)
-        self.assertEqual(actions[0].key, "F1")
+        self.assertEqual(actions[0].payload, KeyPayload("F1"))
 
     def test_combat_proposes_action(self):
         """Verifica se o AutoAttacker propõe a ação de ataque sem executar inputs físicos."""
@@ -64,7 +65,7 @@ class TestPlatformAbstractions(unittest.TestCase):
 
         actions = combat.get_proposed_actions(combat_state)
         self.assertEqual(len(actions), 1)
-        self.assertEqual(actions[0].key, "space")
+        self.assertEqual(actions[0].payload, KeyPayload("space"))
 
 
 if __name__ == "__main__":

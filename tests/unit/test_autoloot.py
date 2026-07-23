@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime, timezone
 
 from src.config.models import LootConfig
-from src.domain.actions import ActionType, BotAction
+from src.domain.actions import ActionPriority, ActionType, BotAction, KeyPayload
 from src.domain.game_state import GameState, CaptureState, WindowState, PlayerState, TargetState
 from src.domain.bot_state import BotMode, BotState
 from src.bot.loot import AutoLootController
@@ -59,7 +59,7 @@ class TestAutoLootController(unittest.TestCase):
         )
         self.assertEqual(len(actions), 1)
         self.assertEqual(actions[0].action_type, ActionType.LOOT_NEARBY)
-        self.assertEqual(actions[0].key, "x")
+        self.assertEqual(actions[0].payload, KeyPayload("x"))
         self.assertFalse(self.loot_controller.loot_pending)
 
     def test_prevents_duplicate_loot_for_same_target(self):
@@ -125,7 +125,12 @@ class TestAutoLootController(unittest.TestCase):
     def test_decision_controller_resolves_loot_nearby(self):
         """Verifica se o DecisionController resolve a ação LOOT_NEARBY respeitando a regra de PZ."""
         decision_controller = DecisionController()
-        loot_action = BotAction(action_type=ActionType.LOOT_NEARBY, priority=40, key="f12", reason="Quick Loot")
+        loot_action = BotAction(
+            action_type=ActionType.LOOT_NEARBY,
+            priority=ActionPriority.LOOT,
+            payload=KeyPayload("f12"),
+            reason="Quick Loot",
+        )
 
         # 1. Em área segura
         resolved = decision_controller.resolve([loot_action], self.state_no_target, self.idle_bot_state)

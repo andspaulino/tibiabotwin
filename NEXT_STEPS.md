@@ -21,7 +21,8 @@ Captura → Percepção → Estado → Decisão → Execução
 * [x] Retornar estado indisponível para frame, ROI ou validação inválidos.
 * [x] Cobrir a análise com testes unitários sintéticos.
 * [ ] Calibrar `regions.minimap` e validar com frames reais versionados.
-* [ ] Implementar a Fase 12B (payload tipado de mouse e executor); nenhum clique foi adicionado nesta fase.
+* [x] Implementar a Fase 12B: payloads tipados de tecla e mouse, executor central e simulação em `--observe-only`.
+* [ ] Implementar a Fase 12C: seleção de marcador, intenção de movimento e detecção de travamento; ainda não existe Cavebot ou clique automático.
 
 
 ### Inicialização e gerenciamento de janelas

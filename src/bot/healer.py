@@ -1,9 +1,8 @@
-import time
-from typing import Optional, Union, List
+from typing import List, Optional
 
 from src.config.models import HealerConfig
 from src.domain.game_state import GameState
-from src.domain.actions import BotAction, ActionType
+from src.domain.actions import ActionPriority, ActionType, BotAction, KeyPayload
 from src.utils.logger import logger
 
 
@@ -59,10 +58,11 @@ class AutoHealer:
             actions.append(
                 BotAction(
                     action_type=ActionType.EMERGENCY_HEAL,
-                    priority=1,
-                    key=emerg_cfg.key,
+                    priority=ActionPriority.EMERGENCY,
+                    payload=KeyPayload(emerg_cfg.key),
                     reason=f"Pocao de Vida ({hp_pct_100:.0f}%)",
-                    cooldown_ms=emerg_cfg.cooldown_ms
+                    cooldown_ms=emerg_cfg.cooldown_ms,
+                    cooldown_key="healer:emergency"
                 )
             )
             return actions
@@ -73,10 +73,11 @@ class AutoHealer:
             actions.append(
                 BotAction(
                     action_type=ActionType.HEAL,
-                    priority=2,
-                    key=spell_cfg.key,
+                    priority=ActionPriority.HEAL,
+                    payload=KeyPayload(spell_cfg.key),
                     reason=f"Magia de Cura ({hp_pct_100:.0f}%)",
-                    cooldown_ms=spell_cfg.cooldown_ms
+                    cooldown_ms=spell_cfg.cooldown_ms,
+                    cooldown_key="healer:spell"
                 )
             )
 
@@ -86,10 +87,11 @@ class AutoHealer:
             actions.append(
                 BotAction(
                     action_type=ActionType.USE_MANA,
-                    priority=3,
-                    key=mana_cfg.key,
+                    priority=ActionPriority.MANA,
+                    payload=KeyPayload(mana_cfg.key),
                     reason=f"Pocao de Mana ({mp_pct_100:.0f}%)",
-                    cooldown_ms=mana_cfg.cooldown_ms
+                    cooldown_ms=mana_cfg.cooldown_ms,
+                    cooldown_key="healer:mana"
                 )
             )
 

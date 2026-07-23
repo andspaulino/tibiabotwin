@@ -1,11 +1,10 @@
-import time
-from typing import Optional, Union, Dict, Any, List
+from typing import List, Optional
 
 from src.config.models import CombatConfig
 from src.domain.game_state import GameState
-from src.domain.roi import RelativeROI, AbsoluteROI
-from src.domain.actions import BotAction, ActionType
-from src.utils.screen import BATTLE_LIST_ROI
+
+from src.domain.actions import ActionPriority, ActionType, BotAction, KeyPayload
+
 from src.utils.logger import logger
 
 
@@ -76,10 +75,11 @@ class AutoAttacker:
             actions.append(
                 BotAction(
                     action_type=ActionType.ATTACK,
-                    priority=4,
-                    key=self.config.attack_key,
+                    priority=ActionPriority.ATTACK,
+                    payload=KeyPayload(self.config.attack_key),
                     reason="Selecao de alvo na Battle List",
-                    cooldown_ms=self.config.attack_cooldown_ms
+                    cooldown_ms=self.config.attack_cooldown_ms,
+                    cooldown_key="combat:attack"
                 )
             )
             self.had_monsters_last_check = True
