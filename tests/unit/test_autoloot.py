@@ -35,37 +35,39 @@ class TestAutoLootController(unittest.TestCase):
         )
 
         self.idle_bot_state = BotState(current_mode=BotMode.IDLE, previous_mode=BotMode.STOPPED, reason="OK")
-        self.config = LootConfig(enabled=True, nearby_corpses_key="alt+q", delay_ms=50, cooldown_ms=500)
+        self.config = LootConfig(enabled=True, nearby_corpses_key="x", delay_ms=50, cooldown_ms=500)
         self.loot_controller = AutoLootController(self.config)
         self.loot_controller.start()
 
     def test_loot_triggered_on_target_loss(self):
-        """Verifica se o AutoLoot propõe a ação LOOT_NEARBY após transição de alvo ativo para inativo."""
-        # 1ª iteração: detecta o desaparecimento e inicia a contagem de delay
+        """Verifica se o AutoLoot propõe a ação LOOT_NEARBY após transição de alvo ativo para inativo mantendo o estado pendente."""
+        # 1ª iteração: detecta o desaparecimento (active->inactive) e entra em estado pendente (loot_pending = True)
         actions = self.loot_controller.get_proposed_actions(
             current_state=self.state_no_target,
             previous_state=self.state_active_target
         )
         self.assertEqual(len(actions), 0)
+        self.assertTrue(self.loot_controller.loot_pending)
 
         # Aguarda o tempo de delay (50ms)
         time.sleep(0.06)
 
-        # 2ª iteração: após passar delay_ms, gera a ação de loot
+        # 2ª iteração: mesmo no ciclo seguinte onde previous_state.has_active_target já é False, processa o estado pendente!
         actions = self.loot_controller.get_proposed_actions(
             current_state=self.state_no_target,
-            previous_state=self.state_active_target
+            previous_state=self.state_no_target
         )
         self.assertEqual(len(actions), 1)
         self.assertEqual(actions[0].action_type, ActionType.LOOT_NEARBY)
-        self.assertEqual(actions[0].key, "alt+q")
+        self.assertEqual(actions[0].key, "x")
+        self.assertFalse(self.loot_controller.loot_pending)
 
     def test_prevents_duplicate_loot_for_same_target(self):
         """Verifica que o AutoLoot não gera ações duplicadas para o mesmo alvo derrotado."""
         # Primeira passagem e disparo
         self.loot_controller.get_proposed_actions(self.state_no_target, self.state_active_target)
         time.sleep(0.06)
-        actions = self.loot_controller.get_proposed_actions(self.state_no_target, self.state_active_target)
+        actions = self.loot_controller.get_proposed_actions(self.state_no_target, self.state_no_target)
         self.assertEqual(len(actions), 1)
 
         # Próximas iterações mantendo sem alvo
@@ -77,7 +79,7 @@ class TestAutoLootController(unittest.TestCase):
         # Primeiro alvo é derrotado
         self.loot_controller.get_proposed_actions(self.state_no_target, self.state_active_target)
         time.sleep(0.06)
-        self.loot_controller.get_proposed_actions(self.state_no_target, self.state_active_target)
+        self.loot_controller.get_proposed_actions(self.state_no_target, self.state_no_target)
 
         # Novo alvo trava (has_active_target = True)
         self.loot_controller.get_proposed_actions(self.state_active_target, self.state_no_target)
@@ -85,7 +87,7 @@ class TestAutoLootController(unittest.TestCase):
         # Segundo alvo é derrotado
         self.loot_controller.get_proposed_actions(self.state_no_target, self.state_active_target)
         time.sleep(0.06)
-        actions = self.loot_controller.get_proposed_actions(self.state_no_target, self.state_active_target)
+        actions = self.loot_controller.get_proposed_actions(self.state_no_target, self.state_no_target)
 
         self.assertEqual(len(actions), 1)
         self.assertEqual(actions[0].action_type, ActionType.LOOT_NEARBY)

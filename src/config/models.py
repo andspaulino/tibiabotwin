@@ -71,11 +71,11 @@ class PZConfig:
 @dataclass(frozen=True)
 class LootConfig:
     enabled: bool = True
-    nearby_corpses_key: str = "alt+q"
+    nearby_corpses_key: str = "x"
     delay_ms: int = 200
     cooldown_ms: int = 500
     require_empty_battle_list: bool = False
-    priority: int = 40
+    priority: int = 3
     emergency_hp_threshold: float = 30.0
 
 

@@ -1,115 +1,185 @@
 import time
-from typing import Optional, List
+from typing import List, Optional
 
 from src.config.models import LootConfig
+from src.domain.actions import ActionType, BotAction
 from src.domain.game_state import GameState
-from src.domain.actions import BotAction, ActionType
 from src.utils.logger import logger
 
 
 class AutoLootController:
     """
-    Módulo responsável por propor ações de Auto-Loot via Quick Loot Nearby Corpses.
-    É um módulo declarativo puro: não executa inputs diretamente e não altera cooldowns de hardware.
+    Propõe ações de Quick Loot Nearby Corpses.
+
+    O módulo não envia inputs diretamente. Ele apenas cria BotAction.
     """
 
     def __init__(self, config: Optional[LootConfig] = None):
         self.config = config or LootConfig()
         self.enabled = False
-        self.target_missing_since: Optional[float] = None
-        self.loot_requested_for_current_target: bool = False
 
-    def start(self):
-        """Inicia o módulo de loot se ativado na configuração."""
+        self.target_missing_since: Optional[float] = None
+        self.loot_pending = False
+        self.loot_requested_for_current_target = False
+
+    def start(self) -> None:
         if not self.config.enabled:
-            logger.log("LOOT", "Modulo de Auto-Loot desativado na configuracao.")
             self.enabled = False
+            logger.log(
+                "LOOT",
+                "Modulo de Auto-Loot desativado na configuracao.",
+            )
             return
 
         self.enabled = True
-        self.target_missing_since = None
-        self.loot_requested_for_current_target = False
-        logger.log("LOOT", "Modulo de Auto-Loot ativado.")
+        self._reset_combat_state()
 
-    def stop(self):
-        """Para o módulo de loot."""
+        logger.log(
+            "LOOT",
+            "Modulo de Auto-Loot ativado.",
+        )
+
+    def stop(self) -> None:
         self.enabled = False
-        self.target_missing_since = None
-        self.loot_requested_for_current_target = False
-        logger.log("LOOT", "Modulo de Auto-Loot desativado.")
+        self._reset_combat_state()
+
+        logger.log(
+            "LOOT",
+            "Modulo de Auto-Loot desativado.",
+        )
 
     def get_proposed_actions(
         self,
         current_state: GameState,
-        previous_state: Optional[GameState] = None
+        previous_state: Optional[GameState] = None,
     ) -> List[BotAction]:
-        """
-        Avalia o GameState atual e anterior e retorna intenções de loot (BotAction).
-        Não executa inputs diretamente nem altera timestamps de cooldown.
-        """
-        if not self.enabled or not self.config.enabled or not current_state.is_safe_to_act:
+        if not self.enabled or not self.config.enabled:
             self._cancel_pending()
             return []
 
-        # Cancelar se em Protection Zone
-        if current_state.player.in_protection_zone:
+        if not current_state.is_safe_to_act:
             self._cancel_pending()
             return []
 
-        # Cancelar se cura de emergência for necessária
-        if current_state.player.hp_percent is not None:
-            hp_pct_100 = current_state.player.hp_percent * 100.0
-            if hp_pct_100 <= self.config.emergency_hp_threshold:
-                self._cancel_pending()
-                return []
+        if current_state.player.in_protection_zone is True:
+            self._cancel_pending()
+            return []
 
-        # Se há um alvo ativo no ciclo atual, reseta o estado de loot do alvo anterior
-        if current_state.target.has_active_target:
-            self.loot_requested_for_current_target = False
-            self.target_missing_since = None
+        if self._requires_emergency_heal(current_state):
+            self._cancel_pending()
+            return []
+
+        has_active_target = (
+            current_state.target.has_active_target
+        )
+
+        # Um novo alvo ficou ativo. Inicia um novo ciclo de combate.
+        if has_active_target is True:
+            self._reset_combat_state()
             return []
 
         if previous_state is None:
             return []
 
-        # Verificar se ocorreu a transição: havia alvo ativo no ciclo anterior, e agora não há
-        target_was_active = previous_state.target.has_active_target is True
-        target_is_inactive = current_state.target.has_active_target is False
+        target_was_active = (
+            previous_state.target.has_active_target is True
+        )
 
-        if not target_was_active or not target_is_inactive:
+        target_is_inactive = (
+            current_state.target.has_active_target is False
+        )
+
+        # A transição só serve para iniciar o estado pendente.
+        if (
+            target_was_active
+            and target_is_inactive
+            and not self.loot_requested_for_current_target
+        ):
+            self.loot_pending = True
+            self.target_missing_since = time.monotonic()
+
+            logger.log(
+                "LOOT",
+                "Alvo deixou de estar ativo. Loot pendente.",
+                level="INFO",
+            )
+
             return []
 
-        # Se o loot já foi solicitado para este alvo derrotado
-        if self.loot_requested_for_current_target:
+        # A partir daqui, não dependemos mais da transição.
+        if not self.loot_pending:
             return []
 
-        # Se exige Battle List vazia e ainda há monstros na Battle List
-        if self.config.require_empty_battle_list and current_state.target.has_monsters_in_battle is not False:
+        # Se a detecção ficou indeterminada, não executar.
+        if current_state.target.has_active_target is None:
+            self._cancel_pending()
             return []
 
-        now = time.monotonic()
+        if (
+            self.config.require_empty_battle_list
+            and current_state.target.has_monsters_in_battle
+            is not False
+        ):
+            return []
+
         if self.target_missing_since is None:
-            self.target_missing_since = now
+            self._cancel_pending()
             return []
 
-        elapsed_ms = (now - self.target_missing_since) * 1000.0
+        elapsed_ms = (
+            time.monotonic() - self.target_missing_since
+        ) * 1000.0
+
         if elapsed_ms < self.config.delay_ms:
             return []
 
-        self.loot_requested_for_current_target = True
+        self.loot_pending = False
         self.target_missing_since = None
+        self.loot_requested_for_current_target = True
 
-        logger.log("LOOT", f"Solicitando Quick Loot ({self.config.nearby_corpses_key})", level="ACTION")
+        logger.log(
+            "LOOT",
+            (
+                "Solicitando Quick Loot "
+                f"({self.config.nearby_corpses_key})"
+            ),
+            level="ACTION",
+        )
 
         return [
             BotAction(
                 action_type=ActionType.LOOT_NEARBY,
                 priority=self.config.priority,
                 key=self.config.nearby_corpses_key,
-                reason="Alvo ativamente travado deixou de existir (Quick Loot)",
+                reason=(
+                    "Alvo anteriormente ativo deixou de existir; "
+                    "executando Quick Loot Nearby Corpses."
+                ),
                 cooldown_ms=self.config.cooldown_ms,
             )
         ]
 
-    def _cancel_pending(self):
+    def _requires_emergency_heal(
+        self,
+        game_state: GameState,
+    ) -> bool:
+        hp_percent = game_state.player.hp_percent
+
+        if hp_percent is None:
+            return False
+
+        hp_percent_100 = hp_percent * 100.0
+
+        return (
+            hp_percent_100
+            <= self.config.emergency_hp_threshold
+        )
+
+    def _cancel_pending(self) -> None:
+        self.loot_pending = False
         self.target_missing_since = None
+
+    def _reset_combat_state(self) -> None:
+        self.loot_pending = False
+        self.target_missing_since = None
+        self.loot_requested_for_current_target = False
