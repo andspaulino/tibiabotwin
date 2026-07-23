@@ -19,17 +19,20 @@ class DecisionController:
         self.cooldown_manager = cooldown_manager or CooldownManager()
 
     def _get_cooldown_ms(self, action: BotAction, config: Optional[AppConfig]) -> float:
+        if action.cooldown_ms > 0:
+            return float(action.cooldown_ms)
+
         if not config:
             return 0.0
 
         if action.action_type == ActionType.EMERGENCY_HEAL:
-            return config.healer.emergency_potion.cooldown_ms
+            return float(config.healer.emergency_potion.cooldown_ms)
         elif action.action_type == ActionType.HEAL:
-            return config.healer.spell.cooldown_ms
+            return float(config.healer.spell.cooldown_ms)
         elif action.action_type == ActionType.USE_MANA:
-            return config.healer.mana_potion.cooldown_ms
+            return float(config.healer.mana_potion.cooldown_ms)
         elif action.action_type == ActionType.ATTACK:
-            return config.combat.attack_cooldown_ms
+            return float(config.combat.attack_cooldown_ms)
         return 0.0
 
     def resolve(
@@ -41,6 +44,7 @@ class DecisionController:
     ) -> List[BotAction]:
         """
         Ordena, valida cooldowns e resolve conflitos entre ações propostas.
+        Limita o resultado a no máximo uma ação por ciclo (a de maior prioridade válida).
         """
         if not proposed_actions:
             return []
@@ -51,7 +55,6 @@ class DecisionController:
 
         # 2. Ordena por prioridade (menor número = maior prioridade)
         sorted_actions = sorted(proposed_actions, key=lambda act: act.priority)
-        resolved: List[BotAction] = []
         now = time.time()
 
         for action in sorted_actions:
@@ -67,13 +70,7 @@ class DecisionController:
             if action.key and not self.cooldown_manager.can_execute(action.key, cd_ms, now):
                 continue
 
-            # 5. Ação de emergência (EMERGENCY_HEAL) cancela qualquer outra ação do mesmo ciclo
-            if action.action_type == ActionType.EMERGENCY_HEAL:
-                resolved = [action]
-                break
+            # Retorna imediatamente a primeira ação válida encontrada (a de maior prioridade)
+            return [action]
 
-            # Adiciona ação se ainda não houver uma ação da mesma categoria na lista de resolvidos
-            if not any(existing.action_type == action.action_type for existing in resolved):
-                resolved.append(action)
-
-        return resolved
+        return []

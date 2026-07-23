@@ -21,4 +21,5 @@ class BotAction:
     priority: int
     key: Optional[str] = None
     reason: str = ""
+    cooldown_ms: int = 0
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))

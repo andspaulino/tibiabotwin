@@ -78,7 +78,8 @@ class AutoAttacker:
                     action_type=ActionType.ATTACK,
                     priority=4,
                     key=self.config.attack_key,
-                    reason="Selecao de alvo na Battle List"
+                    reason="Selecao de alvo na Battle List",
+                    cooldown_ms=self.config.attack_cooldown_ms
                 )
             )
             self.had_monsters_last_check = True

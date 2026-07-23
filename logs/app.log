@@ -143,3 +143,30 @@
 2026-07-22 21:10:55 [INFO] [SESSION:c117a952] [STATE   ] Modo alterado: IDLE -> COMBAT | Motivo: Criaturas detectadas na Battle List / Alvo travado
 2026-07-22 21:10:55 [INFO] [SESSION:c117a952] [STATE   ] Modo alterado: IDLE -> IN_PROTECTION_ZONE | Motivo: Personagem dentro de Protection Zone
 2026-07-22 21:10:55 [INFO] [SESSION:c117a952] [STATE   ] Modo alterado: IDLE -> UNSAFE | Motivo: Janela do Tibia sem foco ativo
+2026-07-22 21:13:57 [INFO] [SESSION:1fbfb463] [SIMULATION] [OBSERVE-ONLY] Acao simulada EMERGENCY_HEAL: Vida Baixa
+2026-07-22 21:13:57 [INFO] [SESSION:1fbfb463] [STATE   ] Modo alterado: IDLE -> UNSAFE | Motivo: Janela do Projetor OBS não encontrada
+2026-07-22 21:13:57 [INFO] [SESSION:1fbfb463] [SYSTEM  ] Restaurando visibilidade normal da janela do Tibia...
+2026-07-22 21:13:58 [INFO] [SESSION:1fbfb463] [SYSTEM  ] Visibilidade restaurada. Engine encerrado com sucesso.
+2026-07-22 21:13:58 [INFO] [SESSION:1fbfb463] [HEALER  ] Modulo de cura ativado.
+2026-07-22 21:13:58 [INFO] [SESSION:1fbfb463] [COMBAT  ] Modulo de ataque ativado.
+2026-07-22 21:13:58 [INFO] [SESSION:1fbfb463] [COMBAT  ] Atacando inimigo
+2026-07-22 21:13:58 [INFO] [SESSION:1fbfb463] [HEALER  ] Modulo de cura ativado.
+2026-07-22 21:13:58 [INFO] [SESSION:1fbfb463] [STATE   ] Modo alterado: IDLE -> COMBAT | Motivo: Criaturas detectadas na Battle List / Alvo travado
+2026-07-22 21:13:58 [INFO] [SESSION:1fbfb463] [STATE   ] Modo alterado: IDLE -> PAUSED | Motivo: Killswitch ativado pelo usuário (Pause)
+2026-07-22 21:13:58 [INFO] [SESSION:1fbfb463] [STATE   ] Modo alterado: IDLE -> COMBAT | Motivo: Criaturas detectadas na Battle List / Alvo travado
+2026-07-22 21:13:58 [INFO] [SESSION:1fbfb463] [STATE   ] Modo alterado: IDLE -> IN_PROTECTION_ZONE | Motivo: Personagem dentro de Protection Zone
+2026-07-22 21:13:58 [INFO] [SESSION:1fbfb463] [STATE   ] Modo alterado: IDLE -> UNSAFE | Motivo: Janela do Tibia sem foco ativo
+2026-07-22 21:14:13 [INFO] [SESSION:5bd85918] [ACTION  ] Executado HEAL: Cura
+2026-07-22 21:14:13 [INFO] [SESSION:5bd85918] [SIMULATION] [OBSERVE-ONLY] Acao simulada EMERGENCY_HEAL: Vida Baixa
+2026-07-22 21:14:13 [INFO] [SESSION:5bd85918] [STATE   ] Modo alterado: IDLE -> UNSAFE | Motivo: Janela do Projetor OBS não encontrada
+2026-07-22 21:14:13 [INFO] [SESSION:5bd85918] [SYSTEM  ] Restaurando visibilidade normal da janela do Tibia...
+2026-07-22 21:14:13 [INFO] [SESSION:5bd85918] [SYSTEM  ] Visibilidade restaurada. Engine encerrado com sucesso.
+2026-07-22 21:14:13 [INFO] [SESSION:5bd85918] [HEALER  ] Modulo de cura ativado.
+2026-07-22 21:14:13 [INFO] [SESSION:5bd85918] [COMBAT  ] Modulo de ataque ativado.
+2026-07-22 21:14:13 [INFO] [SESSION:5bd85918] [COMBAT  ] Atacando inimigo
+2026-07-22 21:14:13 [INFO] [SESSION:5bd85918] [HEALER  ] Modulo de cura ativado.
+2026-07-22 21:14:13 [INFO] [SESSION:5bd85918] [STATE   ] Modo alterado: IDLE -> COMBAT | Motivo: Criaturas detectadas na Battle List / Alvo travado
+2026-07-22 21:14:13 [INFO] [SESSION:5bd85918] [STATE   ] Modo alterado: IDLE -> PAUSED | Motivo: Killswitch ativado pelo usuário (Pause)
+2026-07-22 21:14:13 [INFO] [SESSION:5bd85918] [STATE   ] Modo alterado: IDLE -> COMBAT | Motivo: Criaturas detectadas na Battle List / Alvo travado
+2026-07-22 21:14:13 [INFO] [SESSION:5bd85918] [STATE   ] Modo alterado: IDLE -> IN_PROTECTION_ZONE | Motivo: Personagem dentro de Protection Zone
+2026-07-22 21:14:13 [INFO] [SESSION:5bd85918] [STATE   ] Modo alterado: IDLE -> UNSAFE | Motivo: Janela do Tibia sem foco ativo

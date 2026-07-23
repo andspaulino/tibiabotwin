@@ -21,6 +21,7 @@ from src.application.state_machine import StateMachine
 from src.application.scheduler import LoopScheduler
 from src.application.decision_controller import DecisionController
 from src.application.action_executor import ActionExecutor
+from src.application.cooldown_manager import CooldownManager
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
 from src.utils.overlay import OnScreenOverlay
@@ -49,6 +50,7 @@ class BotEngine:
         input_controller: Optional[InputController] = None,
         decision_controller: Optional[DecisionController] = None,
         action_executor: Optional[ActionExecutor] = None,
+        cooldown_manager: Optional[CooldownManager] = None,
         observe_only: bool = False
     ):
         self.config = config
@@ -63,8 +65,12 @@ class BotEngine:
         self.hwnd_obs = hwnd_obs
         self.window_manager = window_manager or create_window_manager()
         self.input_controller = input_controller or create_input_controller()
-        self.decision_controller = decision_controller or DecisionController()
-        self.action_executor = action_executor or ActionExecutor(input_controller=self.input_controller)
+        self.cooldown_manager = cooldown_manager or CooldownManager()
+        self.decision_controller = decision_controller or DecisionController(cooldown_manager=self.cooldown_manager)
+        self.action_executor = action_executor or ActionExecutor(
+            input_controller=self.input_controller,
+            cooldown_manager=self.cooldown_manager
+        )
         self.observe_only = observe_only
 
         self.running = False

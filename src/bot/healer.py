@@ -61,7 +61,8 @@ class AutoHealer:
                     action_type=ActionType.EMERGENCY_HEAL,
                     priority=1,
                     key=emerg_cfg.key,
-                    reason=f"Pocao de Vida ({hp_pct_100:.0f}%)"
+                    reason=f"Pocao de Vida ({hp_pct_100:.0f}%)",
+                    cooldown_ms=emerg_cfg.cooldown_ms
                 )
             )
             return actions
@@ -74,7 +75,8 @@ class AutoHealer:
                     action_type=ActionType.HEAL,
                     priority=2,
                     key=spell_cfg.key,
-                    reason=f"Magia de Cura ({hp_pct_100:.0f}%)"
+                    reason=f"Magia de Cura ({hp_pct_100:.0f}%)",
+                    cooldown_ms=spell_cfg.cooldown_ms
                 )
             )
 
@@ -86,7 +88,8 @@ class AutoHealer:
                     action_type=ActionType.USE_MANA,
                     priority=3,
                     key=mana_cfg.key,
-                    reason=f"Pocao de Mana ({mp_pct_100:.0f}%)"
+                    reason=f"Pocao de Mana ({mp_pct_100:.0f}%)",
+                    cooldown_ms=mana_cfg.cooldown_ms
                 )
             )
 

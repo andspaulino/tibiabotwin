@@ -40,9 +40,8 @@ class TestCentralActions(unittest.TestCase):
 
         resolved = controller.resolve([attack_act, heal_act], self.safe_game_state, self.idle_bot_state)
 
-        self.assertEqual(len(resolved), 2)
+        self.assertEqual(len(resolved), 1)
         self.assertEqual(resolved[0].action_type, ActionType.HEAL)
-        self.assertEqual(resolved[1].action_type, ActionType.ATTACK)
 
     def test_decision_controller_emergency_heal_supersedes(self):
         """Verifica se a cura de emergência substitui ações de menor prioridade."""
@@ -66,8 +65,8 @@ class TestCentralActions(unittest.TestCase):
 
     def test_action_executor_safety_check(self):
         """Verifica se o ActionExecutor recusa execução se o estado for inseguro."""
-        executor = ActionExecutor()
         mock_input = MockInputController()
+        executor = ActionExecutor(input_controller=mock_input)
 
         unsafe_game_state = GameState(
             timestamp=self.now,
@@ -78,9 +77,39 @@ class TestCentralActions(unittest.TestCase):
         )
 
         act = BotAction(action_type=ActionType.HEAL, priority=2, key="F1", reason="Cura")
-        executor.execute([act], unsafe_game_state, mock_input)
+        executor.execute([act], unsafe_game_state)
 
         self.assertEqual(len(mock_input.key_history), 0)
+
+    def test_decision_controller_and_executor_cooldown_integration(self):
+        """Verifica se o CooldownManager compartilhado impede dupla execução respeitando o cooldown_ms."""
+        from src.application.cooldown_manager import CooldownManager
+        import time
+
+        cd_mgr = CooldownManager()
+        controller = DecisionController(cooldown_manager=cd_mgr)
+        mock_input = MockInputController()
+        executor = ActionExecutor(input_controller=mock_input, cooldown_manager=cd_mgr)
+
+        act = BotAction(action_type=ActionType.HEAL, priority=2, key="F1", reason="Cura", cooldown_ms=100)
+
+        # 1. Primeira resolução e execução -> Deve ser permitida e executada
+        resolved = controller.resolve([act], self.safe_game_state, self.idle_bot_state)
+        self.assertEqual(len(resolved), 1)
+
+        executor.execute(resolved, self.safe_game_state)
+        self.assertEqual(mock_input.key_history, ["F1"])
+
+        # 2. Segunda resolução imediata -> Deve ser bloqueada pelo cooldown
+        resolved_2 = controller.resolve([act], self.safe_game_state, self.idle_bot_state)
+        self.assertEqual(len(resolved_2), 0)
+
+        # 3. Espera o cooldown passar (100ms = 0.1s)
+        time.sleep(0.11)
+
+        # 4. Terceira resolução -> Deve ser permitida novamente
+        resolved_3 = controller.resolve([act], self.safe_game_state, self.idle_bot_state)
+        self.assertEqual(len(resolved_3), 1)
 
 
 if __name__ == "__main__":
