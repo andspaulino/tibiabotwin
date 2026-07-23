@@ -1,5 +1,6 @@
 import unittest
 from datetime import datetime, timezone
+from unittest.mock import patch
 
 from src.bot.cavebot.cavebot_controller import CavebotController
 from src.config.models import CavebotConfig, MinimapConfig
@@ -38,6 +39,19 @@ class TestCavebotController(unittest.TestCase):
         self.assertIsNotNone(self.controller.evaluate(self.state).action)
         self.controller.record_simulated_request()
         self.assertIsNone(self.controller.evaluate(self.state).action)
+
+    def test_lack_of_progress_enters_stuck_without_action(self) -> None:
+        controller = CavebotController(
+            CavebotConfig(enabled=True, marker="flag0", stuck_timeout_ms=1, max_retries=0),
+            MinimapConfig(enabled=True, marker_templates=(("flag0", "ignored-in-unit-test"),), match_threshold=0.75),
+        )
+        with patch("src.bot.cavebot.cavebot_controller.time.monotonic", side_effect=(0.0, 0.002)):
+            self.assertIsNotNone(controller.evaluate(self.state).action)
+            stuck = controller.evaluate(self.state)
+
+        self.assertEqual(stuck.status.value, "stuck")
+        self.assertFalse(stuck.movement_requested)
+        self.assertIsNone(stuck.action)
 
     def test_arrival_does_not_request_action(self) -> None:
         arrived_state = GameState(

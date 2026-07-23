@@ -1,8 +1,9 @@
 import time
 
 from src.bot.cavebot.marker_selector import MarkerSelector
-from src.bot.cavebot.models import CavebotIntent, CavebotStatus, RelativeRegion, RouteSettings, Waypoint, WaypointType
+from src.bot.cavebot.models import CavebotIntent, CavebotStatus, MovementState, RelativeRegion, RouteSettings, Waypoint, WaypointType
 from src.bot.cavebot.movement_controller import MovementController
+from src.bot.cavebot.stuck_detector import StuckDetector
 from src.config.models import CavebotConfig, MinimapConfig
 from src.domain.game_state import GameState
 
@@ -15,6 +16,8 @@ class CavebotController:
         self.minimap_config = minimap_config
         self.selector = MarkerSelector()
         self.movement = MovementController()
+        self.stuck_detector = StuckDetector()
+        self.movement_state: MovementState | None = None
         self._last_request_at: float | None = None
 
     def evaluate(self, game_state: GameState) -> CavebotIntent:
@@ -45,10 +48,30 @@ class CavebotController:
         )
         marker = self.selector.select(game_state.minimap, waypoint, settings.match_threshold)
         intent = self.movement.evaluate(game_state.minimap, waypoint, marker, settings)
-        if intent.action is None:
+        if intent.status == CavebotStatus.SEARCHING_MARKER:
+            # Frames sem marcador não representam progresso nem travamento.
+            return intent
+        if intent.status == CavebotStatus.ARRIVED:
+            self.movement_state = None
+            return intent
+        if intent.action is None or marker is None:
             return intent
 
         now = time.monotonic()
+        current_state = self.movement_state or MovementState(
+            waypoint_id=waypoint.id,
+            best_distance=None,
+            last_distance=None,
+            last_progress_at=now,
+        )
+        distance = self.movement.distance_to_center(game_state.minimap, marker)
+        stuck = self.stuck_detector.update(current_state, distance, settings, now)
+        self.movement_state = stuck.state
+        if stuck.status == CavebotStatus.STUCK:
+            return CavebotIntent(True, False, None, CavebotStatus.STUCK, stuck.reason)
+        if stuck.status == CavebotStatus.WAITING_RETRY:
+            intent = CavebotIntent(True, True, intent.action, CavebotStatus.WAITING_RETRY, stuck.reason)
+
         if self._last_request_at is not None and (now - self._last_request_at) * 1000.0 < settings.click_cooldown_ms:
             return CavebotIntent(True, True, None, CavebotStatus.NAVIGATING, "Aguardando cooldown de movimento")
         return intent
