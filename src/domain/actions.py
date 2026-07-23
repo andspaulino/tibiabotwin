@@ -41,10 +41,20 @@ class MouseClickPayload:
     x: int
     y: int
     button: str = "left"
+    return_x: int | None = None
+    return_y: int | None = None
 
     def __post_init__(self) -> None:
         if self.button not in {"left", "right", "middle"}:
             raise ValueError("botão de mouse não suportado")
+        if (self.return_x is None) != (self.return_y is None):
+            raise ValueError("as duas coordenadas de retorno devem ser informadas juntas")
+
+    @property
+    def return_position(self) -> tuple[int, int] | None:
+        if self.return_x is None or self.return_y is None:
+            return None
+        return self.return_x, self.return_y
 
 
 ActionPayload: TypeAlias = KeyPayload | MouseClickPayload

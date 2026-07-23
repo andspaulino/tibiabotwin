@@ -8,8 +8,14 @@ class InputController(Protocol):
         """Pressiona e solta uma tecla com humanização."""
         ...
 
-    def click(self, x: int, y: int, button: str = "left") -> None:
-        """Executa um clique de mouse com coordenadas físicas ou relativas."""
+    def click(
+        self,
+        x: int,
+        y: int,
+        button: str = "left",
+        return_position: tuple[int, int] | None = None,
+    ) -> None:
+        """Executa um clique e pode estacionar o cursor em uma posição segura."""
         ...
 
     def release_all(self) -> None:

@@ -20,7 +20,10 @@ class TestMovementController(unittest.TestCase):
         self.assertEqual(intent.status.value, "navigating")
         self.assertIsNotNone(intent.action)
         assert intent.action is not None
-        self.assertEqual(intent.action.payload, MouseClickPayload(1766, 58))
+        self.assertEqual(
+            intent.action.payload,
+            MouseClickPayload(1766, 58, return_x=1738, return_y=59),
+        )
 
     def test_confirms_arrival_without_action(self) -> None:
         marker = MarkerDetection("flag0", (56, 59), 0.76)

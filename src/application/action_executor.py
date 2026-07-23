@@ -52,7 +52,12 @@ class ActionExecutor:
                 if isinstance(action.payload, KeyPayload):
                     self.input_controller.press_key(action.payload.key)
                 elif isinstance(action.payload, MouseClickPayload):
-                    self.input_controller.click(action.payload.x, action.payload.y, action.payload.button)
+                    self.input_controller.click(
+                        action.payload.x,
+                        action.payload.y,
+                        action.payload.button,
+                        action.payload.return_position,
+                    )
                 else:
                     logger.log("ACTION", f"Payload não suportado: {action.reason}", level="WARNING")
                     continue

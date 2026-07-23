@@ -254,10 +254,28 @@ class BotEngine:
                 frame.height,
                 client_area,
             )
+            return_point = (
+                self.coordinate_mapper.map_point(
+                    action.payload.return_x,
+                    action.payload.return_y,
+                    frame.width,
+                    frame.height,
+                    client_area,
+                )
+                if action.payload.return_x is not None and action.payload.return_y is not None
+                else None
+            )
         except CoordinateMappingError as error:
             logger.log("CAVEBOT", f"MOVE descartado: {error}", level="WARNING")
             return None, None
-        return replace(action, payload=MouseClickPayload(point.x, point.y, action.payload.button)), client_area
+        mapped_payload = MouseClickPayload(
+            x=point.x,
+            y=point.y,
+            button=action.payload.button,
+            return_x=return_point.x if return_point is not None else None,
+            return_y=return_point.y if return_point is not None else None,
+        )
+        return replace(action, payload=mapped_payload), client_area
 
     def _movement_action_is_safe(
         self,
@@ -286,10 +304,16 @@ class BotEngine:
             return False
         if current_client_area != expected_client_area:
             return False
-        return (
-            current_client_area.left <= action.payload.x < current_client_area.left + current_client_area.width
-            and current_client_area.top <= action.payload.y < current_client_area.top + current_client_area.height
-        )
+        def is_inside(x: int, y: int) -> bool:
+            return (
+                current_client_area.left <= x < current_client_area.left + current_client_area.width
+                and current_client_area.top <= y < current_client_area.top + current_client_area.height
+            )
+
+        if not is_inside(action.payload.x, action.payload.y):
+            return False
+        return_position = action.payload.return_position
+        return return_position is None or is_inside(*return_position)
 
     def run_cycle(self) -> Tuple[GameState, BotState, CycleMetrics]:
         t0 = time.perf_counter()

@@ -36,6 +36,8 @@ class MovementController:
             payload=MouseClickPayload(
                 x=minimap.bounds.x + marker.center[0],
                 y=minimap.bounds.y + marker.center[1],
+                return_x=max(0, minimap.bounds.x - 12),
+                return_y=minimap.bounds.y + minimap.bounds.height // 2,
             ),
             reason=(
                 f"Waypoint {waypoint.id}: marcador {marker.template_id} selecionado "

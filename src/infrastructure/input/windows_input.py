@@ -8,8 +8,14 @@ class WindowsInputController(InputController):
     def press_key(self, key: str) -> None:
         press_key(key)
 
-    def click(self, x: int, y: int, button: str = "left") -> None:
-        click_at(x, y, button=button)
+    def click(
+        self,
+        x: int,
+        y: int,
+        button: str = "left",
+        return_position: tuple[int, int] | None = None,
+    ) -> None:
+        click_at(x, y, button=button, return_position=return_position)
 
     def release_all(self) -> None:
         try:
