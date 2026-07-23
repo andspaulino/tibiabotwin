@@ -15,6 +15,7 @@ from src.utils.logger import logger
 from src.utils.overlay import OnScreenOverlay
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
+from src.bot.loot import AutoLootController
 
 if sys.platform == "win32":
     try:
@@ -100,6 +101,7 @@ def run():
     state_machine = StateMachine(initial_mode=BotMode.IDLE)
     healer = AutoHealer(config.healer)
     combat = AutoAttacker(config.combat)
+    loot = AutoLootController(config.loot)
     overlay = OnScreenOverlay()
     scheduler = LoopScheduler(target_interval_ms=config.loop_interval_ms)
     cooldown_manager = CooldownManager()
@@ -114,6 +116,7 @@ def run():
         state_machine=state_machine,
         healer=healer,
         combat=combat,
+        loot=loot,
         overlay=overlay,
         scheduler=scheduler,
         hwnd_tibia=hwnd_tibia,

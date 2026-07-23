@@ -770,34 +770,33 @@ Esta fase deve começar somente após captura única, estado central, máquina d
 
 ### Requisitos anteriores
 
-* [ ] Detectar transição de alvo ativo para alvo derrotado.
-* [ ] Saber se ainda existem criaturas na Battle List.
-* [ ] Conhecer a posição relativa do personagem.
-* [ ] Garantir que nenhuma cura crítica esteja pendente.
-* [ ] Garantir que o bot não esteja em estado inseguro.
-* [ ] Garantir que o loot não conflite com combate ou movimento.
+* [x] Detectar transição de alvo ativo para alvo derrotado.
+* [x] Saber se ainda existem criaturas na Battle List.
+* [x] Utilizar Quick Loot Nearby Corpses (hotkey nativa).
+* [x] Garantir que nenhuma cura crítica esteja pendente.
+* [x] Garantir que o bot não esteja em estado inseguro.
+* [x] Garantir que o loot não conflite com combate ou movimento.
 
 ### Tarefas
 
-* [ ] Mapear a área central do jogo.
-* [ ] Definir posições relativas dos possíveis corpos.
-* [ ] Detectar o momento correto para iniciar o loot.
-* [ ] Criar uma janela curta para coleta.
-* [ ] Criar ação de clique pelo executor central.
-* [ ] Evitar clicar repetidamente no mesmo ponto.
-* [ ] Cancelar loot quando surgir um novo alvo.
-* [ ] Cancelar loot durante cura de emergência.
-* [ ] Registrar tentativa e conclusão do loot.
-* [ ] Adicionar cooldown entre tentativas.
-* [ ] Permitir desabilitar o recurso na configuração.
-* [ ] Criar testes sem movimento real do mouse.
+* [x] Utilizar Quick Loot Nearby Corpses por hotkey via executor central.
+* [x] Detectar o momento correto para iniciar o loot (transição de alvo ativo para inativo).
+* [x] Criar uma janela curta para coleta (`delay_ms`).
+* [x] Criar intenção `ActionType.LOOT_NEARBY` processada pelo executor central.
+* [x] Evitar envio duplicado da hotkey para o mesmo alvo.
+* [x] Cancelar loot quando surgir um novo alvo.
+* [x] Cancelar loot durante cura de emergência.
+* [x] Registrar tentativa e solicitação do loot nos logs.
+* [x] Adicionar cooldown entre tentativas (`cooldown_ms`).
+* [x] Permitir desabilitar o recurso na configuração (`loot.enabled`).
+* [x] Criar testes sem envio de comandos reais.
 
 ### Critérios de conclusão
 
-* [ ] Loot não interrompe cura.
-* [ ] Loot não ocorre com captura inválida.
-* [ ] Loot é cancelado ao detectar novo combate.
-* [ ] O módulo não controla o mouse diretamente.
+* [x] Loot não interrompe cura.
+* [x] Loot não ocorre com captura inválida.
+* [x] Loot é cancelado ao detectar novo combate.
+* [x] O módulo não controla o teclado/mouse diretamente (usa executor central).
 
 ---
 

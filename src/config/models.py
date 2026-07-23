@@ -69,10 +69,22 @@ class PZConfig:
 
 
 @dataclass(frozen=True)
+class LootConfig:
+    enabled: bool = True
+    nearby_corpses_key: str = "alt+q"
+    delay_ms: int = 200
+    cooldown_ms: int = 500
+    require_empty_battle_list: bool = False
+    priority: int = 40
+    emergency_hp_threshold: float = 30.0
+
+
+@dataclass(frozen=True)
 class AppConfig:
     window: WindowConfig = field(default_factory=WindowConfig)
     regions: RegionsConfig = field(default_factory=RegionsConfig)
     healer: HealerConfig = field(default_factory=HealerConfig)
     combat: CombatConfig = field(default_factory=CombatConfig)
     pz: PZConfig = field(default_factory=PZConfig)
+    loot: LootConfig = field(default_factory=LootConfig)
     loop_interval_ms: int = 50

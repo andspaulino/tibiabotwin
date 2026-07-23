@@ -11,6 +11,7 @@ class ActionType(Enum):
     USE_MANA = "use_mana"
     ATTACK = "attack"
     LOOT = "loot"
+    LOOT_NEARBY = "loot_nearby"
     MOVE = "move"
 
 

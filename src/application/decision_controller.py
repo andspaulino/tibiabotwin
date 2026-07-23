@@ -33,6 +33,8 @@ class DecisionController:
             return float(config.healer.mana_potion.cooldown_ms)
         elif action.action_type == ActionType.ATTACK:
             return float(config.combat.attack_cooldown_ms)
+        elif action.action_type in (ActionType.LOOT, ActionType.LOOT_NEARBY):
+            return float(config.loot.cooldown_ms)
         return 0.0
 
     def resolve(
@@ -58,9 +60,9 @@ class DecisionController:
         now = time.time()
 
         for action in sorted_actions:
-            # 3. Regra de Protection Zone: Nenhuma ação ofensiva ou de movimentação em PZ
+            # 3. Regra de Protection Zone: Nenhuma ação ofensiva, de loot ou de movimentação em PZ
             if bot_state.current_mode == BotMode.IN_PROTECTION_ZONE:
-                if action.action_type in (ActionType.ATTACK, ActionType.LOOT, ActionType.MOVE):
+                if action.action_type in (ActionType.ATTACK, ActionType.LOOT, ActionType.LOOT_NEARBY, ActionType.MOVE):
                     continue
 
             # 4. Verifica se a ação respeita o CooldownManager
