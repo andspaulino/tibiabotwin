@@ -44,6 +44,13 @@ def load_route(
     waypoint_ids = [waypoint.id for waypoint in waypoints]
     if len(set(waypoint_ids)) != len(waypoint_ids):
         raise RouteValidationError("Os IDs dos waypoints devem ser únicos")
+    route_marker_ids = {waypoint.marker for waypoint in waypoints if waypoint.marker}
+    threshold_marker_ids = {marker_id for marker_id, _ in settings.marker_thresholds}
+    unknown_threshold_markers = threshold_marker_ids - route_marker_ids
+    if unknown_threshold_markers:
+        raise RouteValidationError(
+            f"marker_thresholds contém marcadores fora da rota: {', '.join(sorted(unknown_threshold_markers))}"
+        )
     try:
         return HuntRoute(hunt_name, version, loop, settings, waypoints)
     except ValueError as error:
@@ -53,7 +60,16 @@ def load_route(
 def _parse_settings(raw: object) -> RouteSettings:
     if not isinstance(raw, dict):
         raise RouteValidationError("Campo 'settings' deve ser um objeto")
+    raw_marker_thresholds = raw.get("marker_thresholds", {})
+    if not isinstance(raw_marker_thresholds, dict):
+        raise RouteValidationError("Campo 'marker_thresholds' deve ser um objeto")
     try:
+        marker_thresholds = tuple(
+            (str(marker_id), float(threshold))
+            for marker_id, threshold in raw_marker_thresholds.items()
+        )
+        if any(not marker_id.strip() for marker_id, _ in marker_thresholds):
+            raise RouteValidationError("marker_thresholds contém um ID vazio")
         return RouteSettings(
             match_threshold=float(raw["match_threshold"]),
             arrival_radius_pixels=float(raw["arrival_radius_pixels"]),
@@ -61,6 +77,7 @@ def _parse_settings(raw: object) -> RouteSettings:
             stuck_timeout_ms=int(raw["stuck_timeout_ms"]),
             click_cooldown_ms=int(raw["click_cooldown_ms"]),
             max_retries=int(raw["max_retries"]),
+            marker_thresholds=marker_thresholds,
         )
     except KeyError as error:
         raise RouteValidationError(f"Campo obrigatório ausente em settings: {error.args[0]}") from error

@@ -16,6 +16,7 @@ class TestRouteLoader(unittest.TestCase):
             "loop": False,
             "settings": {
                 "match_threshold": 0.75,
+                "marker_thresholds": {"flag0": 0.64},
                 "arrival_radius_pixels": 4.0,
                 "progress_epsilon_pixels": 1.5,
                 "stuck_timeout_ms": 15000,
@@ -37,6 +38,17 @@ class TestRouteLoader(unittest.TestCase):
             route = load_route(path, self.markers)
         self.assertEqual(route.hunt_name, "Test route")
         self.assertEqual(route.waypoints[0].id, "wp-01")
+        self.assertEqual(route.settings.threshold_for("flag0"), 0.64)
+        self.assertEqual(route.settings.threshold_for("missing"), 0.75)
+
+    def test_rejects_threshold_for_marker_outside_route(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "route.json"
+            invalid = dict(self.data)
+            invalid["settings"] = dict(self.data["settings"], marker_thresholds={"other": 0.64})
+            path.write_text(json.dumps(invalid), encoding="utf-8")
+            with self.assertRaisesRegex(RouteValidationError, "fora da rota"):
+                load_route(path, self.markers)
 
     def test_rejects_reserved_marker(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

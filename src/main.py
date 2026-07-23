@@ -132,8 +132,19 @@ def run():
 
     # Composição de Dependências
     capturer = ProjectorFrameCapturer()
-    route_marker_ids = {waypoint.marker for waypoint in route.waypoints if waypoint.marker} if route else None
-    analyzer = GameAnalyzer(config, marker_template_ids=route_marker_ids)
+    route_marker_ids = None
+    route_marker_thresholds = None
+    if route is not None:
+        route_marker_ids = {waypoint.marker for waypoint in route.waypoints if waypoint.marker}
+        route_marker_thresholds = {
+            marker_id: route.settings.threshold_for(marker_id)
+            for marker_id in route_marker_ids
+        }
+    analyzer = GameAnalyzer(
+        config,
+        marker_template_ids=route_marker_ids,
+        marker_match_thresholds=route_marker_thresholds,
+    )
     state_machine = StateMachine(initial_mode=BotMode.IDLE)
     healer = AutoHealer(config.healer)
     combat = AutoAttacker(config.combat)

@@ -21,7 +21,7 @@ class MinimapAnalyzer:
         frame: np.ndarray | None,
         minimap_roi: RelativeROI,
         marker_templates: Mapping[str, str],
-        match_threshold: float,
+        match_threshold: float | Mapping[str, float],
         *,
         validate_cross: bool = False,
         cross_template_path: str | None = None,
@@ -34,7 +34,15 @@ class MinimapAnalyzer:
         """
         if frame is None or not isinstance(frame, np.ndarray) or frame.size == 0 or frame.ndim < 2:
             return MinimapState.unavailable("frame do minimapa inválido")
-        if not 0.0 <= match_threshold <= 1.0:
+        if isinstance(match_threshold, Mapping):
+            thresholds = dict(match_threshold)
+            if set(thresholds) != set(marker_templates) or any(
+                not 0.0 <= threshold <= 1.0 for threshold in thresholds.values()
+            ):
+                return MinimapState.unavailable("limites por marcador do minimapa inválidos")
+        elif 0.0 <= match_threshold <= 1.0:
+            thresholds = {template_id: match_threshold for template_id in marker_templates}
+        else:
             return MinimapState.unavailable("limite de correspondência do minimapa inválido")
         if not 0.0 <= cross_match_threshold <= 1.0:
             return MinimapState.unavailable("limite de correspondência do cross inválido")
@@ -61,7 +69,7 @@ class MinimapAnalyzer:
 
         markers: list[MarkerDetection] = []
         for template_id, template_path in marker_templates.items():
-            markers.extend(self._find_all(template_id, minimap, template_path, match_threshold))
+            markers.extend(self._find_all(template_id, minimap, template_path, thresholds[template_id]))
 
         return MinimapState(
             available=True,

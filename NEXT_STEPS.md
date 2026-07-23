@@ -22,7 +22,7 @@ Captura → Percepção → Estado → Decisão → Execução
 * [x] Criar payloads tipados e manter cliques simulados em `--observe-only`.
 * [x] Selecionar marcadores por template, confiança e região; confirmar chegada pelo raio de `4px`.
 * [x] Detectar falta de progresso e entrar em `STUCK` sem avançar waypoint.
-* [x] Carregar rotas JSON com `--hunt`, validar settings, IDs, regiões e templates, e filtrar a percepção somente aos marcadores referenciados pela rota ativa.
+* [x] Carregar rotas JSON com `--hunt`, validar settings, IDs, regiões e templates, filtrar a percepção somente aos marcadores referenciados pela rota ativa e aplicar thresholds específicos por marcador.
 * [x] Validar a rota sem loop `flag0 → flag1` no Projetor em `--observe-only`, incluindo a conclusão `COMPLETED`.
 * [x] Bloquear `--hunt` fora de `--observe-only` nesta etapa.
 * [ ] Versionar frames reais de minimapa em `tests/fixtures/minimap/`.

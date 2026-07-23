@@ -37,10 +37,12 @@ class GameAnalyzer:
         config: Optional[AppConfig] = None,
         minimap_analyzer: Optional[MinimapAnalyzer] = None,
         marker_template_ids: Collection[str] | None = None,
+        marker_match_thresholds: dict[str, float] | None = None,
     ):
         self.config = config
         self.minimap_analyzer = minimap_analyzer or MinimapAnalyzer()
         self.marker_template_ids = frozenset(marker_template_ids) if marker_template_ids is not None else None
+        self.marker_match_thresholds = dict(marker_match_thresholds) if marker_match_thresholds is not None else None
 
     def _save_failed_frame(self, frame: CapturedFrame):
         """Salva um frame com falha/congelado na pasta logs/failed_frames para diagnóstico."""
@@ -133,19 +135,18 @@ class GameAnalyzer:
                 if marker_id in self.marker_template_ids
             }
 
-        minimap_state = (
-            self.minimap_analyzer.analyze(
+        if cfg and cfg.minimap.enabled:
+            minimap_state = self.minimap_analyzer.analyze(
                 frame=img_bgr,
                 minimap_roi=cfg.regions.minimap,
                 marker_templates=marker_templates,
-                match_threshold=cfg.minimap.match_threshold,
+                match_threshold=self.marker_match_thresholds or cfg.minimap.match_threshold,
                 validate_cross=cfg.minimap.validate_cross,
                 cross_template_path=cfg.minimap.cross_template_path,
                 cross_match_threshold=cfg.minimap.cross_match_threshold,
             )
-            if cfg and cfg.minimap.enabled
-            else MinimapState.unavailable("percepção do minimapa desativada")
-        )
+        else:
+            minimap_state = MinimapState.unavailable("percepção do minimapa desativada")
 
         player_state = PlayerState(
             hp_percent=hp_pct,

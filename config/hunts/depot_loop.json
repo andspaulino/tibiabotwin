@@ -4,6 +4,10 @@
   "loop": true,
   "settings": {
     "match_threshold": 0.75,
+    "marker_thresholds": {
+      "starter": 0.64,
+      "flag6": 0.65
+    },
     "arrival_radius_pixels": 4.0,
     "progress_epsilon_pixels": 1.5,
     "stuck_timeout_ms": 15000,
@@ -14,68 +18,38 @@
     {
       "id": "000",
       "type": "marker_click",
-      "marker": "flag0",
-      "expected_region": {
-        "x": 0.0,
-        "y": 0.0,
-        "width": 1.0,
-        "height": 1.0
-      }
+      "marker": "starter",
+      "expected_region": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0}
     },
     {
       "id": "001",
       "type": "marker_click",
-      "marker": "flag1",
-      "expected_region": {
-        "x": 0.0,
-        "y": 0.0,
-        "width": 1.0,
-        "height": 1.0
-      }
+      "marker": "flag8",
+      "expected_region": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0}
     },
     {
       "id": "002",
       "type": "marker_click",
-      "marker": "flag2",
-      "expected_region": {
-        "x": 0.0,
-        "y": 0.0,
-        "width": 1.0,
-        "height": 1.0
-      }
+      "marker": "flag7",
+      "expected_region": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0}
     },
     {
       "id": "003",
       "type": "marker_click",
-      "marker": "flag3",
-      "expected_region": {
-        "x": 0.0,
-        "y": 0.0,
-        "width": 1.0,
-        "height": 1.0
-      }
+      "marker": "flag6",
+      "expected_region": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0}
     },
     {
       "id": "004",
       "type": "marker_click",
-      "marker": "flag8",
-      "expected_region": {
-        "x": 0.0,
-        "y": 0.0,
-        "width": 1.0,
-        "height": 1.0
-      }
+      "marker": "flag12",
+      "expected_region": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0}
     },
     {
       "id": "005",
       "type": "marker_click",
-      "marker": "flag7",
-      "expected_region": {
-        "x": 0.0,
-        "y": 0.0,
-        "width": 1.0,
-        "height": 1.0
-      }
+      "marker": "flag2",
+      "expected_region": {"x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0}
     }
   ]
 }

@@ -38,6 +38,7 @@ class RouteSettings:
     stuck_timeout_ms: int
     click_cooldown_ms: int
     max_retries: int
+    marker_thresholds: tuple[tuple[str, float], ...] = ()
 
     def __post_init__(self) -> None:
         if not 0.0 <= self.match_threshold <= 1.0:
@@ -48,6 +49,15 @@ class RouteSettings:
             raise ValueError("progress_epsilon_pixels não pode ser negativo")
         if self.stuck_timeout_ms <= 0 or self.click_cooldown_ms < 0 or self.max_retries < 0:
             raise ValueError("tempos e retentativas da rota são inválidos")
+        marker_ids = [marker_id for marker_id, _ in self.marker_thresholds]
+        if len(set(marker_ids)) != len(marker_ids):
+            raise ValueError("marker_thresholds não pode conter IDs duplicados")
+        for marker_id, threshold in self.marker_thresholds:
+            if not marker_id or not 0.0 <= threshold <= 1.0:
+                raise ValueError("marker_thresholds contém valor inválido")
+
+    def threshold_for(self, marker_id: str | None) -> float:
+        return dict(self.marker_thresholds).get(marker_id or "", self.match_threshold)
 
 
 @dataclass(frozen=True)

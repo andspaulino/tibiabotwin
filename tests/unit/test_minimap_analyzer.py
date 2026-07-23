@@ -55,6 +55,17 @@ class TestMinimapAnalyzer(unittest.TestCase):
         self.assertTrue(all(marker.template_id == "flag0" for marker in state.markers))
         self.assertTrue(all(marker.confidence >= 0.99 for marker in state.markers))
 
+    def test_accepts_thresholds_per_marker(self) -> None:
+        frame = np.zeros((20, 20, 3), dtype=np.uint8)
+        frame[8:11, 10:13] = self.template
+        state = self.analyzer.analyze(
+            frame,
+            RelativeROI(x=0.0, y=0.0, width=1.0, height=1.0),
+            {"starter": str(self.template_path)},
+            match_threshold={"starter": 0.99},
+        )
+        self.assertEqual([marker.template_id for marker in state.markers], ["starter"])
+
     def test_returns_available_state_when_no_marker_is_visible(self) -> None:
         state = self.analyzer.analyze(
             np.zeros((20, 20, 3), dtype=np.uint8),

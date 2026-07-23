@@ -60,7 +60,7 @@ class CavebotController:
                 click_cooldown_ms=self.config.click_cooldown_ms,
                 max_retries=self.config.max_retries,
             )
-        marker = self.selector.select(game_state.minimap, waypoint, settings.match_threshold)
+        marker = self.selector.select(game_state.minimap, waypoint, settings.threshold_for(waypoint.marker))
         intent = self.movement.evaluate(game_state.minimap, waypoint, marker, settings)
         if intent.status == CavebotStatus.SEARCHING_MARKER:
             # Frames sem marcador não representam progresso nem travamento.
