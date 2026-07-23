@@ -31,7 +31,7 @@ Também devem ser preservados os seguintes princípios:
 | 12A — Percepção | Concluída em observação | `GameState.minimap`, ROI relativa calibrada, `flag0` e `flag1` detectados no frame único do Projetor. Frames reais ainda não foram versionados como fixtures. |
 | 12B — Ações | Concluída | `KeyPayload` e `MouseClickPayload` centralizados; `--observe-only` nunca envia input e não consome cooldown físico. |
 | 12C — Waypoint único | Concluída em observação | Seleção, chegada, cooldown de simulação e `STUCK` foram validados sem clique físico. |
-| 12D — Rota sequencial | Parcialmente concluída | `--hunt`, JSON validado, `RouteRunner`, conclusão sem loop (`flag0 → flag1`) e loop real (`starter → flag8 → flag7 → flag6 → flag12 → flag2 → starter`) foram validados em `--observe-only`. |
+| 12D — Rota sequencial | Concluída em observação | `--hunt`, JSON validado, `RouteRunner`, conclusão sem loop (`flag0 → flag1`) e loop real (`starter → flag8 → flag7 → flag6 → flag12 → flag2 → starter`) foram validados em `--observe-only`, inclusive com suspensão e retomada por PZ e combate. |
 | 12E — Fluxos avançados | Não iniciada | `STAND`, `ACTION`, `LABEL`, `GOTO` e transições permanecem fora do escopo atual. |
 
 ### Limites obrigatórios do estado atual
@@ -39,7 +39,8 @@ Também devem ser preservados os seguintes princípios:
 * O Cavebot só encaminha ações ao executor quando `--observe-only` está ativo; as ações são logs simulados.
 * Nenhuma conversão confiável de coordenadas do frame do Projetor para coordenadas de tela foi implementada. Portanto, **cliques físicos do Cavebot não estão autorizados**.
 * A suspensão por PZ e combate foi validada manualmente: nenhum `MOVE` é simulado durante a prioridade e o mesmo waypoint é readquirido após o retorno a `MOVING`.
-* O loop de uma rota possui validação unitária e manual no Projetor; suspensão/retomada após combate ou PZ ainda requer validação dedicada.
+* `CavebotModule` possui ciclo de vida próprio, como healer, combat e loot. Ele usa duas fases: `inspect(GameState)` produz a solicitação de movimento antes da máquina de estados e `propose(GameState, BotState, intent)` a suspende ou mantém após a decisão global.
+* O loop de uma rota possui validação unitária e manual no Projetor. A cobertura de integração específica do engine para suspensão e retomada ainda é pendente.
 
 ---
 
@@ -108,7 +109,7 @@ MinimapAnalyzer
     ↓
 GameState.minimap
     ↓
-CavebotController
+CavebotModule.inspect → StateMachine → CavebotModule.propose
     ↓
 DecisionController
     ↓

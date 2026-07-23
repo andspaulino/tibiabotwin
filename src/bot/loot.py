@@ -23,30 +23,31 @@ class AutoLootController:
         self.loot_requested_for_current_target = False
 
     def start(self) -> None:
-        if not self.config.enabled:
-            self.enabled = False
-            logger.log(
-                "LOOT",
-                "Modulo de Auto-Loot desativado na configuracao.",
-            )
-            return
-
-        self.enabled = True
-        self._reset_combat_state()
-
-        logger.log(
-            "LOOT",
-            "Modulo de Auto-Loot ativado.",
-        )
-
-    def stop(self) -> None:
+        """Prepara o módulo, mantendo-o inativo até o toggle explícito."""
         self.enabled = False
         self._reset_combat_state()
+        if self.config.enabled:
+            logger.log("LOOT", "Módulo de Auto-Loot pronto e desativado; aguardando toggle manual.")
+        else:
+            logger.log("LOOT", "Módulo de Auto-Loot indisponível pela configuração.")
 
-        logger.log(
-            "LOOT",
-            "Modulo de Auto-Loot desativado.",
-        )
+    def toggle(self) -> bool:
+        """Alterna o Auto-Loot sem solicitar loot no mesmo evento."""
+        if not self.config.enabled:
+            logger.log("LOOT", "Não foi possível ativar: módulo desativado na configuração.", level="WARNING")
+            return False
+        self.enabled = not self.enabled
+        self._reset_combat_state()
+        status = "ativado" if self.enabled else "desativado"
+        logger.log("LOOT", f"Módulo de Auto-Loot {status} pelo toggle.")
+        return self.enabled
+
+    def stop(self) -> None:
+        was_enabled = self.enabled
+        self.enabled = False
+        self._reset_combat_state()
+        if was_enabled:
+            logger.log("LOOT", "Módulo de Auto-Loot desativado no encerramento.")
 
     def get_proposed_actions(
         self,

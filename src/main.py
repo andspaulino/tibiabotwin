@@ -18,6 +18,7 @@ from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
 from src.bot.loot import AutoLootController
 from src.bot.cavebot.cavebot_controller import CavebotController
+from src.bot.cavebot.module import CavebotModule
 from src.config.route_loader import RouteValidationError, load_route
 
 if sys.platform == "win32":
@@ -103,8 +104,15 @@ def run():
         return
 
     route = None
-    if args.hunt:
-        hunt_path = Path(args.hunt)
+    selected_hunt = args.hunt or config.cavebot.selected_hunt
+    if selected_hunt is None:
+        logger.log(
+            "CAVEBOT",
+            "Nenhuma hunt selecionada em cavebot.selected_hunt; Cavebot permanecerá indisponível.",
+            level="WARNING",
+        )
+    else:
+        hunt_path = Path(selected_hunt)
         if not hunt_path.is_absolute():
             hunt_path = Path(__file__).resolve().parent.parent / "config" / "hunts" / hunt_path
             if not hunt_path.suffix:
@@ -115,7 +123,11 @@ def run():
                 dict(config.minimap.marker_templates),
                 config.cavebot.reserved_marker_ids,
             )
-            logger.log("CAVEBOT", f"Rota carregada: {route.hunt_name} ({len(route.waypoints)} waypoints)")
+            source = "argumento --hunt" if args.hunt else "cavebot.selected_hunt"
+            logger.log(
+                "CAVEBOT",
+                f"Rota carregada de {source}: {route.hunt_name} ({len(route.waypoints)} waypoints)",
+            )
         except RouteValidationError as err:
             logger.log("CAVEBOT", f"ERRO DE ROTA: {err}", level="ERROR")
             return
@@ -154,7 +166,8 @@ def run():
     cooldown_manager = CooldownManager()
     decision_controller = DecisionController(cooldown_manager=cooldown_manager)
     action_executor = ActionExecutor(input_controller=input_controller, cooldown_manager=cooldown_manager)
-    cavebot = CavebotController(config.cavebot, config.minimap, route=route)
+    cavebot_controller = CavebotController(config.cavebot, config.minimap, route=route)
+    cavebot = CavebotModule(cavebot_controller)
 
     # Injeção e Execução do BotEngine
     engine = BotEngine(

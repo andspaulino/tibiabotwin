@@ -34,6 +34,7 @@ class TestPlatformAbstractions(unittest.TestCase):
         cfg = HealerConfig(spell=SpellActionConfig(enabled=True, hp_below=80.0, key="F1", cooldown_ms=0))
         healer = AutoHealer(config=cfg)
         healer.start()
+        self.assertTrue(healer.toggle())
 
         now = datetime.now(timezone.utc)
         low_hp_state = GameState(
@@ -53,6 +54,7 @@ class TestPlatformAbstractions(unittest.TestCase):
         cfg = CombatConfig(enabled=True, attack_key="space", attack_cooldown_ms=0)
         combat = AutoAttacker(config=cfg)
         combat.start()
+        self.assertTrue(combat.toggle())
 
         now = datetime.now(timezone.utc)
         combat_state = GameState(

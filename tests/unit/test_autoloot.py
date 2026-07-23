@@ -38,6 +38,8 @@ class TestAutoLootController(unittest.TestCase):
         self.config = LootConfig(enabled=True, nearby_corpses_key="x", delay_ms=50, cooldown_ms=500)
         self.loot_controller = AutoLootController(self.config)
         self.loot_controller.start()
+        self.assertFalse(self.loot_controller.enabled)
+        self.assertTrue(self.loot_controller.toggle())
 
     def test_loot_triggered_on_target_loss(self):
         """Verifica se o AutoLoot propõe a ação LOOT_NEARBY após transição de alvo ativo para inativo mantendo o estado pendente."""

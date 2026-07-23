@@ -16,20 +16,30 @@ class AutoHealer:
         self.config = config or HealerConfig()
         self.enabled = False
 
-    def start(self):
-        """Inicia o módulo de cura se ativado na configuração."""
-        if not self.config.enabled:
-            logger.log("HEALER", "Modulo de cura desativado na configuracao.")
-            self.enabled = False
-            return
-        
-        self.enabled = True
-        logger.log("HEALER", "Modulo de cura ativado.")
-
-    def stop(self):
-        """Para o módulo de cura."""
+    def start(self) -> None:
+        """Prepara o módulo, mantendo-o inativo até o toggle explícito."""
         self.enabled = False
-        logger.log("HEALER", "Modulo de cura desativado.")
+        if self.config.enabled:
+            logger.log("HEALER", "Módulo de cura pronto e desativado; aguardando toggle manual.")
+        else:
+            logger.log("HEALER", "Módulo de cura indisponível pela configuração.")
+
+    def toggle(self) -> bool:
+        """Alterna a cura sem executar nenhuma ação imediatamente."""
+        if not self.config.enabled:
+            logger.log("HEALER", "Não foi possível ativar: módulo desativado na configuração.", level="WARNING")
+            return False
+        self.enabled = not self.enabled
+        status = "ativado" if self.enabled else "desativado"
+        logger.log("HEALER", f"Módulo de cura {status} pelo toggle.")
+        return self.enabled
+
+    def stop(self) -> None:
+        """Para o módulo de cura."""
+        was_enabled = self.enabled
+        self.enabled = False
+        if was_enabled:
+            logger.log("HEALER", "Módulo de cura desativado no encerramento.")
 
     def get_proposed_actions(self, game_state: GameState) -> List[BotAction]:
         """

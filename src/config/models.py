@@ -45,6 +45,7 @@ class CavebotConfig:
     stuck_timeout_ms: int = 15_000
     click_cooldown_ms: int = 1_500
     max_retries: int = 2
+    selected_hunt: str | None = None
 
 
 @dataclass(frozen=True)
@@ -108,6 +109,14 @@ class LootConfig:
 
 
 @dataclass(frozen=True)
+class ModuleHotkeysConfig:
+    healer_toggle: str = "home"
+    combat_toggle: str = "end"
+    loot_toggle: str = "page up"
+    cavebot_toggle: str = "page down"
+
+
+@dataclass(frozen=True)
 class AppConfig:
     window: WindowConfig = field(default_factory=WindowConfig)
     regions: RegionsConfig = field(default_factory=RegionsConfig)
@@ -117,4 +126,5 @@ class AppConfig:
     loot: LootConfig = field(default_factory=LootConfig)
     minimap: MinimapConfig = field(default_factory=MinimapConfig)
     cavebot: CavebotConfig = field(default_factory=CavebotConfig)
+    module_hotkeys: ModuleHotkeysConfig = field(default_factory=ModuleHotkeysConfig)
     loop_interval_ms: int = 50

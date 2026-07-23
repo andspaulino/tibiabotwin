@@ -29,7 +29,7 @@ from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
 from src.bot.loot import AutoLootController
 from src.bot.cavebot.cavebot_controller import CavebotController
-from src.bot.cavebot.models import CavebotStatus
+from src.bot.cavebot.module import CavebotModule
 from src.utils.overlay import OnScreenOverlay
 from src.utils.logger import logger
 
@@ -58,7 +58,7 @@ class BotEngine:
         decision_controller: Optional[DecisionController] = None,
         action_executor: Optional[ActionExecutor] = None,
         cooldown_manager: Optional[CooldownManager] = None,
-        cavebot: Optional[CavebotController] = None,
+        cavebot: Optional[CavebotModule] = None,
         observe_only: bool = False
     ):
         self.config = config
@@ -81,7 +81,9 @@ class BotEngine:
             cooldown_manager=self.cooldown_manager
         )
         self.observe_only = observe_only
-        self.cavebot = cavebot or CavebotController(config.cavebot, config.minimap)
+        self.cavebot = cavebot or CavebotModule(
+            CavebotController(config.cavebot, config.minimap)
+        )
         self.last_cavebot_signature: Optional[tuple[str, str]] = None
 
         self.running = False
@@ -181,29 +183,22 @@ class BotEngine:
         self._log_minimap_state(game_state, frame.image)
         t2 = time.perf_counter()
 
-        # 4. Avalia a intenção do Cavebot antes do modo global, sem executar input.
-        cavebot_intent = self.cavebot.evaluate(game_state)
+        # 4. Inspeciona a rota antes do modo global, sem executar nem autorizar input.
+        inspected_cavebot_intent = self.cavebot.inspect(game_state)
 
-        # 5. Atualiza a Máquina de Estados Finitos
+        # 5. Atualiza a Máquina de Estados Finitos.
         bot_state: BotState = self.state_machine.update(
             game_state,
             self.killswitch_paused,
-            movement_requested=cavebot_intent.movement_requested,
+            movement_requested=inspected_cavebot_intent.movement_requested,
         )
 
-        # 6. Após conhecer o modo final, suspende o Cavebot sem alterar sua rota.
-        final_cavebot_intent = cavebot_intent
-        if (
-            cavebot_intent.active
-            and bot_state.current_mode != BotMode.MOVING
-            and cavebot_intent.status not in {
-                CavebotStatus.ARRIVED,
-                CavebotStatus.COMPLETED,
-                CavebotStatus.STUCK,
-                CavebotStatus.INACTIVE,
-            }
-        ):
-            final_cavebot_intent = self.cavebot.suspend(bot_state.current_mode)
+        # 6. Só então o módulo propõe a ação compatível com o modo global final.
+        final_cavebot_intent = self.cavebot.propose(
+            game_state,
+            bot_state,
+            inspected_cavebot_intent,
+        )
         self._log_cavebot_intent(final_cavebot_intent.status.value, final_cavebot_intent.reason)
 
         # 7. Log de transição ao entrar/sair de PZ
@@ -255,6 +250,22 @@ class BotEngine:
 
         return game_state, bot_state, metrics
 
+    def _register_module_toggles(self) -> None:
+        """Registra toggles que apenas alteram o estado dos módulos."""
+        keyboard_module = keyboard
+        if keyboard_module is None:
+            return
+
+        module_toggles = (
+            (self.config.module_hotkeys.healer_toggle, self.healer.toggle, "HEALER"),
+            (self.config.module_hotkeys.combat_toggle, self.combat.toggle, "COMBAT"),
+            (self.config.module_hotkeys.loot_toggle, self.loot.toggle, "LOOT"),
+            (self.config.module_hotkeys.cavebot_toggle, self.cavebot.toggle, "CAVEBOT"),
+        )
+        for key, toggle, module_name in module_toggles:
+            keyboard_module.on_press_key(key, lambda event, callback=toggle: callback())
+            logger.log("SYSTEM", f"Toggle de {module_name} registrado na tecla {key.upper()}.")
+
     def run(self):
         """Inicia o loop contínuo do motor principal."""
         self.running = True
@@ -262,11 +273,12 @@ class BotEngine:
         if self.observe_only:
             logger.log("SYSTEM", "🔍 MODO DE OBSERVAÇÃO ATIVO (--observe-only). Teclado e mouse FÍSICOS DESABILITADOS.")
 
-        # Registra o Killswitch na tecla Pause
+        # Registra o Killswitch e os toggles globais dos módulos.
         if keyboard is not None:
             try:
-                keyboard.on_press_key('pause', self.toggle_killswitch)
+                keyboard.on_press_key("pause", self.toggle_killswitch)
                 logger.log("SYSTEM", "Killswitch registrado na tecla PAUSE.")
+                self._register_module_toggles()
             except Exception as err:
                 logger.log("SYSTEM", f"Aviso ao registrar hotkey global: {err}", level="WARNING")
 
@@ -282,6 +294,7 @@ class BotEngine:
             self.combat.start()
             if self.loot:
                 self.loot.start()
+            self.cavebot.start()
 
             logger.log("SYSTEM", "Engine em execucao. Pressione Ctrl+C ou PAUSE para parar.")
 
@@ -314,6 +327,8 @@ class BotEngine:
 
         if self.loot:
             self.loot.stop()
+
+        self.cavebot.stop()
 
         if self.overlay:
             self.overlay.stop()

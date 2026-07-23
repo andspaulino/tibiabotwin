@@ -20,20 +20,36 @@ class AutoAttacker:
         self.had_target_last_check = False
         self.had_monsters_last_check = False
 
-    def start(self):
-        """Inicia o módulo de ataque se ativado na configuração."""
-        if not self.config.enabled:
-            logger.log("COMBAT", "Modulo de ataque desativado na configuracao.")
-            self.enabled = False
-            return
-
-        self.enabled = True
-        logger.log("COMBAT", "Modulo de ataque ativado.")
-
-    def stop(self):
-        """Para o módulo de ataque."""
+    def start(self) -> None:
+        """Prepara o módulo, mantendo-o inativo até o toggle explícito."""
         self.enabled = False
-        logger.log("COMBAT", "Modulo de ataque desativado.")
+        self.had_target_last_check = False
+        self.had_monsters_last_check = False
+        if self.config.enabled:
+            logger.log("COMBAT", "Módulo de ataque pronto e desativado; aguardando toggle manual.")
+        else:
+            logger.log("COMBAT", "Módulo de ataque indisponível pela configuração.")
+
+    def toggle(self) -> bool:
+        """Alterna o ataque sem executar nenhuma ação imediatamente."""
+        if not self.config.enabled:
+            logger.log("COMBAT", "Não foi possível ativar: módulo desativado na configuração.", level="WARNING")
+            return False
+        self.enabled = not self.enabled
+        self.had_target_last_check = False
+        self.had_monsters_last_check = False
+        status = "ativado" if self.enabled else "desativado"
+        logger.log("COMBAT", f"Módulo de ataque {status} pelo toggle.")
+        return self.enabled
+
+    def stop(self) -> None:
+        """Para o módulo de ataque."""
+        was_enabled = self.enabled
+        self.enabled = False
+        self.had_target_last_check = False
+        self.had_monsters_last_check = False
+        if was_enabled:
+            logger.log("COMBAT", "Módulo de ataque desativado no encerramento.")
 
     def get_proposed_actions(self, game_state: GameState) -> List[BotAction]:
         """

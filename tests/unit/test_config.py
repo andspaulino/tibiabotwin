@@ -27,6 +27,20 @@ class TestConfigLoader(unittest.TestCase):
         self.assertEqual(cfg.healer.mana_potion.key, "F2")
         self.assertEqual(cfg.healer.emergency_potion.key, "F3")
 
+    def test_selected_hunt_is_loaded_from_cavebot_config(self):
+        cfg = validate_and_parse({"cavebot": {"selected_hunt": "depot_loop.json"}})
+
+        self.assertEqual(cfg.cavebot.selected_hunt, "depot_loop.json")
+
+    def test_default_config_selects_depot_loop(self):
+        cfg = load_config()
+
+        self.assertEqual(cfg.cavebot.selected_hunt, "depot_loop.json")
+
+    def test_selected_hunt_rejects_paths_outside_hunts_directory(self):
+        with self.assertRaises(ConfigValidationError):
+            validate_and_parse({"cavebot": {"selected_hunt": "../depot_loop.json"}})
+
     def test_invalid_percentage(self):
         """Verifica erro quando um percentual está fora do intervalo 0–100%."""
         data = {

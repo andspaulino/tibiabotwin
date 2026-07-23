@@ -17,6 +17,7 @@ from src.config.models import (
     LootConfig,
     MinimapConfig,
     CavebotConfig,
+    ModuleHotkeysConfig,
 )
 
 
@@ -244,6 +245,17 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         if cavebot_marker in reserved_marker_ids:
             raise ConfigValidationError("Campo 'cavebot.marker' não pode usar um marcador reservado.")
 
+    selected_hunt = cavebot_data.get("selected_hunt")
+    if selected_hunt is not None:
+        if not isinstance(selected_hunt, str) or not selected_hunt.strip():
+            raise ConfigValidationError("Campo 'cavebot.selected_hunt' deve ser uma string não vazia ou nulo.")
+        selected_hunt_path = Path(selected_hunt.strip())
+        if selected_hunt_path.name != selected_hunt_path.as_posix() or selected_hunt_path.suffix.lower() != ".json":
+            raise ConfigValidationError(
+                "Campo 'cavebot.selected_hunt' deve ser somente o nome de um arquivo .json em config/hunts/."
+            )
+        selected_hunt = selected_hunt_path.name
+
     expected_region = _validate_relative_roi(
         cavebot_data.get("expected_region"), "cavebot.expected_region", RelativeROI(0.0, 0.0, 1.0, 1.0)
     )
@@ -265,6 +277,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         stuck_timeout_ms=_validate_cooldown(cavebot_data.get("stuck_timeout_ms", 15_000), "cavebot.stuck_timeout_ms"),
         click_cooldown_ms=_validate_cooldown(cavebot_data.get("click_cooldown_ms", 1_500), "cavebot.click_cooldown_ms"),
         max_retries=max_retries,
+        selected_hunt=selected_hunt,
     )
 
     # 5. Healer Config
@@ -378,7 +391,35 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         emergency_hp_threshold=emergency_hp,
     )
 
-    # 9. Global loop interval
+    # 9. Module toggle hotkeys
+    hotkeys_data = data.get("module_hotkeys", {})
+    if not isinstance(hotkeys_data, dict):
+        raise ConfigValidationError("Campo 'module_hotkeys' deve ser um objeto.")
+    default_hotkeys = ModuleHotkeysConfig()
+    module_hotkeys_cfg = ModuleHotkeysConfig(
+        healer_toggle=_validate_hotkey(
+            hotkeys_data.get("healer_toggle", default_hotkeys.healer_toggle),
+            "module_hotkeys.healer_toggle",
+            True,
+        ),
+        combat_toggle=_validate_hotkey(
+            hotkeys_data.get("combat_toggle", default_hotkeys.combat_toggle),
+            "module_hotkeys.combat_toggle",
+            True,
+        ),
+        loot_toggle=_validate_hotkey(
+            hotkeys_data.get("loot_toggle", default_hotkeys.loot_toggle),
+            "module_hotkeys.loot_toggle",
+            True,
+        ),
+        cavebot_toggle=_validate_hotkey(
+            hotkeys_data.get("cavebot_toggle", default_hotkeys.cavebot_toggle),
+            "module_hotkeys.cavebot_toggle",
+            True,
+        ),
+    )
+
+    # 10. Global loop interval
     loop_ms = data.get("loop_interval_ms", 50)
     try:
         loop_ms = int(loop_ms)
@@ -396,6 +437,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         loot=loot_cfg,
         minimap=minimap_cfg,
         cavebot=cavebot_cfg,
+        module_hotkeys=module_hotkeys_cfg,
         loop_interval_ms=loop_ms
     )
 

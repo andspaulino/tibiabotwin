@@ -75,9 +75,11 @@ class TestFullPipelineIntegration(unittest.TestCase):
             input_controller=mock_input
         )
 
-        # Ativa os módulos
+        # A inicialização mantém módulos desativados; o teste os habilita explicitamente.
         healer.start()
         combat.start()
+        self.assertTrue(healer.toggle())
+        self.assertTrue(combat.toggle())
 
         # Executa 1 ciclo completo da pipeline
         game_state, bot_state, metrics = engine.run_cycle()

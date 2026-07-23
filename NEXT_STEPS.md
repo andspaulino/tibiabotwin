@@ -14,20 +14,21 @@ Captura → Percepção → Estado → Decisão → Execução
 
 ### Fase 12 — Cavebot por minimapa
 
-**Estado atual:** Fases 12A–12C concluídas em `--observe-only`; Fase 12D parcialmente concluída e validada em tempo real com a rota sequencial `flag0 → flag1`.
+**Estado atual:** Fases 12A–12D concluídas em `--observe-only`; o ciclo completo `starter → flag8 → flag7 → flag6 → flag12 → flag2 → starter`, incluindo suspensão e retomada, foi validado em tempo real.
 
 * [x] Adicionar `MinimapState` imutável ao `GameState` e analisar a ROI em um único frame por ciclo.
-* [x] Calibrar `regions.minimap` no perfil `cavebot` (`112×112` pixels no layout validado).
+* [x] Calibrar `regions.minimap` na configuração padrão (`112×112` pixels no layout validado).
 * [x] Detectar os marcadores reais `flag0` e `flag1` com confiança configurada de `0.75`.
 * [x] Criar payloads tipados e manter cliques simulados em `--observe-only`.
 * [x] Selecionar marcadores por template, confiança e região; confirmar chegada pelo raio de `4px`.
 * [x] Detectar falta de progresso e entrar em `STUCK` sem avançar waypoint.
-* [x] Carregar rotas JSON com `--hunt`, validar settings, IDs, regiões e templates, filtrar a percepção somente aos marcadores referenciados pela rota ativa e aplicar thresholds específicos por marcador.
+* [x] Carregar rotas JSON por `cavebot.selected_hunt` (ou override temporário `--hunt`), validar settings, IDs, regiões e templates, filtrar a percepção somente aos marcadores referenciados pela rota ativa e aplicar thresholds específicos por marcador.
 * [x] Validar rotas sequenciais no Projetor em `--observe-only`: conclusão sem loop (`flag0 → flag1`) e ciclo completo `starter → flag8 → flag7 → flag6 → flag12 → flag2 → starter` com `loop: true`.
 * [x] Bloquear `--hunt` fora de `--observe-only` nesta etapa.
 * [ ] Versionar frames reais de minimapa em `tests/fixtures/minimap/`.
 * [x] Validar manualmente rota com `loop: true`.
 * [x] Validar manualmente suspensão em PZ e combate: nenhum `MOVE` foi simulado durante a prioridade e a rota retomou o mesmo waypoint `000` após cada interrupção.
+* [x] Expor o Cavebot como módulo com ciclo de vida e contrato em duas fases: `inspect(GameState)` antes da máquina de estados e `propose(GameState, BotState, intent)` depois dela.
 * [ ] Adicionar teste de integração dedicado ao engine para rota, suspensão e retomada.
 * [ ] Converter coordenadas do frame do Projetor em coordenadas de tela e validar todos os portões de segurança antes de considerar clique físico.
 
@@ -52,6 +53,7 @@ Captura → Percepção → Estado → Decisão → Execução
 * [x] Bloquear todas as ações quando o estado da captura for inválido.
 * [x] Bloquear ações quando uma ROI obrigatória não puder ser analisada.
 * [x] Garantir que nenhuma ação automática seja executada na inicialização.
+* [x] Iniciar healer, ataque, Auto-Loot e Cavebot desativados; ativá-los somente por toggles globais configuráveis (`Home`, `End`, `PageUp` e `PageDown` por padrão), com registro no log.
 
 ### Captura e visão computacional
 

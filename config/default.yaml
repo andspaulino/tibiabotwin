@@ -33,28 +33,61 @@ regions:
     width: 0.058
     height: 0.091
 
-  # Calibre esta ROI no perfil antes de ativar a percepção do minimapa.
+  # ROI calibrada para o minimapa no Projetor do OBS.
   minimap:
-    x: 0.800
-    y: 0.020
-    width: 0.180
-    height: 0.220
+    x: 0.911458
+    y: 0.002973
+    width: 0.058333
+    height: 0.111001
 
-# A percepção do minimapa não gera inputs. Mantenha desativada até calibrar a ROI
-# e configurar templates de marcadores no perfil.
+# A percepção do minimapa usa os templates configurados abaixo e não gera input.
 minimap:
-  enabled: false
-  marker_templates: {}
-  match_threshold: 0.88
+  enabled: true
+  marker_templates:
+    starter: templates/markers/flag0.png
+    flag1: templates/markers/flag1.png
+    flag2: templates/markers/flag2.png
+    flag3: templates/markers/flag3.png
+    flag4: templates/markers/flag4.png
+    protected_zone: templates/markers/flag5.png
+    flag6: templates/markers/flag6.png
+    flag7: templates/markers/flag7.png
+    flag8: templates/markers/flag8.png
+    travel: templates/markers/flag9.png
+    depot: templates/markers/flag10.png
+    shops: templates/markers/flag11.png
+    flag12: templates/markers/flag12.png
+    bank: templates/markers/flag13.png
+    flag14: templates/markers/flag14.png
+    flag15: templates/markers/flag15.png
+    flag16: templates/markers/flag16.png
+    flag17: templates/markers/flag17.png
+    flag18: templates/markers/flag18.png
+    flag19: templates/markers/flag19.png
+  match_threshold: 0.75
   validate_cross: false
   cross_template_path: null
   cross_match_threshold: 0.88
 
-# Cavebot permanece desativado por padrão e só propõe cliques em --observe-only.
+# Os módulos abaixo são permitidos pela configuração, mas todos iniciam
+# desativados e exigem a hotkey de toggle para operar.
+module_hotkeys:
+  healer_toggle: "home"
+  combat_toggle: "end"
+  loot_toggle: "page up"
+  cavebot_toggle: "page down"
+
+# A rota é carregada na inicialização, mas o módulo Cavebot continua desativado
+# até o toggle. Ele só encaminha movimentos simulados em --observe-only.
 cavebot:
-  enabled: false
-  marker: ""
-  reserved_marker_ids: []
+  enabled: true
+  marker: starter
+  reserved_marker_ids:
+    - protected_zone
+    - travel
+    - depot
+    - shops
+    - bank
   expected_region:
     x: 0.0
     y: 0.0
@@ -65,6 +98,8 @@ cavebot:
   stuck_timeout_ms: 15000
   click_cooldown_ms: 1500
   max_retries: 2
+  # Nome do arquivo em config/hunts/ carregado automaticamente pelo Cavebot.
+  selected_hunt: depot_loop.json
 
 healer:
   enabled: true

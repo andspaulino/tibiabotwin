@@ -34,7 +34,7 @@ Diferente de bots que leem ou injetam dados na memória do jogo, este bot age pu
 - `GameState.minimap` recebe um snapshot imutável com ROI absoluta, centro local e todos os marcadores encontrados no mesmo frame do ciclo.
 - A análise utiliza templates configurados, pode auditar o layout com `cross.png` e falha de forma segura quando a ROI, o frame ou a validação são inválidos.
 - O bloco `minimap` de `config/default.yaml` começa desativado. Calibre `regions.minimap` e informe os templates no perfil antes de habilitá-lo. Esta fase **não gera cliques nem movimento**.
-- O perfil `cavebot` conecta um waypoint `flag0` ao loop somente em `--observe-only`: o log mostra intenção de movimento, chegada e clique simulado. Falta de progresso dispara retentativas limitadas e depois `STUCK`, sem avanço de waypoint. Uma rota JSON pode ser carregada com `--hunt nome-da-rota --observe-only`; fora desse modo, o Cavebot não encaminha ações ao executor.
+- A configuração padrão seleciona a rota em `cavebot.selected_hunt` (por padrão, `depot_loop.json`) e contém a ROI calibrada e os templates de marcadores necessários. O log mostra intenção de movimento, chegada e clique simulado somente em `--observe-only`. Falta de progresso dispara retentativas limitadas e depois `STUCK`, sem avanço de waypoint. Sem uma seleção, o Cavebot informa no log que está indisponível. `--hunt nome-da-rota --observe-only` continua disponível como override temporário da rota configurada; fora de `--observe-only`, o Cavebot não encaminha ações ao executor.
 
 ### 5. Máquina de Estados Finitos do Bot (`src/application/state_machine.py` + `BotMode`)
 - **`BotMode` Finito**: Apenas um modo principal ativo por ciclo (`PAUSED`, `UNSAFE`, `IN_PROTECTION_ZONE`, `COMBAT`, `IDLE`).
@@ -122,6 +122,10 @@ python -m src.main --observe-only
 
 # Execução utilizando um perfil específico em config/profiles/
 python -m src.main --profile character-example
+
+# Cavebot: a rota vem de cavebot.selected_hunt em config/default.yaml.
+# Pressione PageDown para ativar a observação da rota.
+python -m src.main --observe-only
 ```
 
 ---
@@ -148,7 +152,17 @@ Devido ao bloqueio de renderização direta do cliente do Tibia (tela preta), o 
    python launcher.py
    ```
 
-3. **Para pausar/retomar a qualquer momento**: Pressione a tecla **`Pause`** no teclado.
+3. **Controles globais**: todos os módulos iniciam desativados; os atalhos apenas alternam o estado do módulo e são configuráveis no bloco `module_hotkeys` de `config/default.yaml`.
+
+   | Tecla padrão | Ação |
+   | --- | --- |
+   | `Pause` | Pausar/retomar o bot (killswitch) |
+   | `Home` | Ativar/desativar o healer |
+   | `End` | Ativar/desativar o ataque |
+   | `PageUp` | Ativar/desativar o Auto-Loot |
+   | `PageDown` | Ativar/desativar o Cavebot |
+
+   Cada mudança é registrada no log. O Cavebot continua limitado a `--observe-only`; os toggles não enviam inputs ao jogo.
 
 ---
 
