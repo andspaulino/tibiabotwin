@@ -197,6 +197,16 @@ Nenhum módulo pode ignorar ou sobrescrever o killswitch.
 
 ---
 
+## 2.6. Desenvolver sempre em novas branches
+
+Todo novo desenvolvimento, refatoração, correção ou implementação de fase/feature deve:
+
+* ser iniciado a partir de uma branch Git dedicada (ex: `feature/auto-loot`, `feature/movement`, `fix/bug-name`);
+* nunca ser realizado diretamente na branch `main`;
+* passar por testes automatizados e validação de sintaxe antes do merge ou conclusão da tarefa.
+
+---
+
 # 3. Princípios arquiteturais obrigatórios
 
 ## 3.1. Separação entre percepção e execução
