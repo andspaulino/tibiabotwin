@@ -1,0 +1,27 @@
+{
+  "hunt_name": "Example Flag Route",
+  "version": 1,
+  "loop": false,
+  "settings": {
+    "match_threshold": 0.75,
+    "arrival_radius_pixels": 4.0,
+    "progress_epsilon_pixels": 1.5,
+    "stuck_timeout_ms": 15000,
+    "click_cooldown_ms": 1500,
+    "max_retries": 2
+  },
+  "waypoints": [
+    {
+      "id": "flag0-example",
+      "type": "marker_click",
+      "marker": "flag0",
+      "expected_region": {
+        "x": 0.0,
+        "y": 0.0,
+        "width": 1.0,
+        "height": 1.0
+      },
+      "description": "Example waypoint; calibrate this route before using it."
+    }
+  ]
+}

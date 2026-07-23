@@ -51,6 +51,23 @@ class RouteSettings:
 
 
 @dataclass(frozen=True)
+class HuntRoute:
+    hunt_name: str
+    version: int
+    loop: bool
+    settings: RouteSettings
+    waypoints: tuple["Waypoint", ...]
+
+    def __post_init__(self) -> None:
+        if not self.hunt_name.strip():
+            raise ValueError("o nome da rota não pode ser vazio")
+        if self.version != 1:
+            raise ValueError("a versão da rota não é suportada")
+        if not self.waypoints:
+            raise ValueError("a rota deve possuir ao menos um waypoint")
+
+
+@dataclass(frozen=True)
 class Waypoint:
     id: str
     type: WaypointType

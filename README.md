@@ -34,7 +34,7 @@ Diferente de bots que leem ou injetam dados na memória do jogo, este bot age pu
 - `GameState.minimap` recebe um snapshot imutável com ROI absoluta, centro local e todos os marcadores encontrados no mesmo frame do ciclo.
 - A análise utiliza templates configurados, pode auditar o layout com `cross.png` e falha de forma segura quando a ROI, o frame ou a validação são inválidos.
 - O bloco `minimap` de `config/default.yaml` começa desativado. Calibre `regions.minimap` e informe os templates no perfil antes de habilitá-lo. Esta fase **não gera cliques nem movimento**.
-- O perfil `cavebot` conecta um waypoint `flag0` ao loop somente em `--observe-only`: o log mostra intenção de movimento, chegada e clique simulado. Falta de progresso dispara retentativas limitadas e depois `STUCK`, sem avanço de waypoint. Fora desse modo, o Cavebot não encaminha ações ao executor.
+- O perfil `cavebot` conecta um waypoint `flag0` ao loop somente em `--observe-only`: o log mostra intenção de movimento, chegada e clique simulado. Falta de progresso dispara retentativas limitadas e depois `STUCK`, sem avanço de waypoint. Uma rota JSON pode ser carregada com `--hunt nome-da-rota --observe-only`; fora desse modo, o Cavebot não encaminha ações ao executor.
 
 ### 5. Máquina de Estados Finitos do Bot (`src/application/state_machine.py` + `BotMode`)
 - **`BotMode` Finito**: Apenas um modo principal ativo por ciclo (`PAUSED`, `UNSAFE`, `IN_PROTECTION_ZONE`, `COMBAT`, `IDLE`).

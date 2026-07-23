@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+from pathlib import Path
 
 # Garante importações a partir do diretório raiz
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -16,11 +17,17 @@ from src.utils.overlay import OnScreenOverlay
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
 from src.bot.loot import AutoLootController
+from src.bot.cavebot.cavebot_controller import CavebotController
+from src.config.route_loader import RouteValidationError, load_route
 
 if sys.platform == "win32":
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
-        sys.stderr.reconfigure(encoding='utf-8')
+        stdout_reconfigure = getattr(sys.stdout, "reconfigure", None)
+        stderr_reconfigure = getattr(sys.stderr, "reconfigure", None)
+        if callable(stdout_reconfigure):
+            stdout_reconfigure(encoding="utf-8")
+        if callable(stderr_reconfigure):
+            stderr_reconfigure(encoding="utf-8")
     except Exception:
         pass
 
@@ -66,6 +73,12 @@ def parse_args():
         action="store_true",
         help="Executa em modo de observação: analisa estado, logs e HUD, mas bloqueia envio de teclado/mouse."
     )
+    parser.add_argument(
+        "--hunt",
+        type=str,
+        default=None,
+        help="Arquivo JSON de rota em config/hunts/. Exige --observe-only nesta fase."
+    )
     return parser.parse_args()
 
 
@@ -84,6 +97,24 @@ def run():
         logger.log("SYSTEM", f"ERRO DE CONFIGURACAO: {err}", level="ERROR")
         print(f"\n[ERRO CRITICO DE CONFIGURACAO]: {err}\n")
         sys.exit(1)
+
+    if args.hunt and not args.observe_only:
+        logger.log("SYSTEM", "--hunt exige --observe-only nesta fase.", level="ERROR")
+        return
+
+    route = None
+    if args.hunt:
+        hunt_path = Path(args.hunt)
+        if not hunt_path.is_absolute():
+            hunt_path = Path(__file__).resolve().parent.parent / "config" / "hunts" / hunt_path
+            if not hunt_path.suffix:
+                hunt_path = hunt_path.with_suffix(".json")
+        try:
+            route = load_route(hunt_path, dict(config.minimap.marker_templates))
+            logger.log("CAVEBOT", f"Rota carregada: {route.hunt_name} ({len(route.waypoints)} waypoints)")
+        except RouteValidationError as err:
+            logger.log("CAVEBOT", f"ERRO DE ROTA: {err}", level="ERROR")
+            return
 
     # Instancia Gerenciadores de Infraestrutura por Plataforma
     window_manager = create_window_manager()
@@ -107,6 +138,7 @@ def run():
     cooldown_manager = CooldownManager()
     decision_controller = DecisionController(cooldown_manager=cooldown_manager)
     action_executor = ActionExecutor(input_controller=input_controller, cooldown_manager=cooldown_manager)
+    cavebot = CavebotController(config.cavebot, config.minimap, route=route)
 
     # Injeção e Execução do BotEngine
     engine = BotEngine(
@@ -125,6 +157,7 @@ def run():
         input_controller=input_controller,
         decision_controller=decision_controller,
         action_executor=action_executor,
+        cavebot=cavebot,
         observe_only=args.observe_only
     )
     engine.run()

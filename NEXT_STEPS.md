@@ -24,6 +24,7 @@ Captura → Percepção → Estado → Decisão → Execução
 * [x] Implementar a Fase 12B: payloads tipados de tecla e mouse, executor central e simulação em `--observe-only`.
 * [x] Fase 12C: `MarkerSelector`, cálculo de distância, confirmação de chegada e `StuckDetector` integrados ao waypoint de observação.
 * [x] Integrar o `CavebotController` ao `BotEngine` exclusivamente em `--observe-only`; o perfil `cavebot` simula um waypoint `flag0` sem clique físico.
+* [~] Fase 12D: formato JSON, validação, `RouteRunner` e `--hunt` em observação implementados; a rota de exemplo ainda precisa ser validada com marcadores reais sequenciais.
 * [ ] Antes de habilitar input real, converter coordenadas do frame do Projetor para coordenadas de tela e validar a rota completa com controles de segurança.
 
 
