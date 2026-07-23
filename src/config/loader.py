@@ -281,8 +281,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
     def_chat = ChatConfig()
     chat_roi = _validate_relative_roi(chat_data.get("button_roi"), "chat.button_roi", def_chat.button_roi)
     chat_on_tmpl = _validate_template_file(str(chat_data.get("on_template_path", "templates/chat_on.png")), "chat.on_template_path", chat_enabled)
-    chat_off_tmpl = _validate_template_file(str(chat_data.get("off_template_path", "templates/chat_off.png")), "chat.off_template_path", chat_enabled)
-    chat_thresh = float(chat_data.get("match_threshold", 0.80))
+    chat_thresh = float(chat_data.get("match_threshold", 0.90))
     if chat_thresh < 0.0 or chat_thresh > 1.0:
         raise ConfigValidationError("Campo 'chat.match_threshold' deve estar entre 0.0 e 1.0.")
     max_att = _validate_cooldown(chat_data.get("max_attempts", 3), "chat.max_attempts")
@@ -292,7 +291,6 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         enabled=chat_enabled,
         button_roi=chat_roi,
         on_template_path=chat_on_tmpl,
-        off_template_path=chat_off_tmpl,
         match_threshold=chat_thresh,
         max_attempts=max_att,
         retry_delay_ms=retry_delay,

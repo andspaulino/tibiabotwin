@@ -36,19 +36,18 @@ def is_chat_on(
     img_bgr: np.ndarray,
     roi: Optional[Union[RelativeROI, AbsoluteROI]] = None,
     template_path: str = "templates/chat_on.png",
-    threshold: float = 0.80
+    threshold: float = 0.90
 ) -> bool:
     """
-    Verifica se o chat do Tibia está no estado ON através de Template Matching com chat_on.png.
-    Retorna True se e somente se o template de Chat ON for detectado com alta confiança (>= threshold).
-    Se o template não for encontrado ou a pontuação for baixa, retorna False (presume Chat OFF).
+    Verifica se o chat do Tibia está no estado ON através de Template Matching estritamente com chat_on.png.
+    Retorna True se e somente se o score_on >= threshold (ex: 0.90).
+    Se não encontrar o template chat_on.png com score alto, retorna False (presume Chat OFF com total segurança).
     """
     if img_bgr is None or img_bgr.size == 0:
         return False
 
     template = load_template(template_path)
     if template is None:
-        # Se o template ON não for encontrado, presumimos Chat OFF para não disparar cliques indevidos
         logger.log("CHAT", f"Template '{template_path}' nao encontrado; presumindo Chat OFF por seguranca.", level="WARNING")
         return False
 
@@ -69,16 +68,6 @@ def is_chat_on(
     is_match = float(max_val) >= threshold
     logger.log("CHAT", f"Score Chat ON: {max_val:.3f} (Threshold: {threshold}) -> {'ON' if is_match else 'OFF'}")
     return is_match
-
-
-def is_chat_off(
-    img_bgr: np.ndarray,
-    roi: Optional[Union[RelativeROI, AbsoluteROI]] = None,
-    template_path: str = "templates/chat_off.png",
-    threshold: float = 0.80
-) -> bool:
-    """Invoca a detecção baseada no template Chat ON (se não for ON, presume OFF)."""
-    return not is_chat_on(img_bgr, roi=roi, template_path="templates/chat_on.png", threshold=threshold)
 
 
 def get_chat_button_center(w_frame: int, h_frame: int, roi: Union[RelativeROI, AbsoluteROI]) -> Tuple[int, int]:

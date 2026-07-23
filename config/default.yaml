@@ -84,8 +84,7 @@ chat:
     width: 0.043229
     height: 0.026759
   on_template_path: "templates/chat_on.png"
-  off_template_path: "templates/chat_off.png"
-  match_threshold: 0.55
+  match_threshold: 0.90
   max_attempts: 3
   retry_delay_ms: 300
 

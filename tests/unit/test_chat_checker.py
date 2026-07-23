@@ -7,7 +7,7 @@ from src.domain.roi import RelativeROI
 from src.infrastructure.capture.base import FrameCapturer
 from src.infrastructure.capture.frame import CapturedFrame, FrameStatus
 from src.infrastructure.input.mock_input import MockInputController
-from src.infrastructure.vision.chat_checker import is_chat_off, get_chat_button_center
+from src.infrastructure.vision.chat_checker import is_chat_on, get_chat_button_center
 from src.application.chat_initializer import ChatInitializer
 
 
@@ -29,8 +29,7 @@ class TestChatChecker(unittest.TestCase):
             enabled=True,
             button_roi=RelativeROI(x=0.4, y=0.9, width=0.1, height=0.05),
             on_template_path="templates/test_chat_on_dummy.png",
-            off_template_path="templates/test_chat_off_dummy.png",
-            match_threshold=0.55,
+            match_threshold=0.90,
             max_attempts=2,
             retry_delay_ms=10
         )
