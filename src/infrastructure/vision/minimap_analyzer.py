@@ -1,11 +1,18 @@
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping
 
 import cv2
 import numpy as np
 
-from src.domain.minimap import MarkerDetection, MinimapBounds, MinimapState
+from src.domain.minimap import MarkerDetection, MarkerMatchDiagnostic, MinimapBounds, MinimapState
 from src.domain.roi import InvalidROIError, RelativeROI, ROIResolver
+
+
+@dataclass(frozen=True)
+class _TemplateImage:
+    image: np.ndarray
+    mask: np.ndarray | None = None
 
 
 class MinimapAnalyzer:
@@ -68,8 +75,18 @@ class MinimapAnalyzer:
                 return MinimapState.unavailable("layout do minimapa não validado pelo cross")
 
         markers: list[MarkerDetection] = []
+        match_diagnostics: list[MarkerMatchDiagnostic] = []
         for template_id, template_path in marker_templates.items():
-            markers.extend(self._find_all(template_id, minimap, template_path, thresholds[template_id]))
+            detections, best_confidence = self._find_all(
+                template_id,
+                minimap,
+                template_path,
+                thresholds[template_id],
+            )
+            markers.extend(detections)
+            match_diagnostics.append(
+                MarkerMatchDiagnostic(template_id, best_confidence, thresholds[template_id])
+            )
 
         return MinimapState(
             available=True,
@@ -77,6 +94,7 @@ class MinimapAnalyzer:
             center=(roi.width // 2, roi.height // 2),
             markers=tuple(markers),
             cross_confidence=cross_confidence,
+            match_diagnostics=tuple(match_diagnostics),
         )
 
     def _find_all(
@@ -85,19 +103,20 @@ class MinimapAnalyzer:
         image: np.ndarray,
         template_path: str,
         threshold: float,
-    ) -> list[MarkerDetection]:
+    ) -> tuple[list[MarkerDetection], float | None]:
         template = self._load_template(template_path)
         if template is None or not template_id:
-            return []
-        if template.shape[0] > image.shape[0] or template.shape[1] > image.shape[1]:
-            return []
+            return [], None
+        if template.image.shape[0] > image.shape[0] or template.image.shape[1] > image.shape[1]:
+            return [], None
 
-        result = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
+        result = self._match_template(image, template)
+        best_confidence = max(0.0, float(np.max(result)))
         candidates = np.argwhere(result >= threshold)
         ordered = sorted(candidates, key=lambda point: float(result[point[0], point[1]]), reverse=True)
         accepted_centers: list[tuple[int, int]] = []
         detections: list[MarkerDetection] = []
-        template_height, template_width = template.shape[:2]
+        template_height, template_width = template.image.shape[:2]
 
         for top, left in ordered:
             center = (int(left + template_width // 2), int(top + template_height // 2))
@@ -111,21 +130,46 @@ class MinimapAnalyzer:
                     confidence=float(result[top, left]),
                 )
             )
-        return detections
+        return detections, best_confidence
 
     def _best_confidence(self, image: np.ndarray, template_path: str) -> float | None:
         template = self._load_template(template_path)
-        if template is None or template.shape[0] > image.shape[0] or template.shape[1] > image.shape[1]:
+        if template is None or template.image.shape[0] > image.shape[0] or template.image.shape[1] > image.shape[1]:
             return None
-        result = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
-        return float(cv2.minMaxLoc(result)[1])
+        result = self._match_template(image, template)
+        finite_values = result[np.isfinite(result)]
+        return float(np.max(finite_values)) if finite_values.size else None
 
     def _is_duplicate(self, first: tuple[int, int], second: tuple[int, int]) -> bool:
         return float(np.hypot(first[0] - second[0], first[1] - second[1])) <= self.nms_distance_pixels
 
     @staticmethod
-    def _load_template(template_path: str) -> np.ndarray | None:
+    def _match_template(image: np.ndarray, template: _TemplateImage) -> np.ndarray:
+        result = cv2.matchTemplate(
+            image,
+            template.image,
+            cv2.TM_CCOEFF_NORMED,
+            mask=template.mask,
+        )
+        normalized = np.nan_to_num(result, nan=-1.0, posinf=-1.0, neginf=-1.0)
+        return np.clip(normalized, -1.0, 1.0)
+
+    @staticmethod
+    def _load_template(template_path: str) -> _TemplateImage | None:
         path = Path(template_path)
         if not path.is_file():
             return None
-        return cv2.imread(str(path), cv2.IMREAD_COLOR)
+
+        loaded = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+        if loaded is None:
+            return None
+        if loaded.ndim == 2:
+            return _TemplateImage(cv2.cvtColor(loaded, cv2.COLOR_GRAY2BGR))
+        if loaded.shape[2] == 4:
+            alpha = loaded[:, :, 3]
+            if not np.any(alpha):
+                return None
+            return _TemplateImage(loaded[:, :, :3], alpha)
+        if loaded.shape[2] == 3:
+            return _TemplateImage(loaded)
+        return None

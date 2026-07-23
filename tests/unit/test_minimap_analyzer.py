@@ -55,6 +55,25 @@ class TestMinimapAnalyzer(unittest.TestCase):
         self.assertTrue(all(marker.template_id == "flag0" for marker in state.markers))
         self.assertTrue(all(marker.confidence >= 0.99 for marker in state.markers))
 
+    def test_uses_alpha_channel_as_template_mask(self) -> None:
+        transparent_template_path = Path(self.temp_dir.name) / "transparent-flag.png"
+        transparent_template = np.zeros((5, 5, 4), dtype=np.uint8)
+        transparent_template[:, :, :3] = [255, 0, 255]
+        transparent_template[1:4, 1:4, :3] = self.template
+        transparent_template[1:4, 1:4, 3] = 255
+        self.assertTrue(cv2.imwrite(str(transparent_template_path), transparent_template))
+
+        frame = np.full((20, 20, 3), 127, dtype=np.uint8)
+        frame[9:12, 10:13] = self.template
+        state = self.analyzer.analyze(
+            frame,
+            RelativeROI(x=0.0, y=0.0, width=1.0, height=1.0),
+            {"starter": str(transparent_template_path)},
+            match_threshold=0.99,
+        )
+
+        self.assertIn((11, 10), {marker.center for marker in state.markers})
+
     def test_accepts_thresholds_per_marker(self) -> None:
         frame = np.zeros((20, 20, 3), dtype=np.uint8)
         frame[8:11, 10:13] = self.template
@@ -76,6 +95,11 @@ class TestMinimapAnalyzer(unittest.TestCase):
 
         self.assertTrue(state.available)
         self.assertEqual(state.markers, ())
+        self.assertEqual(len(state.match_diagnostics), 1)
+        diagnostic = state.match_diagnostics[0]
+        self.assertEqual(diagnostic.template_id, "flag0")
+        self.assertIsNotNone(diagnostic.best_confidence)
+        self.assertEqual(diagnostic.threshold, 0.99)
 
     def test_invalid_frame_and_cross_validation_fail_safe(self) -> None:
         invalid_frame = self.analyzer.analyze(

@@ -99,7 +99,7 @@ cavebot:
   click_cooldown_ms: 1500
   max_retries: 2
   # Nome do arquivo em config/hunts/ carregado automaticamente pelo Cavebot.
-  selected_hunt: depot_loop.json
+  selected_hunt: newhaven_left.json
 
 healer:
   enabled: true
@@ -143,4 +143,3 @@ loot:
   require_empty_battle_list: false
   priority: 3
   emergency_hp_threshold: 30.0
-

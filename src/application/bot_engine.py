@@ -139,10 +139,18 @@ class BotEngine:
 
         assert minimap.bounds is not None
         if not minimap.markers:
+            rejected = "; ".join(
+                f"{diagnostic.template_id} não aceito: "
+                f"confiança={diagnostic.best_confidence:.4f} threshold={diagnostic.threshold:.4f}"
+                if diagnostic.best_confidence is not None
+                else f"{diagnostic.template_id} não avaliado: template indisponível ou incompatível"
+                for diagnostic in minimap.match_diagnostics
+            )
+            details = rejected or "nenhum template configurado para avaliação"
             logger.log(
                 "MINIMAP",
                 f"ROI ativa em x={minimap.bounds.x}, y={minimap.bounds.y}, "
-                f"w={minimap.bounds.width}, h={minimap.bounds.height}; nenhum marcador encontrado.",
+                f"w={minimap.bounds.width}, h={minimap.bounds.height}; {details}.",
                 level="INFO",
             )
             return

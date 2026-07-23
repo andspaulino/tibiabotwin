@@ -19,6 +19,23 @@ class MarkerDetection:
 
 
 @dataclass(frozen=True)
+class MarkerMatchDiagnostic:
+    """Melhor correspondência observada para um template no ciclo atual."""
+
+    template_id: str
+    best_confidence: float | None
+    threshold: float
+
+    def __post_init__(self) -> None:
+        if not self.template_id:
+            raise ValueError("template_id do diagnóstico não pode ser vazio")
+        if self.best_confidence is not None and not 0.0 <= self.best_confidence <= 1.0:
+            raise ValueError("a confiança do diagnóstico deve estar entre 0.0 e 1.0")
+        if not 0.0 <= self.threshold <= 1.0:
+            raise ValueError("o threshold do diagnóstico deve estar entre 0.0 e 1.0")
+
+
+@dataclass(frozen=True)
 class MinimapBounds:
     """Limites da ROI em pixels absolutos relativos ao frame do Projetor."""
 
@@ -48,6 +65,7 @@ class MinimapState:
     markers: tuple[MarkerDetection, ...] = ()
     cross_confidence: float | None = None
     reason: str | None = None
+    match_diagnostics: tuple[MarkerMatchDiagnostic, ...] = ()
 
     def __post_init__(self) -> None:
         if self.available:
