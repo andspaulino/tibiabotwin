@@ -15,9 +15,10 @@ from src.utils.humanizer import (
 
 def press_key(key: str, delay: float = 0.05):
     """
-    Simula o pressionamento de uma tecla usando DirectX scan codes com tempo de retenção e pausa humanizados.
+    Simula o pressionamento de uma tecla (ou combinação ex: 'alt+q', 'ctrl+f1') usando DirectX scan codes
+    com tempo de retenção e pausa humanizados.
     
-    :param key: Nome da tecla (ex: '1', '2', '3', 'f1', 'space')
+    :param key: Nome da tecla ou combinação (ex: '1', '2', '3', 'f1', 'space', 'alt+q')
     :param delay: Pausa base pós-pressionar
     """
     hold_time = get_key_hold_duration()
@@ -28,9 +29,28 @@ def press_key(key: str, delay: float = 0.05):
         time.sleep(hold_time + post_delay)
         return
 
-    pydirectinput.keyDown(key)
-    time.sleep(hold_time)
-    pydirectinput.keyUp(key)
+    if "+" in key:
+        keys = [k.strip().lower() for k in key.split("+")]
+        mod_map = {"alt": "altleft", "ctrl": "ctrlleft", "shift": "shiftleft"}
+        mod_keys = [mod_map.get(k, k) for k in keys[:-1]]
+        main_key = mod_map.get(keys[-1], keys[-1])
+
+        for m in mod_keys:
+            pydirectinput.keyDown(m)
+        time.sleep(0.02)
+
+        pydirectinput.keyDown(main_key)
+        time.sleep(hold_time)
+        pydirectinput.keyUp(main_key)
+        time.sleep(0.02)
+
+        for m in reversed(mod_keys):
+            pydirectinput.keyUp(m)
+    else:
+        pydirectinput.keyDown(key)
+        time.sleep(hold_time)
+        pydirectinput.keyUp(key)
+
     time.sleep(post_delay)
 
 def move_mouse_human(target_x: int, target_y: int):

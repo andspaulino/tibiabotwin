@@ -14,6 +14,7 @@ from src.config.models import (
     EmergencyPotionConfig,
     CombatConfig,
     PZConfig,
+    LootConfig,
 )
 
 
@@ -253,7 +254,27 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         match_threshold=pz_thresh
     )
 
-    # 6. Global loop interval
+    # 6. Loot Config
+    loot_data = data.get("loot", {})
+    loot_enabled = bool(loot_data.get("enabled", True))
+    nearby_key = _validate_hotkey(loot_data.get("nearby_corpses_key", "f12"), "loot.nearby_corpses_key", loot_enabled)
+    delay_ms = _validate_cooldown(loot_data.get("delay_ms", 200), "loot.delay_ms")
+    cooldown_ms = _validate_cooldown(loot_data.get("cooldown_ms", 500), "loot.cooldown_ms")
+    require_empty_bl = bool(loot_data.get("require_empty_battle_list", False))
+    priority = int(loot_data.get("priority", 40))
+    emergency_hp = _validate_percentage(loot_data.get("emergency_hp_threshold", 30.0), "loot.emergency_hp_threshold")
+
+    loot_cfg = LootConfig(
+        enabled=loot_enabled,
+        nearby_corpses_key=nearby_key,
+        delay_ms=delay_ms,
+        cooldown_ms=cooldown_ms,
+        require_empty_battle_list=require_empty_bl,
+        priority=priority,
+        emergency_hp_threshold=emergency_hp,
+    )
+
+    # 7. Global loop interval
     loop_ms = data.get("loop_interval_ms", 50)
     try:
         loop_ms = int(loop_ms)
@@ -268,6 +289,7 @@ def validate_and_parse(data: Dict[str, Any]) -> AppConfig:
         healer=healer_cfg,
         combat=combat_cfg,
         pz=pz_cfg,
+        loot=loot_cfg,
         loop_interval_ms=loop_ms
     )
 

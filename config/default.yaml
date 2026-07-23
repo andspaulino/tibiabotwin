@@ -66,3 +66,13 @@ pz:
   enabled: true
   template_path: "templates/pz.png"
   match_threshold: 0.82
+
+loot:
+  enabled: true
+  nearby_corpses_key: "x"
+  delay_ms: 200
+  cooldown_ms: 500
+  require_empty_battle_list: false
+  priority: 3
+  emergency_hp_threshold: 30.0
+

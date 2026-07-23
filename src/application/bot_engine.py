@@ -24,6 +24,7 @@ from src.application.action_executor import ActionExecutor
 from src.application.cooldown_manager import CooldownManager
 from src.bot.healer import AutoHealer
 from src.bot.combat import AutoAttacker
+from src.bot.loot import AutoLootController
 from src.utils.overlay import OnScreenOverlay
 from src.utils.logger import logger
 
@@ -46,6 +47,7 @@ class BotEngine:
         scheduler: LoopScheduler,
         hwnd_tibia: int,
         hwnd_obs: int,
+        loot: Optional[AutoLootController] = None,
         window_manager: Optional[WindowManager] = None,
         input_controller: Optional[InputController] = None,
         decision_controller: Optional[DecisionController] = None,
@@ -59,6 +61,7 @@ class BotEngine:
         self.state_machine = state_machine
         self.healer = healer
         self.combat = combat
+        self.loot = loot or AutoLootController(config.loot)
         self.overlay = overlay
         self.scheduler = scheduler
         self.hwnd_tibia = hwnd_tibia
@@ -77,6 +80,7 @@ class BotEngine:
         self.killswitch_paused = False
         self.last_pz_state: Optional[bool] = None
         self.last_metrics: Optional[CycleMetrics] = None
+        self.previous_state: Optional[GameState] = None
 
     def toggle_killswitch(self, e=None):
         """Alterna a flag de emergência do Killswitch e libera teclas imediatamente."""
@@ -133,6 +137,11 @@ class BotEngine:
         proposed_actions: List[BotAction] = []
         proposed_actions.extend(self.healer.get_proposed_actions(game_state))
         proposed_actions.extend(self.combat.get_proposed_actions(game_state))
+        if self.loot:
+            proposed_actions.extend(self.loot.get_proposed_actions(game_state, self.previous_state))
+
+        # Atualiza o estado do ciclo anterior
+        self.previous_state = game_state
 
         # 8. Resolução de conflitos e prioridades pelo DecisionController
         resolved_actions = self.decision_controller.resolve(
@@ -181,6 +190,8 @@ class BotEngine:
             self.overlay.start()
             self.healer.start()
             self.combat.start()
+            if self.loot:
+                self.loot.start()
 
             logger.log("SYSTEM", "Engine em execucao. Pressione Ctrl+C ou PAUSE para parar.")
 
@@ -210,6 +221,9 @@ class BotEngine:
                 self.input_controller.release_all()
             except Exception:
                 pass
+
+        if self.loot:
+            self.loot.stop()
 
         if self.overlay:
             self.overlay.stop()
